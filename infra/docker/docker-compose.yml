@@ -1,0 +1,145 @@
+# NEXUS Docker Compose — Full Development Stack
+# Usage: docker compose up -d
+
+services:
+  # ── PostgreSQL 16 + pgvector ───────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nexus-postgres
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 (Cache + Celery Broker) ────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Meilisearch ────────────────────────────────────────────────────
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    container_name: nexus-meilisearch
+    environment:
+      MEILI_MASTER_KEY: nexus-meili-key
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilidata:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO (S3-compatible object storage) ───────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: nexus-minio
+    environment:
+      MINIO_ROOT_USER: nexus
+      MINIO_ROOT_PASSWORD: nexus-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── NEXUS API (FastAPI) ────────────────────────────────────────────
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: nexus-api
+    ports:
+      - "8000:8000"
+    environment:
+      NEXUS_DATABASE_URL: postgresql+asyncpg://nexus:nexus@postgres:5432/nexus
+      NEXUS_REDIS_URL: redis://redis:6379/0
+      NEXUS_CELERY_BROKER_URL: redis://redis:6379/1
+      NEXUS_CELERY_RESULT_BACKEND: redis://redis:6379/2
+      NEXUS_MEILISEARCH_URL: http://meilisearch:7700
+      NEXUS_MEILISEARCH_API_KEY: nexus-meili-key
+      NEXUS_MINIO_ENDPOINT: minio:9000
+      NEXUS_MINIO_ACCESS_KEY: nexus
+      NEXUS_MINIO_SECRET_KEY: nexus-secret
+      NEXUS_ENVIRONMENT: development
+      NEXUS_DEBUG: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── Celery Worker ──────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: nexus-worker
+    environment:
+      NEXUS_DATABASE_URL: postgresql+asyncpg://nexus:nexus@postgres:5432/nexus
+      NEXUS_REDIS_URL: redis://redis:6379/0
+      NEXUS_CELERY_BROKER_URL: redis://redis:6379/1
+      NEXUS_CELERY_RESULT_BACKEND: redis://redis:6379/2
+      NEXUS_MEILISEARCH_URL: http://meilisearch:7700
+      NEXUS_MEILISEARCH_API_KEY: nexus-meili-key
+      NEXUS_MINIO_ENDPOINT: minio:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+
+  # ── Celery Beat (Scheduler) ───────────────────────────────────────
+  beat:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: nexus-beat
+    environment:
+      NEXUS_CELERY_BROKER_URL: redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+volumes:
+  pgdata:
+  redisdata:
+  meilidata:
+  miniodata:

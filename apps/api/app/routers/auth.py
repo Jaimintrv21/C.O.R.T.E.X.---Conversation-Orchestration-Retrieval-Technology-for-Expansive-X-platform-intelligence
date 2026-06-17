@@ -1,0 +1,143 @@
+"""Authentication router: register, login, refresh, logout, verify-email, TOTP."""
+from __future__ import annotations
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_db
+from app.dependencies import emit_audit_log, get_current_user
+from app.models.user import User, Session as UserSession
+from app.schemas.auth import (
+    LoginRequest, RegisterRequest, RefreshRequest, TokenResponse, UserResponse,
+    VerifyEmailRequest, TotpEnableRequest, TotpEnableResponse,
+)
+from app.schemas.common import ApiResponse
+from app.utils.crypto import hash_password, verify_password
+from app.utils.tokens import create_access_token, create_refresh_token, decode_token
+
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post("/register", response_model=ApiResponse[UserResponse], status_code=status.HTTP_201_CREATED)
+async def register(body: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    # Check uniqueness
+    existing = await db.execute(
+        select(User).where((User.email == body.email) | (User.username == body.username))
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email or username already registered")
+
+    user = User(
+        email=body.email,
+        username=body.username,
+        display_name=body.display_name or body.username,
+        hashed_password=hash_password(body.password),
+    )
+    db.add(user)
+    await db.flush()
+
+    await emit_audit_log(db, user.id, "user.registered", "user", user.id, request)
+
+    return ApiResponse(data=UserResponse.model_validate(user))
+
+
+@router.post("/login", response_model=ApiResponse[TokenResponse])
+async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if not user or not verify_password(body.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
+
+    access_token = create_access_token(user.id, user.role)
+    refresh_token = create_refresh_token(user.id)
+
+    # Store session
+    from hashlib import sha256
+    session = UserSession(
+        user_id=user.id,
+        token_hash=sha256(refresh_token.encode()).hexdigest(),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        expires_at=decode_token(refresh_token)["exp"],
+    )
+    db.add(session)
+
+    from datetime import datetime, timezone
+    user.last_login_at = datetime.now(timezone.utc)
+
+    await emit_audit_log(db, user.id, "user.logged_in", "user", user.id, request)
+
+    from app.config import get_settings
+    return ApiResponse(data=TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=get_settings().jwt_access_token_expire_minutes * 60,
+    ))
+
+
+@router.post("/refresh", response_model=ApiResponse[TokenResponse])
+async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = decode_token(body.refresh_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+
+    user_id = uuid.UUID(payload["sub"])
+    result = await db.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    access_token = create_access_token(user.id, user.role)
+    new_refresh = create_refresh_token(user.id)
+
+    from app.config import get_settings
+    return ApiResponse(data=TokenResponse(
+        access_token=access_token,
+        refresh_token=new_refresh,
+        expires_in=get_settings().jwt_access_token_expire_minutes * 60,
+    ))
+
+
+@router.delete("/logout", response_model=ApiResponse)
+async def logout(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await emit_audit_log(db, user.id, "user.logged_out", "user", user.id, request)
+    return ApiResponse(data={"message": "Logged out"})
+
+
+@router.post("/verify-email", response_model=ApiResponse)
+async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    # TODO: Implement email verification token logic
+    return ApiResponse(data={"message": "Email verification not yet implemented"})
+
+
+@router.post("/totp/enable", response_model=ApiResponse[TotpEnableResponse])
+async def enable_totp(
+    body: TotpEnableRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not verify_password(body.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid password")
+
+    import pyotp
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    user.totp_secret = secret
+
+    return ApiResponse(data=TotpEnableResponse(
+        secret=secret,
+        provisioning_uri=totp.provisioning_uri(user.email, issuer_name="C.O.R.T.E.X."),
+        backup_codes=[pyotp.random_base32()[:8] for _ in range(8)],
+    ))

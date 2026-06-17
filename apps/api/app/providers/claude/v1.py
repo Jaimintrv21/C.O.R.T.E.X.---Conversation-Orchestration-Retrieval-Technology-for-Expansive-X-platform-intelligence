@@ -1,0 +1,71 @@
+"""Claude export parser v1 — handles Claude's JSON export format."""
+from __future__ import annotations
+from datetime import datetime
+from typing import Any
+from app.providers.base import BaseProvider, CanonicalConversation, CanonicalMessage
+
+
+class ClaudeV1Parser(BaseProvider):
+    name = "Claude"
+    slug = "claude"
+    version = "1.0"
+
+    def detect(self, data: Any) -> bool:
+        if not isinstance(data, list):
+            return False
+        if len(data) == 0:
+            return False
+        sample = data[0]
+        return isinstance(sample, dict) and "chat_messages" in sample and "uuid" in sample
+
+    def parse(self, data: Any) -> list[CanonicalConversation]:
+        if not isinstance(data, list):
+            return []
+        conversations = []
+        for conv_data in data:
+            conv = self._parse_conversation(conv_data)
+            if conv:
+                conversations.append(conv)
+        return conversations
+
+    def _parse_conversation(self, raw: dict) -> CanonicalConversation | None:
+        messages = []
+        for i, msg in enumerate(raw.get("chat_messages", [])):
+            role = "assistant" if msg.get("sender") == "assistant" else "user"
+            content = msg.get("text", "")
+            if not content.strip():
+                continue
+
+            created = None
+            if msg.get("created_at"):
+                try:
+                    created = datetime.fromisoformat(msg["created_at"].replace("Z", "+00:00"))
+                except (ValueError, TypeError):
+                    pass
+
+            messages.append(CanonicalMessage(
+                external_id=msg.get("uuid"),
+                role=role,
+                content=content,
+                created_at=created,
+                metadata={"attachments": msg.get("attachments", [])},
+            ))
+
+        if not messages:
+            return None
+
+        created = None
+        if raw.get("created_at"):
+            try:
+                created = datetime.fromisoformat(raw["created_at"].replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                pass
+
+        return CanonicalConversation(
+            external_id=raw.get("uuid", ""),
+            title=raw.get("name"),
+            messages=messages,
+            provider_slug=self.slug,
+            started_at=created,
+            metadata={"project_uuid": raw.get("project_uuid"), "model": raw.get("model")},
+        )
