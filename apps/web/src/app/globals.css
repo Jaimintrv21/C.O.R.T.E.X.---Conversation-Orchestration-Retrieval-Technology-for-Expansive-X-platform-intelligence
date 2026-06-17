@@ -54,15 +54,21 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans antialiased; }
+  html { scroll-behavior: smooth; }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* ── Scrollbar ────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--muted)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 
-/* Glass surface utility */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+/* ── Glass surface utility ────────────────────── */
 .glass {
   background: rgba(255,255,255,0.04);
   backdrop-filter: blur(20px) saturate(180%);
@@ -70,11 +76,26 @@
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Animations */
-@keyframes fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slide-in-left { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes glow-pulse { 0%, 100% { box-shadow: 0 0 20px rgba(108,99,255,0.2); } 50% { box-shadow: 0 0 40px rgba(108,99,255,0.4); } }
+/* ── Animations ───────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(108,99,255,0.2); }
+  50%      { box-shadow: 0 0 40px rgba(108,99,255,0.4); }
+}
 
-.animate-fade-in { animation: fade-in 0.5s ease-out both; }
+.animate-fade-in  { animation: fade-in 0.5s ease-out both; }
 .animate-slide-in { animation: slide-in-left 0.4s ease-out both; }
-.animate-glow { animation: glow-pulse 3s ease-in-out infinite; }
+.animate-glow     { animation: glow-pulse 3s ease-in-out infinite; }
+
+/* ── Selection ────────────────────────────────── */
+::selection {
+  background: rgba(108, 99, 255, 0.3);
+  color: white;
+}

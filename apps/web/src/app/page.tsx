@@ -7,11 +7,12 @@ import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Features } from "@/components/blocks/features-8";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
-import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle } from "lucide-react";
+import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard } from "lucide-react";
 
 const NAV_TABS = [
   { title: "Home", icon: Home },
   { title: "Features", icon: Sparkles },
+  { title: "Pricing", icon: CreditCard },
   { type: "separator" as const },
   { title: "Pipeline", icon: Brain },
   { title: "Docs", icon: BookOpen },
@@ -46,10 +47,11 @@ export default function LandingPage() {
     const actions: Record<number, () => void> = {
       0: () => window.scrollTo({ top: 0, behavior: "smooth" }),
       1: () => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }),
-      3: () => document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" }),
-      4: () => window.open("https://github.com", "_blank"),
-      6: () => router.push("/login"),
-      7: () => router.push("/register"),
+      2: () => router.push("/pricing"),
+      4: () => document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" }),
+      5: () => window.open("https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence.git", "_blank"),
+      7: () => router.push("/login"),
+      8: () => router.push("/register"),
     };
     actions[index]?.();
   };
@@ -66,11 +68,7 @@ export default function LandingPage() {
 
       {/* Brand (top-left) */}
       <div className="fixed top-5 left-6 z-40 flex items-center gap-2">
-        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="url(#logo_grad)" />
-          <path d="M10 22V10l6 4.5L22 10v12l-6-4.5L10 22z" fill="white" fillOpacity="0.9" />
-          <defs><linearGradient id="logo_grad" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#8b5cf6"/><stop offset="1" stopColor="#06b6d4"/></linearGradient></defs>
-        </svg>
+        <img src="/logo.png" alt="CORTEX Logo" className="w-[28px] h-[28px] object-contain rounded-md" />
         <span className="text-base font-bold tracking-tight text-white hidden md:block">CORTEX</span>
       </div>
 
@@ -103,7 +101,7 @@ export default function LandingPage() {
             onClick={() => router.push("/login")}>
             Get Started <ArrowRight className="w-4 h-4 ml-1" />
           </LiquidButton>
-          <a href="https://github.com" className="flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors px-4 py-3">
+          <a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence.git" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors px-4 py-3">
             <Github className="w-4 h-4" /> Star on GitHub
           </a>
         </div>
@@ -223,16 +221,72 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FOOTER ──────────────────────────────── */}
-      <footer className="relative z-10 border-t border-white/[0.04] px-6 md:px-12 py-8">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/20">
-          <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="url(#f_grad)"/><path d="M10 22V10l6 4.5L22 10v12l-6-4.5L10 22z" fill="white" fillOpacity="0.9"/><defs><linearGradient id="f_grad" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#8b5cf6"/><stop offset="1" stopColor="#06b6d4"/></linearGradient></defs></svg>
-            <span>© 2026 CORTEX · Apache 2.0</span>
+      <footer className="relative z-10 border-t border-white/[0.08] bg-black/40 backdrop-blur-2xl px-6 md:px-16 pt-16 pb-12">
+        <div className="max-w-7xl mx-auto flex flex-col gap-12">
+          {/* Top Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Column 1: Brand */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
+                <span className="text-sm font-bold tracking-tight text-white">CORTEX</span>
+              </div>
+              <p className="text-xs text-white/45 leading-relaxed">
+                Unified cross-platform conversation intelligence. Index, search, analyze, and automate local or cloud AI memory.
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                <span className="text-[10px] text-white/55 font-medium tracking-wider uppercase">All Systems Operational</span>
+              </div>
+            </div>
+
+            {/* Column 2: Resources & Specs */}
+            <div className="flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Resources & Specs</h4>
+              <ul className="flex flex-col gap-2 text-xs text-white/40">
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/tree/main/docs" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Documentation Hub</a></li>
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/blob/main/docs/planning/PRD.md" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Product Specs (PRD)</a></li>
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/blob/main/docs/planning/erd.md" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Database Schema & ERD</a></li>
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/blob/main/docs/architecture/overview.md" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">System Architecture</a></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Console Pages */}
+            <div className="flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Console Pages</h4>
+              <ul className="flex flex-col gap-2 text-xs text-white/40">
+                <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard Console</Link></li>
+                <li><Link href="/dashboard/artifacts" className="hover:text-white transition-colors">Artifacts Engine</Link></li>
+                <li><Link href="/dashboard/compare" className="hover:text-white transition-colors">Model Compare Mode</Link></li>
+                <li><Link href="/dashboard/settings" className="hover:text-white transition-colors">Billing & Settings</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 4: Community & Legal */}
+            <div className="flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Community & Legal</h4>
+              <ul className="flex flex-col gap-2 text-xs text-white/40">
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5"><Github className="w-3.5 h-3.5" /> GitHub Repository</a></li>
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/issues" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Issues & Requests</a></li>
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/blob/main/docs/planning/threat-model.md" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Security Threat Model</a></li>
+                <li><a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Apache 2.0 License</a></li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-white/40 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white/40 transition-colors">Terms</a>
-            <a href="https://github.com" className="hover:text-white/40 transition-colors flex items-center gap-1"><Github className="w-3 h-3" />GitHub</a>
+
+          {/* Bottom Section */}
+          <div className="border-t border-white/[0.06] pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/30">
+            <span>© 2026 CORTEX Core Team. Apache License 2.0.</span>
+            <div className="flex gap-4">
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <a href="https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence.git" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1">
+                <Github size={12} /> GitHub
+              </a>
+            </div>
           </div>
         </div>
       </footer>

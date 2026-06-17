@@ -38,10 +38,10 @@ const providers = [
 
 export default function DashboardOverviewPage() {
   return (
-    <div className="flex flex-col gap-[48px]">
+    <div className="flex flex-col gap-[32px]">
       
       {/* Top Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[20px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[16px]">
         {stats.map((stat, i) => (
           <motion.div 
             key={i}
@@ -67,10 +67,10 @@ export default function DashboardOverviewPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[32px]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[24px]">
         
         {/* Left Column: Activity & Quick Actions */}
-        <div className="lg:col-span-2 flex flex-col gap-[32px]">
+        <div className="lg:col-span-2 flex flex-col gap-[24px]">
           
           {/* Quick Actions Row */}
           <div>
@@ -127,7 +127,7 @@ export default function DashboardOverviewPage() {
         </div>
 
         {/* Right Column: Provider Health */}
-        <div className="flex flex-col gap-[32px]">
+        <div className="flex flex-col gap-[24px]">
           <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[24px] flex flex-col gap-[20px] h-full">
             <h2 className="text-sm font-medium text-white/50 px-[8px]">Provider Health</h2>
             <div className="flex flex-col gap-[12px]">

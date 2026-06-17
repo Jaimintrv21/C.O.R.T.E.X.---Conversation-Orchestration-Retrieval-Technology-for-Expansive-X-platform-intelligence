@@ -21,8 +21,8 @@ export default function RegisterPage() {
       <div className="relative z-10 flex items-center justify-center w-full min-h-screen p-4">
         <div className="w-full max-w-sm">
           <div className="flex items-center justify-center gap-2 mb-8">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="url(#rg)"/><path d="M10 22V10l6 4.5L22 10v12l-6-4.5L10 22z" fill="white" fillOpacity="0.9"/><defs><linearGradient id="rg" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#8b5cf6"/><stop offset="1" stopColor="#06b6d4"/></linearGradient></defs></svg>
-            <span className="text-xl font-bold text-white tracking-tight">NEXUS</span>
+            <img src="/logo.png" alt="CORTEX Logo" className="w-[32px] h-[32px] object-contain rounded-md" />
+            <span className="text-xl font-bold text-white tracking-tight">CORTEX</span>
           </div>
 
           <div className="p-8 space-y-5 bg-white/[0.07] backdrop-blur-xl rounded-2xl border border-white/[0.12] shadow-2xl shadow-black/40">
@@ -33,13 +33,13 @@ export default function RegisterPage() {
 
             {/* OAuth */}
             <div className="grid grid-cols-2 gap-2.5">
-              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-sm text-white/80 font-medium transition-all"><GoogleIcon /> Google</button>
-              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-sm text-white/80 font-medium transition-all"><Github className="w-4 h-4" /> GitHub</button>
+              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-sm text-white/80 font-medium transition-all"><GoogleIcon /> Google</button>
+              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-sm text-white/80 font-medium transition-all"><Github className="w-4 h-4" /> GitHub</button>
             </div>
             <div className="grid grid-cols-3 gap-2.5">
-              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs text-white/70 font-medium transition-all"><OpenAIIcon /> OpenAI</button>
-              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs text-white/70 font-medium transition-all"><ClaudeIcon /> Claude</button>
-              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs text-white/70 font-medium transition-all"><GrokIcon /> Grok</button>
+              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-xs text-white/70 font-medium transition-all"><OpenAIIcon /> OpenAI</button>
+              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-xs text-white/70 font-medium transition-all"><ClaudeIcon /> Claude</button>
+              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-xs text-white/70 font-medium transition-all"><GrokIcon /> Grok</button>
             </div>
 
             <div className="relative flex items-center py-1">
@@ -66,7 +66,7 @@ export default function RegisterPage() {
                 <input type="password" id="r_cpw" value={form.confirm} onChange={e => u("confirm", e.target.value)} className="block py-2.5 px-0 w-full text-sm text-white bg-transparent border-0 border-b-2 border-white/20 appearance-none focus:outline-none focus:ring-0 focus:border-violet-500 peer" placeholder=" " required />
                 <label htmlFor="r_cpw" className="absolute text-sm text-white/40 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-violet-400 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"><Lock className="inline-block mr-2 -mt-1" size={14} />Confirm Password</label>
               </div>
-              <button type="submit" className="group w-full flex items-center justify-center py-3 px-4 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 rounded-xl text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all duration-300 shadow-lg shadow-violet-500/20">
+              <button type="submit" className="group w-full flex items-center justify-center py-3 px-4 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all duration-300 shadow-lg shadow-violet-500/20">
                 Create Account <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
               </button>
             </form>

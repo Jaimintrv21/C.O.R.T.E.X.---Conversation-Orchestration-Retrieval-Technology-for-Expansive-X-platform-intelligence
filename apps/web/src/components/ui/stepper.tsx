@@ -171,7 +171,7 @@ function StepperItem({
       <div
         data-slot="stepper-item"
         className={cn(
-          'group/step flex items-center justify-center group-data-[orientation=horizontal]/stepper-nav:flex-row group-data-[orientation=vertical]/stepper-nav:flex-col [&:not(:last-child)]:flex-1',
+          'group/step flex items-center justify-center group-data-[orientation=horizontal]/stepper-nav:flex-row group-data-[orientation=vertical]/stepper-nav:flex-col flex-1',
           className,
         )}
         data-state={state}

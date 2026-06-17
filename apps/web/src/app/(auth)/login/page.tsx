@@ -33,19 +33,15 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-8">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="url(#lg)" />
-              <path d="M10 22V10l6 4.5L22 10v12l-6-4.5L10 22z" fill="white" fillOpacity="0.9" />
-              <defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#8b5cf6"/><stop offset="1" stopColor="#06b6d4"/></linearGradient></defs>
-            </svg>
-            <span className="text-xl font-bold text-white tracking-tight">NEXUS</span>
+            <img src="/logo.png" alt="CORTEX Logo" className="w-[32px] h-[32px] object-contain rounded-md" />
+            <span className="text-xl font-bold text-white tracking-tight">CORTEX</span>
           </div>
 
           {/* Glass card */}
           <div className="p-8 space-y-6 bg-white/[0.07] backdrop-blur-xl rounded-2xl border border-white/[0.12] shadow-2xl shadow-black/40">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
-              <p className="mt-2 text-sm text-white/40">Sign in to your NEXUS account</p>
+              <p className="mt-2 text-sm text-white/40">Sign in to your CORTEX account</p>
             </div>
 
             <form onSubmit={e => e.preventDefault()} className="space-y-7">
@@ -86,7 +82,7 @@ export default function LoginPage() {
               </div>
 
               <button type="submit"
-                className="group w-full flex items-center justify-center py-3 px-4 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 rounded-xl text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all duration-300 shadow-lg shadow-violet-500/20">
+                className="group w-full flex items-center justify-center py-3 px-4 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all duration-300 shadow-lg shadow-violet-500/20">
                 Sign In
                 <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
               </button>
@@ -101,22 +97,22 @@ export default function LoginPage() {
 
             {/* OAuth — Google & GitHub row */}
             <div className="grid grid-cols-2 gap-2.5">
-              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-sm text-white/80 font-medium transition-all duration-200">
+              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-sm text-white/80 font-medium transition-all duration-200">
                 <GoogleIcon /> Google
               </button>
-              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-sm text-white/80 font-medium transition-all duration-200">
+              <button className="flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-sm text-white/80 font-medium transition-all duration-200">
                 <Github className="w-4 h-4" /> GitHub
               </button>
             </div>
             {/* OAuth — AI Providers row */}
             <div className="grid grid-cols-3 gap-2.5">
-              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs text-white/70 font-medium transition-all duration-200">
+              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-xs text-white/70 font-medium transition-all duration-200">
                 <OpenAIIcon /> OpenAI
               </button>
-              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs text-white/70 font-medium transition-all duration-200">
+              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-xs text-white/70 font-medium transition-all duration-200">
                 <ClaudeIcon /> Claude
               </button>
-              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs text-white/70 font-medium transition-all duration-200">
+              <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-full text-xs text-white/70 font-medium transition-all duration-200">
                 <GrokIcon /> Grok
               </button>
             </div>

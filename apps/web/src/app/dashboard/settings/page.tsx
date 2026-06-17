@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User, CreditCard, Box } from 'lucide-react';
+import { Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User, CreditCard, Box, Check, UserPlus, Trash2, X } from 'lucide-react';
 import { popIn, staggerList, listItem } from '@/lib/motion';
 
 const tabs = ['Profile', 'Integrations', 'Privacy', 'Workspace', 'Billing'];
@@ -27,12 +27,68 @@ export default function SettingsPage() {
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3');
 
+  // Workspace Management States
+  const [workspaceName, setWorkspaceName] = useState('Personal Workspace');
+  const [tempWorkspaceName, setTempWorkspaceName] = useState('Personal Workspace');
+  const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string; email: string; role: 'Owner' | 'Editor' | 'Viewer'; isYou?: boolean }>>([
+    { id: '1', name: 'John Doe', email: 'john@cortex.ai', role: 'Owner', isYou: true },
+    { id: '2', name: 'Sarah Smith', email: 'sarah@cortex.ai', role: 'Editor' }
+  ]);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState<'Editor' | 'Viewer'>('Editor');
+  
+  // Toast notifications
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    // Auto clear after 3 seconds
+    const timer = setTimeout(() => setToastMessage(null), 3000);
+    return () => clearTimeout(timer);
+  };
+
+  const handleUpdateWorkspaceName = () => {
+    if (!tempWorkspaceName.trim()) return;
+    setWorkspaceName(tempWorkspaceName);
+    triggerToast(`Workspace renamed to "${tempWorkspaceName}"`);
+  };
+
+  const handleInviteMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail || !inviteName) return;
+    
+    const newMember = {
+      id: Date.now().toString(),
+      name: inviteName,
+      email: inviteEmail,
+      role: inviteRole
+    };
+    
+    setTeamMembers(prev => [...prev, newMember]);
+    setInviteEmail('');
+    setInviteName('');
+    setIsInviteOpen(false);
+    triggerToast(`Sent invitation to ${newMember.name}`);
+  };
+
+  const handleRemoveMember = (id: string, name: string) => {
+    setTeamMembers(prev => prev.filter(m => m.id !== id));
+    triggerToast(`Removed ${name} from workspace`);
+  };
+
+  const handleChangeRole = (id: string, role: 'Editor' | 'Viewer') => {
+    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, role } : m));
+    triggerToast(`Updated role to ${role}`);
+  };
+
   const handleToggle = (key: string) => {
     setToggles(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
-    <div className="flex flex-col gap-[48px] max-w-[1000px]">
+    <div className="flex flex-col gap-[32px] max-w-[1000px] mx-auto w-full">
       
       {/* Header and Tabs */}
       <div className="flex flex-col gap-[24px]">
@@ -66,7 +122,7 @@ export default function SettingsPage() {
         variants={popIn}
         initial="hidden"
         animate="visible"
-        className="flex flex-col gap-[48px]"
+        className="flex flex-col gap-[32px]"
       >
         {activeTab === 'Integrations' && (
           <>
@@ -290,8 +346,21 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-[8px] max-w-[500px]">
                   <label className="text-xs text-white/50 pl-[8px]">Workspace Name</label>
                   <div className="flex gap-[12px]">
-                    <input type="text" defaultValue="Personal Workspace" className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#00D97E]/50 focus:bg-white/[0.05] transition-all" />
-                    <button className="px-[24px] py-[10px] rounded-full bg-white/[0.05] border border-white/[0.1] text-white text-sm font-medium hover:bg-white/[0.1] transition-all">
+                    <input 
+                      type="text" 
+                      value={tempWorkspaceName} 
+                      onChange={(e) => setTempWorkspaceName(e.target.value)}
+                      className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" 
+                    />
+                    <button 
+                      onClick={handleUpdateWorkspaceName}
+                      disabled={tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()}
+                      className={`px-[24px] py-[10px] rounded-full text-sm font-medium transition-all ${
+                        tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()
+                          ? 'bg-white/[0.02] text-white/20 border border-white/[0.05] cursor-not-allowed'
+                          : 'bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] hover:bg-[#6C63FF]/30'
+                      }`}
+                    >
                       Update
                     </button>
                   </div>
@@ -304,40 +373,133 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-[24px]">
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-medium text-white">Team Members</h3>
-                  <button className="px-[16px] py-[8px] rounded-full bg-[#00D97E]/20 border border-[#00D97E]/40 text-[#00D97E] text-xs font-medium hover:bg-[#00D97E]/30 transition-all">
-                    + Invite Member
+                  <button 
+                    onClick={() => setIsInviteOpen(true)}
+                    className="px-[16px] py-[8px] rounded-full bg-[#00D97E]/20 border border-[#00D97E]/40 text-[#00D97E] text-xs font-medium hover:bg-[#00D97E]/30 transition-all flex items-center gap-[6px]"
+                  >
+                    <UserPlus size={14} />
+                    Invite Member
                   </button>
                 </div>
                 
+                {/* Invite Modal Overlay/Form */}
+                {isInviteOpen && (
+                  <motion.form 
+                    onSubmit={handleInviteMember}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-[24px] rounded-[20px] bg-white/[0.04] border border-white/[0.1] flex flex-col gap-[16px]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-white">Invite New Member</h4>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsInviteOpen(false)}
+                        className="p-[4px] rounded-full hover:bg-white/[0.08] text-white/50 hover:text-white transition-all"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-[16px]">
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] text-white/40 pl-[8px]">Full Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="Sarah Connor" 
+                          value={inviteName}
+                          onChange={(e) => setInviteName(e.target.value)}
+                          required
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] text-white/40 pl-[8px]">Email Address</label>
+                        <input 
+                          type="email" 
+                          placeholder="sarah@cortex.ai" 
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          required
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] text-white/40 pl-[8px]">Workspace Role</label>
+                        <select 
+                          value={inviteRole}
+                          onChange={(e) => setInviteRole(e.target.value as any)}
+                          className="bg-[#0A0A0F] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all cursor-pointer"
+                        >
+                          <option value="Editor">Editor (Can edit and manage)</option>
+                          <option value="Viewer">Viewer (Read-only access)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-[12px] mt-[8px]">
+                      <button 
+                        type="button" 
+                        onClick={() => setIsInviteOpen(false)}
+                        className="px-[16px] py-[8px] rounded-full border border-white/[0.1] text-xs text-white/60 hover:bg-white/[0.05] transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="px-[20px] py-[8px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs font-semibold text-white hover:shadow-[0_0_15px_rgba(108,99,255,0.3)] transition-all"
+                      >
+                        Send Invitation
+                      </button>
+                    </div>
+                  </motion.form>
+                )}
+                
                 <div className="flex flex-col rounded-[16px] border border-white/[0.06] overflow-hidden">
-                  <div className="p-[16px] border-b border-white/[0.06] flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                    <div className="flex items-center gap-[12px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D2FF] flex items-center justify-center shadow-[0_0_10px_rgba(108,99,255,0.3)]">
-                        <User size={16} className="text-white" />
+                  {teamMembers.map((member) => (
+                    <div 
+                      key={member.id}
+                      className="p-[16px] border-b last:border-0 border-white/[0.06] flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                    >
+                      <div className="flex items-center gap-[12px]">
+                        <div className={`w-[32px] h-[32px] rounded-full bg-gradient-to-br ${
+                          member.role === 'Owner' ? 'from-[#6C63FF] to-[#00D2FF]' : 'from-white/10 to-white/5'
+                        } flex items-center justify-center shadow-[0_0_10px_rgba(108,99,255,0.2)]`}>
+                          <User size={16} className="text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-white">
+                            {member.name} {member.isYou && '(You)'}
+                          </span>
+                          <span className="text-xs text-white/50">{member.email}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white">John Doe (You)</span>
-                        <span className="text-xs text-white/50">john@cortex.ai</span>
+
+                      <div className="flex gap-[12px] items-center">
+                        {member.role === 'Owner' ? (
+                          <span className="text-xs font-medium text-[#6C63FF] bg-[#6C63FF]/10 border border-[#6C63FF]/20 px-[10px] py-[4px] rounded-full">Owner</span>
+                        ) : (
+                          <>
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleChangeRole(member.id, e.target.value as any)}
+                              className="bg-white/[0.04] border border-white/[0.08] rounded-full px-[12px] py-[4px] text-xs text-white/70 focus:outline-none cursor-pointer hover:bg-white/[0.08] transition-colors"
+                            >
+                              <option value="Editor" className="bg-[#0A0A0F]">Editor</option>
+                              <option value="Viewer" className="bg-[#0A0A0F]">Viewer</option>
+                            </select>
+                            <button 
+                              onClick={() => handleRemoveMember(member.id, member.name)}
+                              className="p-[6px] rounded-full hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"
+                              title="Remove member"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <span className="text-xs font-medium text-white/40 bg-white/[0.05] px-[10px] py-[4px] rounded-full">Owner</span>
-                  </div>
-                  
-                  <div className="p-[16px] flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                    <div className="flex items-center gap-[12px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-white/[0.1] flex items-center justify-center">
-                        <User size={16} className="text-white/60" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white">Sarah Smith</span>
-                        <span className="text-xs text-white/50">sarah@cortex.ai</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-[12px] items-center">
-                      <span className="text-xs font-medium text-white/40 bg-white/[0.05] px-[10px] py-[4px] rounded-full">Editor</span>
-                      <button className="text-xs text-white/30 hover:text-red-400 transition-colors">Remove</button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -348,18 +510,100 @@ export default function SettingsPage() {
           <section className="flex flex-col gap-[24px]">
             <div className="px-[8px]">
               <h2 className="text-lg font-medium text-white mb-[4px]">Billing & Plans</h2>
-              <p className="text-sm text-white/50">Manage your subscription and usage limits.</p>
+              <p className="text-sm text-white/50">Manage your subscription tier, billing cycle, and workspace quotas.</p>
             </div>
-            <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[32px] flex items-center justify-center min-h-[300px]">
-              <div className="flex flex-col items-center gap-[16px] text-white/40">
-                <CreditCard size={48} className="opacity-50" />
-                <p>Billing module coming soon</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
+              {/* Free Tier */}
+              <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-[32px] flex flex-col justify-between gap-[28px] transition-all relative overflow-hidden group">
+                <div className="flex flex-col gap-[20px]">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-[4px]">Free Tier</h3>
+                      <p className="text-xs text-white/40">Ideal for individual exploration & local hosting.</p>
+                    </div>
+                    <span className="text-xs font-semibold text-[#00D97E] bg-[#00D97E]/10 border border-[#00D97E]/20 px-[10px] py-[3px] rounded-full">Current Plan</span>
+                  </div>
+
+                  <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[20px]">
+                    <span className="text-4xl font-extrabold text-white">$0</span>
+                    <span className="text-xs text-white/40">/ month</span>
+                  </div>
+
+                  <ul className="flex flex-col gap-[12px] text-xs text-white/70">
+                    {[
+                      'Access to all core features & widgets',
+                      'Integrate local Ollama models',
+                      'Standard conversation history syncing',
+                      'Basic knowledge graph mapping',
+                      'Export generated artifacts as static packages'
+                    ].map((feature, i) => (
+                      <li key={i} className="flex items-center gap-[8px]">
+                        <Check className="text-[#00D97E] flex-shrink-0" size={14} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button className="w-full py-[11px] rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-white/40 font-semibold cursor-not-allowed transition-all">
+                  Active Subscription
+                </button>
+              </div>
+
+              {/* Pro Tier */}
+              <div className="rounded-[24px] backdrop-blur-xl bg-[#6C63FF]/[0.02] border border-[#6C63FF]/20 hover:border-[#6C63FF]/40 p-[32px] flex flex-col justify-between gap-[28px] transition-all relative overflow-hidden group shadow-[0_0_30px_rgba(108,99,255,0.05)]">
+                {/* Glowing Aura */}
+                <div className="absolute -top-[50px] -right-[50px] w-[120px] h-[120px] rounded-full bg-[#6C63FF]/10 blur-[40px] pointer-events-none group-hover:bg-[#6C63FF]/20 transition-all duration-300" />
+                
+                <div className="flex flex-col gap-[20px]">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-[4px]">Pro Tier</h3>
+                      <p className="text-xs text-white/40">For team syncs, workspaces, and priority AI model access.</p>
+                    </div>
+                    <span className="text-xs font-semibold text-[#6C63FF] bg-[#6C63FF]/15 border border-[#6C63FF]/30 px-[10px] py-[3px] rounded-full shadow-[0_0_12px_rgba(108,99,255,0.2)]">Recommended</span>
+                  </div>
+
+                  <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[20px]">
+                    <span className="text-4xl font-extrabold text-white">$20</span>
+                    <span className="text-xs text-white/40">/ month</span>
+                  </div>
+
+                  <ul className="flex flex-col gap-[12px] text-xs text-white/70">
+                    {[
+                      'Everything included in the Free tier',
+                      '+Workspace access (Multi-workspace & team collab)',
+                      'Access new premium AI models first (e.g. Claude 3.5 Sonnet v2)',
+                      'Access new beta functions & agents first',
+                      'Unlimited history backup & cloud synchronization',
+                      'Priority synthesis rendering with dedicated resources'
+                    ].map((feature, i) => (
+                      <li key={i} className="flex items-center gap-[8px]">
+                        <Check className="text-[#6C63FF] flex-shrink-0" size={14} />
+                        <span className={i > 0 && i < 4 ? 'text-white font-medium' : ''}>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button className="w-full py-[11px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs text-white font-bold hover:shadow-[0_0_20px_rgba(108,99,255,0.35)] transition-all">
+                  Upgrade to Pro
+                </button>
               </div>
             </div>
           </section>
         )}
 
       </motion.div>
+
+      {/* Glass-morphic Toast Notification Alert */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl backdrop-blur-3xl bg-black/80 border border-white/[0.1] px-5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="w-2 h-2 rounded-full bg-[#00D97E] animate-ping" />
+          <span className="text-xs font-medium text-white/90">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

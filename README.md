@@ -79,8 +79,8 @@ To run the C.O.R.T.E.X. dashboard UI locally:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-org/cortex.git
-cd cortex
+git clone https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence.git
+cd C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence
 
 # 2. Setup Environment Variables
 cp .env.example .env

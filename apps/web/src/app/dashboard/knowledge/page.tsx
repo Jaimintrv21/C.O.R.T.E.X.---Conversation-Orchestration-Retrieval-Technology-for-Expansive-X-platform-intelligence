@@ -25,9 +25,9 @@ export default function KnowledgeGraphPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] h-[calc(100vh-140px)] min-h-[600px] relative">
+    <div className="flex flex-col gap-[16px] h-[calc(100vh-140px)] min-h-[600px]">
       
-      <h1 className="text-2xl font-bold text-white px-[8px] absolute top-0 left-0 opacity-0 pointer-events-none">Knowledge Graph</h1>
+      <h1 className="text-2xl font-bold text-white px-[8px] flex-shrink-0">Knowledge Graph</h1>
 
       <div className="w-full h-full rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] overflow-hidden relative shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]">
         
