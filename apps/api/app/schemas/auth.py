@@ -1,35 +1,13 @@
 """Authentication schemas."""
 from __future__ import annotations
-from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field
 
+from datetime import datetime
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str = Field(min_length=8, max_length=128)
-    display_name: str | None = Field(default=None, max_length=100)
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-    totp_code: str | None = None
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
+from pydantic import BaseModel
 
 
 class UserResponse(BaseModel):
-    id: UUID
+    id: str
     email: str
     username: str
     display_name: str | None
@@ -44,15 +22,18 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-class VerifyEmailRequest(BaseModel):
-    token: str
+class SessionResponse(BaseModel):
+    id: str
+    user_id: str
+    token_hash: str | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    expires_at: datetime
+    revoked_at: datetime | None = None
+    auth0_session_id: str | None = None
+    auth0_jti: str | None = None
+    last_seen_at: datetime | None = None
+    created_at: datetime
 
-
-class TotpEnableRequest(BaseModel):
-    password: str
-
-
-class TotpEnableResponse(BaseModel):
-    secret: str
-    provisioning_uri: str
-    backup_codes: list[str]
+    class Config:
+        from_attributes = True

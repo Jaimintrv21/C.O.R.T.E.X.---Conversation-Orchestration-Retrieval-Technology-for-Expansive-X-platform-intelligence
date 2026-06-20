@@ -1,20 +1,29 @@
 """Conversations router backed by Firebase/Firestore."""
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import uuid
 from datetime import UTC, datetime
+from contextlib import suppress
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from app.config import get_settings
 from app.dependencies import emit_audit_log, get_current_user, get_idempotency_key
 from app.firestore import FirestoreStore
+from app.services.external_chat_errors import ExternalChatError, error_to_payload
+from app.services.external_chat_service import ExternalChatService
 from app.services.llm_service import LLMGenerationRequest, LLMRouterService
+from app.workers.tasks.embedding_tasks import embed_batch
 from app.schemas.common import ApiListResponse, ApiResponse, CursorMeta, Meta
 from app.schemas.conversation import (
     ChatMessageRequest,
     ChatTurnResponse,
+    ChatStreamDeltaResponse,
+    ChatStreamErrorResponse,
     CompareRequest,
     CompareResult,
     ConversationCreate,
@@ -144,6 +153,126 @@ async def _generate_chat_reply(*, provider_slug: str | None, conversation: dict,
     )
 
 
+def _resolve_chat_provider(body: ChatMessageRequest, conversation: dict) -> str:
+    if body.provider != "local":
+        return body.provider
+    if body.provider_slug:
+        return body.provider_slug.lower()
+    return str(conversation.get("provider_slug") or "chatgpt").lower()
+
+
+def _conversation_title_from_message(content: str) -> str:
+    first_line = content.strip().splitlines()[0] if content.strip() else "New Chat"
+    if len(first_line) > 60:
+        return f"{first_line[:60]}..."
+    return first_line or "New Chat"
+
+
+def _apply_conversation_metadata(store: FirestoreStore, conversation_id: str, conversation: dict, provider_slug: str, *, content: str) -> dict:
+    title = conversation.get("title")
+    if not title or title in {"New Chat", "Untitled", "Empty conversation."}:
+        title = _conversation_title_from_message(content)
+    updated = store.update_conversation(
+        conversation_id,
+        {
+            "title": title,
+            "provider_slug": provider_slug,
+            "provider_name": _provider_slug_to_name(provider_slug),
+        },
+    )
+    return updated or conversation
+
+
+async def _collect_external_reply(
+    *,
+    store: FirestoreStore,
+    user_id: str,
+    provider_slug: str,
+    messages: list[dict],
+    model: str | None,
+    conversation_id: str,
+) -> tuple[str, ExternalChatService]:
+    service = ExternalChatService(store)
+    api_key = await service.get_decrypted_api_key(user_id, provider_slug)
+    chunks: list[str] = []
+
+    try:
+        async for chunk in service.stream_completion(
+            provider_slug=provider_slug,
+            api_key=api_key,
+            messages=messages,
+            model=model,
+            user_id=user_id,
+        ):
+            chunks.append(chunk)
+    except ExternalChatError as exc:
+        if service.last_usage:
+            store.create_usage_record(
+                user_id=user_id,
+                provider_account_id=(service.last_provider_account or {}).get("id"),
+                provider_slug=provider_slug,
+                model=service.last_usage.model,
+                prompt_tokens=service.last_usage.prompt_tokens,
+                completion_tokens=service.last_usage.completion_tokens,
+                estimated_cost_usd=service.last_usage.estimated_cost_usd,
+                conversation_id=conversation_id,
+            )
+        exc.partial_text = "".join(chunks) or exc.partial_text
+        raise
+
+    if service.last_usage:
+        store.create_usage_record(
+            user_id=user_id,
+            provider_account_id=(service.last_provider_account or {}).get("id"),
+            provider_slug=provider_slug,
+            model=service.last_usage.model,
+            prompt_tokens=service.last_usage.prompt_tokens,
+            completion_tokens=service.last_usage.completion_tokens,
+            estimated_cost_usd=service.last_usage.estimated_cost_usd,
+            conversation_id=conversation_id,
+        )
+    return "".join(chunks), service
+
+
+def _persist_chat_turn(
+    *,
+    store: FirestoreStore,
+    conversation_id: str,
+    user_id: str,
+    conversation: dict,
+    provider_slug: str,
+    user_message: dict,
+    assistant_text: str | None,
+) -> tuple[dict, dict | None, dict]:
+    assistant_message: dict | None = None
+    if assistant_text is not None:
+        assistant_message = store.add_message(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            external_id=None,
+            role="assistant",
+            content=assistant_text,
+            content_type="text",
+            model=None,
+            token_count=max(1, len(assistant_text.split())),
+            attachments=None,
+            tool_calls=None,
+            parent_id=user_message["id"],
+            sequence_num=int(user_message.get("sequence_num") or 0) + 1,
+            created_at=None,
+        )
+
+    updated_conversation = _apply_conversation_metadata(
+        store,
+        conversation_id,
+        conversation,
+        provider_slug,
+        content=str(user_message.get("content") or ""),
+    )
+    store.update_conversation_message_stats(conversation_id)
+    return updated_conversation, assistant_message, user_message
+
+
 @router.post("/{conversation_id}/messages", response_model=ApiResponse[ChatTurnResponse], status_code=status.HTTP_201_CREATED)
 async def send_message(
     conversation_id: uuid.UUID,
@@ -158,7 +287,7 @@ async def send_message(
 
     messages = store.list_messages(str(conversation_id))
     next_sequence = (max((int(message.get("sequence_num") or 0) for message in messages), default=0) + 1)
-    provider_slug = (body.provider_slug or conversation.get("provider_slug") or "chatgpt").lower()
+    provider_slug = _resolve_chat_provider(body, conversation)
 
     user_message = store.add_message(
         conversation_id=str(conversation_id),
@@ -176,68 +305,265 @@ async def send_message(
         created_at=None,
     )
 
-    assistant_text = await _generate_chat_reply(
-        provider_slug=provider_slug,
-        conversation=conversation,
-        content=body.content,
-        model=body.model,
-        local_only=body.local_only,
-    )
-    assistant_message = store.add_message(
-        conversation_id=str(conversation_id),
-        user_id=user["id"],
-        external_id=None,
-        role="assistant",
-        content=assistant_text,
-        content_type="text",
-        model=body.model,
-        token_count=max(1, len(assistant_text.split())),
-        attachments=None,
-        tool_calls=None,
-        parent_id=user_message["id"],
-        sequence_num=next_sequence + 1,
-        created_at=None,
-    )
-
-    updated_title = conversation.get("title")
-    if not updated_title or updated_title in {"New Chat", "Untitled", "Empty conversation."}:
-        updated_title = body.content.strip().splitlines()[0][:60]
-        if len(body.content.strip().splitlines()[0]) > 60:
-            updated_title += "..."
-        store.update_conversation(
-            str(conversation_id),
-            {
-                "title": updated_title,
-                "provider_slug": provider_slug,
-                "provider_name": _provider_slug_to_name(provider_slug),
-            },
+    assistant_text: str | None = None
+    external_error: ExternalChatError | None = None
+    if body.provider == "local":
+        assistant_text = await _generate_chat_reply(
+            provider_slug=provider_slug,
+            conversation=conversation,
+            content=body.content,
+            model=body.model,
+            local_only=body.local_only,
         )
     else:
-        store.update_conversation(
-            str(conversation_id),
-            {
-                "provider_slug": provider_slug,
-                "provider_name": _provider_slug_to_name(provider_slug),
-            },
+        try:
+            assistant_text, _ = await _collect_external_reply(
+                store=store,
+                user_id=user["id"],
+                provider_slug=provider_slug,
+                messages=store.list_messages(str(conversation_id)),
+                model=body.model,
+                conversation_id=str(conversation_id),
+            )
+        except ExternalChatError as exc:
+            external_error = exc
+            assistant_text = exc.partial_text or None
+
+    assistant_message = None
+    if assistant_text is not None:
+        assistant_message = store.add_message(
+            conversation_id=str(conversation_id),
+            user_id=user["id"],
+            external_id=None,
+            role="assistant",
+            content=assistant_text,
+            content_type="text",
+            model=body.model,
+            token_count=max(1, len(assistant_text.split())),
+            attachments=None,
+            tool_calls=None,
+            parent_id=user_message["id"],
+            sequence_num=next_sequence + 1,
+            created_at=None,
         )
 
+    updated_conversation = _apply_conversation_metadata(
+        store,
+        str(conversation_id),
+        conversation,
+        provider_slug,
+        content=body.content,
+    )
     store.update_conversation_message_stats(str(conversation_id))
-    updated_conversation = store.get_conversation(str(conversation_id))
+
+    # Queue async embedding generation for both messages (don't block the response)
+    new_msg_ids = [user_message["id"]]
+    if assistant_message:
+        new_msg_ids.append(assistant_message["id"])
+    embed_batch.delay(message_ids=new_msg_ids)
+
     await emit_audit_log(
         user["id"],
         "conversation.message_sent",
         "conversation",
         str(conversation_id),
         request,
-        after_state={"content": body.content, "sequence_num": next_sequence},
+        after_state={
+            "content": body.content,
+            "sequence_num": next_sequence,
+            "provider": body.provider,
+            "provider_slug": provider_slug,
+            "error": error_to_payload(external_error) if external_error else None,
+        },
     )
+
+    if external_error:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS if external_error.code in {"RATE_LIMITED", "SPEND_CAP_REACHED"} else status.HTTP_400_BAD_REQUEST,
+            detail=error_to_payload(external_error),
+        )
 
     return ApiResponse(
         data=ChatTurnResponse(
             conversation=_serialize_conversation(updated_conversation or conversation),
             user_message=MessageResponse.model_validate(user_message),
-            assistant_message=MessageResponse.model_validate(assistant_message),
+            assistant_message=MessageResponse.model_validate(assistant_message) if assistant_message else MessageResponse.model_validate({**user_message, "role": "assistant", "content": assistant_text or ""}),
         )
+    )
+
+
+def _external_error_status(error: ExternalChatError) -> int:
+    if error.code in {"RATE_LIMITED", "SPEND_CAP_REACHED"}:
+        return status.HTTP_429_TOO_MANY_REQUESTS
+    if error.code in {"INVALID_API_KEY", "CONTEXT_TOO_LONG", "CONTENT_FILTERED"}:
+        return status.HTTP_400_BAD_REQUEST
+    return status.HTTP_502_BAD_GATEWAY
+
+
+@router.post("/{conversation_id}/messages/stream")
+async def stream_message(
+    conversation_id: uuid.UUID,
+    body: ChatMessageRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    store = FirestoreStore()
+    conversation = store.get_conversation(str(conversation_id))
+    if not conversation or conversation.get("user_id") != user["id"] or conversation.get("deleted_at") is not None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    messages = store.list_messages(str(conversation_id))
+    next_sequence = (max((int(message.get("sequence_num") or 0) for message in messages), default=0) + 1)
+    provider_slug = _resolve_chat_provider(body, conversation)
+
+    user_message = store.add_message(
+        conversation_id=str(conversation_id),
+        user_id=user["id"],
+        external_id=None,
+        role="user",
+        content=body.content,
+        content_type="text",
+        model=body.model,
+        token_count=max(1, len(body.content.split())),
+        attachments=None,
+        tool_calls=None,
+        parent_id=None,
+        sequence_num=next_sequence,
+        created_at=None,
+    )
+
+    async def event_stream():
+        service = ExternalChatService(store)
+        assistant_parts: list[str] = []
+        provider_error: ExternalChatError | None = None
+        assistant_message: dict | None = None
+        queue: asyncio.Queue[tuple[str, object]] = asyncio.Queue()
+        done = asyncio.Event()
+
+        async def produce() -> None:
+            nonlocal provider_error
+            try:
+                if body.provider == "local":
+                    assistant_text = await _generate_chat_reply(
+                        provider_slug=provider_slug,
+                        conversation=conversation,
+                        content=body.content,
+                        model=body.model,
+                        local_only=body.local_only,
+                    )
+                    await queue.put(("chunk", assistant_text))
+                else:
+                    api_key = await service.get_decrypted_api_key(user["id"], provider_slug)
+                    async for chunk in service.stream_completion(
+                        provider_slug=provider_slug,
+                        api_key=api_key,
+                        messages=store.list_messages(str(conversation_id)),
+                        model=body.model,
+                        user_id=user["id"],
+                    ):
+                        await queue.put(("chunk", chunk))
+            except ExternalChatError as exc:
+                provider_error = exc
+                await queue.put(("error", exc))
+            except Exception as exc:
+                provider_error = ExternalChatError(
+                    code="EXTERNAL_CHAT_FAILED",
+                    message="The external model request failed.",
+                    retryable=True,
+                    provider=provider_slug,
+                    original_exception=exc,
+                )
+                await queue.put(("error", provider_error))
+            finally:
+                done.set()
+                await queue.put(("done", None))
+
+        producer = asyncio.create_task(produce())
+
+        try:
+            while True:
+                try:
+                    kind, payload = await asyncio.wait_for(queue.get(), timeout=15)
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+                    continue
+
+                if kind == "chunk":
+                    chunk = str(payload)
+                    if chunk:
+                        assistant_parts.append(chunk)
+                        yield f"data: {json.dumps(ChatStreamDeltaResponse(delta=chunk).model_dump())}\n\n"
+                elif kind == "error":
+                    error_obj = payload if isinstance(payload, ExternalChatError) else provider_error
+                    if error_obj:
+                        yield f"data: {json.dumps(ChatStreamErrorResponse(error=error_obj.message).model_dump())}\n\n"
+                    break
+                elif kind == "done":
+                    break
+        finally:
+            if not producer.done():
+                producer.cancel()
+                with suppress(asyncio.CancelledError):
+                    await producer
+            else:
+                with suppress(Exception):
+                    await producer
+
+            assistant_text = "".join(assistant_parts) if assistant_parts else (provider_error.partial_text if provider_error and provider_error.partial_text else None)
+            if assistant_text is not None:
+                assistant_message = store.add_message(
+                    conversation_id=str(conversation_id),
+                    user_id=user["id"],
+                    external_id=None,
+                    role="assistant",
+                    content=assistant_text,
+                    content_type="text",
+                    model=body.model,
+                    token_count=max(1, len(assistant_text.split())),
+                    attachments=None,
+                    tool_calls=None,
+                    parent_id=user_message["id"],
+                    sequence_num=next_sequence + 1,
+                    created_at=None,
+                )
+
+            _apply_conversation_metadata(
+                store,
+                str(conversation_id),
+                conversation,
+                provider_slug,
+                content=body.content,
+            )
+            store.update_conversation_message_stats(str(conversation_id))
+
+            # Queue async embedding generation for persisted messages
+            stream_msg_ids = [user_message["id"]]
+            if assistant_message:
+                stream_msg_ids.append(assistant_message["id"])
+            embed_batch.delay(message_ids=stream_msg_ids)
+            await emit_audit_log(
+                user["id"],
+                "conversation.message_sent",
+                "conversation",
+                str(conversation_id),
+                request,
+                after_state={
+                    "content": body.content,
+                    "sequence_num": next_sequence,
+                    "provider": body.provider,
+                    "provider_slug": provider_slug,
+                    "streaming": True,
+                    "error": error_to_payload(provider_error) if provider_error else None,
+                },
+            )
+
+        if provider_error:
+            return
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -407,4 +733,71 @@ async def compare_conversations(body: CompareRequest, user: dict = Depends(get_c
 
 @router.get("/duplicates", response_model=ApiListResponse[DuplicateResponse])
 async def list_duplicates(user: dict = Depends(get_current_user)):
-    return ApiListResponse(data=[])
+    store = FirestoreStore()
+    pairs = store.list_duplicate_pairs(user["id"])
+    results: list[DuplicateResponse] = []
+    for pair in pairs:
+        conv_a = store.get_conversation(pair["conv_a_id"])
+        conv_b = store.get_conversation(pair["conv_b_id"])
+        if not conv_a or not conv_b:
+            continue
+        if conv_a.get("user_id") != user["id"] or conv_b.get("user_id") != user["id"]:
+            continue
+        results.append(
+            DuplicateResponse(
+                id=pair["id"],
+                conversation_a=_serialize_conversation(conv_a),
+                conversation_b=_serialize_conversation(conv_b),
+                similarity=pair.get("similarity", 0.0),
+                detection_method=pair.get("detection_method", "embedding_cosine"),
+                is_confirmed=pair.get("is_confirmed", True),
+                created_at=pair.get("created_at"),
+            )
+        )
+    return ApiListResponse(data=results)
+
+
+@router.post("/duplicates/{pair_id}/resolve", response_model=ApiResponse)
+async def resolve_duplicate(
+    pair_id: str,
+    body: dict,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """Resolve a duplicate pair: merge or dismiss."""
+    action = body.get("action", "").lower()
+    if action not in {"merge", "dismiss"}:
+        raise HTTPException(status_code=400, detail="action must be 'merge' or 'dismiss'")
+
+    store = FirestoreStore()
+    pair = store.get_duplicate_pair(pair_id)
+    if not pair or pair.get("user_id") != user["id"]:
+        raise HTTPException(status_code=404, detail="Duplicate pair not found")
+
+    if action == "merge":
+        # Keep the older conversation, merge the newer one into it
+        conv_a = store.get_conversation(pair["conv_a_id"])
+        conv_b = store.get_conversation(pair["conv_b_id"])
+        if not conv_a or not conv_b:
+            raise HTTPException(status_code=404, detail="One of the conversations no longer exists")
+
+        a_created = conv_a.get("created_at")
+        b_created = conv_b.get("created_at")
+        if a_created and b_created and a_created <= b_created:
+            keep_id, remove_id = pair["conv_a_id"], pair["conv_b_id"]
+        else:
+            keep_id, remove_id = pair["conv_b_id"], pair["conv_a_id"]
+
+        merged = store.merge_conversations(keep_id=keep_id, remove_id=remove_id)
+        store.resolve_duplicate_pair(pair_id, resolution="merged")
+        await emit_audit_log(
+            user["id"], "duplicate.merged", "conversation", keep_id, request,
+            after_state={"removed_id": remove_id, "pair_id": pair_id},
+        )
+        return ApiResponse(data={"action": "merged", "kept_conversation_id": keep_id, "removed_conversation_id": remove_id})
+    else:
+        store.resolve_duplicate_pair(pair_id, resolution="dismiss")
+        await emit_audit_log(
+            user["id"], "duplicate.dismissed", "duplicate_pair", pair_id, request,
+        )
+        return ApiResponse(data={"action": "dismissed", "pair_id": pair_id})

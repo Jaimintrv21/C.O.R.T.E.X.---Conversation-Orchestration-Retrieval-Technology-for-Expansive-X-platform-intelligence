@@ -38,14 +38,29 @@ def _get_master_key() -> bytes:
 
 def encrypt_field(plaintext: bytes) -> tuple[bytes, bytes]:
     """Returns (ciphertext, iv/nonce)."""
-    key = _get_master_key()
-    nonce = os.urandom(12)
-    aesgcm = AESGCM(key)
-    ciphertext = aesgcm.encrypt(nonce, plaintext, None)
+    ciphertext, nonce = encrypt_with_key(plaintext, _get_master_key())
     return ciphertext, nonce
 
 
 def decrypt_field(ciphertext: bytes, nonce: bytes) -> bytes:
-    key = _get_master_key()
-    aesgcm = AESGCM(key)
+    return decrypt_with_key(ciphertext, nonce, _get_master_key())
+
+
+def encrypt_with_key(plaintext: bytes, key: bytes) -> tuple[bytes, bytes]:
+    """Encrypt arbitrary bytes with a raw AES-256 key."""
+    if len(key) < 32:
+        key = key.ljust(32, b"\0")
+    aes_key = key[:32]
+    nonce = os.urandom(12)
+    aesgcm = AESGCM(aes_key)
+    ciphertext = aesgcm.encrypt(nonce, plaintext, None)
+    return ciphertext, nonce
+
+
+def decrypt_with_key(ciphertext: bytes, nonce: bytes, key: bytes) -> bytes:
+    """Decrypt arbitrary bytes with a raw AES-256 key."""
+    if len(key) < 32:
+        key = key.ljust(32, b"\0")
+    aes_key = key[:32]
+    aesgcm = AESGCM(aes_key)
     return aesgcm.decrypt(nonce, ciphertext, None)

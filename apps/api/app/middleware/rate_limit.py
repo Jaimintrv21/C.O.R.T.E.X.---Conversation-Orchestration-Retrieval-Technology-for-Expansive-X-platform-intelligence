@@ -23,7 +23,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Determine limit based on auth presence
         has_auth = "authorization" in request.headers
-        limit = settings.rate_limit_authenticated if has_auth else settings.rate_limit_unauthenticated
+        if request.url.path.endswith("/ingest/extension") or request.url.path.endswith("/ingest/api-log"):
+            limit = settings.rate_limit_extension
+        else:
+            limit = settings.rate_limit_authenticated if has_auth else settings.rate_limit_unauthenticated
 
         # Key by IP (production should key by user_id for authenticated)
         client_ip = request.client.host if request.client else "unknown"

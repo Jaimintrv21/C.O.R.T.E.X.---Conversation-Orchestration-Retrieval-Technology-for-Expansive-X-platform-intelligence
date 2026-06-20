@@ -1,13 +1,13 @@
 """Conversation and message schemas."""
 from __future__ import annotations
 from datetime import datetime
-from uuid import UUID
+from typing import Literal
 from pydantic import BaseModel, Field
 
 
 class MessageResponse(BaseModel):
-    id: UUID
-    conversation_id: UUID
+    id: str
+    conversation_id: str
     external_id: str | None
     role: str
     content: str
@@ -16,7 +16,7 @@ class MessageResponse(BaseModel):
     token_count: int
     attachments: dict | None
     tool_calls: dict | None
-    parent_id: UUID | None
+    parent_id: str | None
     sequence_num: int
     created_at: datetime
     updated_at: datetime | None = None
@@ -26,10 +26,10 @@ class MessageResponse(BaseModel):
 
 
 class ConversationResponse(BaseModel):
-    id: UUID
-    user_id: UUID
-    workspace_id: UUID | None
-    provider_id: UUID | None
+    id: str
+    user_id: str
+    workspace_id: str | None
+    provider_id: str | None
     provider_slug: str | None = None
     provider_name: str | None = None
     external_id: str | None
@@ -42,7 +42,7 @@ class ConversationResponse(BaseModel):
     language: str | None
     topics: list[str] | None
     tags: list[str] | None
-    folder_id: UUID | None
+    folder_id: str | None
     is_pinned: bool
     is_shared: bool
     quality_score: float | None
@@ -61,7 +61,7 @@ class ConversationResponse(BaseModel):
 class ConversationCreate(BaseModel):
     title: str | None = Field(default="New Chat", max_length=200)
     provider_slug: str | None = Field(default="chatgpt", max_length=80)
-    workspace_id: UUID | None = None
+    workspace_id: str | None = None
     summary: str | None = None
     tags: list[str] | None = None
     topics: list[str] | None = None
@@ -71,16 +71,16 @@ class ConversationCreate(BaseModel):
 class ConversationUpdate(BaseModel):
     title: str | None = None
     tags: list[str] | None = None
-    folder_id: UUID | None = None
+    folder_id: str | None = None
     is_pinned: bool | None = None
     status: str | None = None
 
 
 class ConversationFilter(BaseModel):
-    provider_id: UUID | None = None
+    provider_id: str | None = None
     status: str | None = None
     tags: list[str] | None = None
-    folder_id: UUID | None = None
+    folder_id: str | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
     search: str | None = None
@@ -89,20 +89,29 @@ class ConversationFilter(BaseModel):
 class ImportRequest(BaseModel):
     """File import is handled via multipart form; this is for metadata."""
     provider_slug: str | None = None
-    workspace_id: UUID | None = None
+    workspace_id: str | None = None
     tags: list[str] | None = None
     idempotency_key: str | None = None
 
 
 class CompareRequest(BaseModel):
-    conversation_ids: list[UUID] = Field(min_length=2, max_length=5)
+    conversation_ids: list[str] = Field(min_length=2, max_length=5)
 
 
 class ChatMessageRequest(BaseModel):
     content: str = Field(min_length=1, max_length=20000)
     provider_slug: str | None = None
+    provider: Literal["local", "openai", "anthropic", "gemini", "grok"] = "local"
     model: str | None = None
     local_only: bool | None = None
+
+
+class ChatStreamDeltaResponse(BaseModel):
+    delta: str | None = None
+
+
+class ChatStreamErrorResponse(BaseModel):
+    error: str | None = None
 
 
 class ChatTurnResponse(BaseModel):
@@ -119,7 +128,7 @@ class CompareResult(BaseModel):
 
 
 class DuplicateResponse(BaseModel):
-    id: UUID
+    id: str
     conversation_a: ConversationResponse
     conversation_b: ConversationResponse
     similarity: float

@@ -39,7 +39,7 @@ class ClaudeV1Parser(BaseProvider):
     async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
         if False:
             yield CanonicalConversation(external_id="")
-        raise NotImplementedError("Claude incremental sync is not implemented yet")
+        raise self._live_sync_not_supported()
 
     def get_schema_version(self) -> str:
         return "claude.v1"

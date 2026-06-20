@@ -40,11 +40,18 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
-    jwt_algorithm: str = "RS256"
-    jwt_private_key_path: str = "keys/private.pem"
-    jwt_public_key_path: str = "keys/public.pem"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
+
+    auth0_domain: str = ""
+    auth0_audience: str = ""
+    auth0_client_id: str = ""
+    auth0_client_secret: str = ""
+    auth0_database_connection: str = "Username-Password-Authentication"
+    auth0_jwks_cache_ttl_seconds: int = 86_400
+    extension_token_secret: str = "change-me-extension-token-secret"
+    extension_token_audience: str = "cortex-extension-ingest"
+    extension_token_ttl_days: int = 30
 
     master_encryption_key: str = "change-me-32-byte-key-in-prod!!"
 
@@ -83,6 +90,7 @@ class Settings(BaseSettings):
 
     rate_limit_authenticated: int = 100
     rate_limit_unauthenticated: int = 10
+    rate_limit_extension: int = 30
 
     max_upload_size_mb: int = 500
     upload_temp_dir: str = "/tmp/cortex-uploads"

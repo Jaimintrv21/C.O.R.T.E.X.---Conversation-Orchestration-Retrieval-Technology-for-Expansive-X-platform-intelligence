@@ -10,14 +10,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import init_db, close_db
+from app.logging_config import configure_logging
 from app.middleware.logging import LoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 
 # Import all routers
 from app.routers import health, auth, conversations, search, analytics
-from app.routers import knowledge_graph, artifacts, jobs, workspaces
+from app.routers import knowledge_graph, artifacts, jobs, workspaces, provider_accounts, ingest, usage
 
 settings = get_settings()
+configure_logging()
 
 
 @asynccontextmanager
@@ -70,3 +72,6 @@ app.include_router(knowledge_graph.router, prefix=prefix)
 app.include_router(artifacts.router, prefix=prefix)
 app.include_router(jobs.router, prefix=prefix)
 app.include_router(workspaces.router, prefix=prefix)
+app.include_router(provider_accounts.router, prefix=prefix)
+app.include_router(ingest.router, prefix=prefix)
+app.include_router(usage.router, prefix=prefix)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import uuid
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
@@ -12,6 +13,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 from app.config import get_settings
+from app.utils.crypto import decrypt_field, decrypt_with_key, encrypt_field, encrypt_with_key
 
 
 def utcnow() -> datetime:
@@ -70,6 +72,22 @@ class FirestoreStore:
     def _col(self, name: str):
         return self.db.collection(name)
 
+    def _user_dek(self, user_id: str) -> bytes:
+        user = self.get_user(user_id)
+        if not user or not user.get("encrypted_dek") or not user.get("dek_iv"):
+            raise ValueError("User does not have an envelope-encrypted DEK")
+        encrypted_dek = user["encrypted_dek"]
+        dek_iv = user["dek_iv"]
+        if not isinstance(encrypted_dek, (bytes, bytearray)) or not isinstance(dek_iv, (bytes, bytearray)):
+            raise ValueError("Invalid DEK payload")
+        return decrypt_field(bytes(encrypted_dek), bytes(dek_iv))
+
+    def encrypt_for_user(self, user_id: str, plaintext: bytes) -> tuple[bytes, bytes]:
+        return encrypt_with_key(plaintext, self._user_dek(user_id))
+
+    def decrypt_for_user(self, user_id: str, ciphertext: bytes, nonce: bytes) -> bytes:
+        return decrypt_with_key(ciphertext, nonce, self._user_dek(user_id))
+
     def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         docs = list(self._col("users").where("email", "==", email.lower()).limit(1).stream())
         return _with_id(docs[0]) if docs else None
@@ -82,23 +100,43 @@ class FirestoreStore:
         doc = self._col("users").document(user_id).get()
         return _with_id(doc) if doc.exists else None
 
-    def create_user(self, *, email: str, username: str, display_name: str, hashed_password: str) -> dict[str, Any]:
-        user_id = make_uuid()
+    def create_user(
+        self,
+        *,
+        user_id: str | None = None,
+        email: str,
+        username: str,
+        display_name: str,
+        avatar_url: str | None = None,
+        role: str = "user",
+        is_verified: bool = False,
+        preferences: dict[str, Any] | None = None,
+        encryption_mode: str = "envelope",
+        auth0_subject: str | None = None,
+        auth0_connection: str | None = None,
+        auth0_claims: dict[str, Any] | None = None,
+        primary_workspace_id: str | None = None,
+    ) -> dict[str, Any]:
+        user_id = user_id or make_uuid()
         now = utcnow()
         payload = {
             "email": email.lower(),
             "username": username,
             "display_name": display_name,
-            "hashed_password": hashed_password,
-            "avatar_url": None,
-            "role": "user",
+            "avatar_url": avatar_url,
+            "role": role,
             "is_active": True,
-            "is_verified": False,
-            "totp_secret": None,
-            "preferences": {},
+            "is_verified": is_verified,
+            "preferences": preferences or {},
             "storage_quota": 5_368_709_120,
             "storage_used": 0,
-            "encryption_mode": "envelope",
+            "encrypted_dek": None,
+            "dek_iv": None,
+            "encryption_mode": encryption_mode,
+            "auth0_subject": auth0_subject or user_id,
+            "auth0_connection": auth0_connection,
+            "auth0_claims": auth0_claims or {},
+            "primary_workspace_id": primary_workspace_id,
             "last_login_at": None,
             "created_at": now,
             "updated_at": now,
@@ -107,6 +145,84 @@ class FirestoreStore:
         self._col("users").document(user_id).set(payload)
         payload["id"] = user_id
         return payload
+
+    def get_or_create_user_from_auth0(self, sub: str, claims: dict[str, Any]) -> dict[str, Any]:
+        existing = self.get_user(sub)
+        now = utcnow()
+        role_claim = claims.get("https://cortex.app/roles", "user")
+        if isinstance(role_claim, list):
+            role = str(role_claim[0]) if role_claim else "user"
+        else:
+            role = str(role_claim or "user")
+
+        email = str(claims.get("email") or claims.get("preferred_username") or f"{sub}@auth0.local")
+        display_name = claims.get("name") or claims.get("nickname") or email.split("@")[0]
+        avatar_url = claims.get("picture")
+        workspace_id = claims.get("https://cortex.app/workspace_id")
+
+        patch = {
+            "email": email.lower(),
+            "display_name": display_name,
+            "avatar_url": avatar_url,
+            "role": role,
+            "is_active": True,
+            "is_verified": bool(claims.get("email_verified", True)),
+            "preferences": (existing or {}).get("preferences", {}),
+            "storage_quota": (existing or {}).get("storage_quota", 5_368_709_120),
+            "storage_used": (existing or {}).get("storage_used", 0),
+            "encryption_mode": (existing or {}).get("encryption_mode", "envelope"),
+            "auth0_subject": sub,
+            "auth0_connection": claims.get("gty") or claims.get("org_id") or claims.get("iss"),
+            "auth0_claims": {
+                "iss": claims.get("iss"),
+                "aud": claims.get("aud"),
+                "azp": claims.get("azp"),
+                "scope": claims.get("scope"),
+                "roles": claims.get("https://cortex.app/roles"),
+                "workspace_id": workspace_id,
+            },
+            "primary_workspace_id": workspace_id,
+            "last_login_at": now,
+            "deleted_at": None,
+        }
+
+        if existing:
+            patch.pop("storage_quota", None)
+            patch.pop("storage_used", None)
+            patch.pop("encryption_mode", None)
+            self.update_user(sub, patch)
+            updated = self.get_user(sub)
+            return updated or {**existing, **patch, "id": sub}
+
+        dek = secrets.token_bytes(32)
+        wrapped_dek, dek_iv = encrypt_field(dek)
+        created = self.create_user(
+            user_id=sub,
+            email=email,
+            username=(
+                str(claims.get("nickname") or claims.get("preferred_username") or email.split("@")[0] or sub.replace("|", "_"))
+            ),
+            display_name=str(display_name),
+            avatar_url=avatar_url,
+            role=role,
+            is_verified=bool(claims.get("email_verified", True)),
+            preferences={},
+            encryption_mode="envelope",
+            auth0_subject=sub,
+            auth0_connection=claims.get("gty") or claims.get("org_id") or claims.get("iss"),
+            auth0_claims=patch["auth0_claims"],
+            primary_workspace_id=workspace_id,
+        )
+        self.update_user(
+            sub,
+            {
+                "encrypted_dek": wrapped_dek,
+                "dek_iv": dek_iv,
+                "last_login_at": now,
+            },
+        )
+        created.update({"encrypted_dek": wrapped_dek, "dek_iv": dek_iv, "last_login_at": now})
+        return created
 
     def update_user(self, user_id: str, patch: dict[str, Any]) -> None:
         patch["updated_at"] = utcnow()
@@ -120,6 +236,9 @@ class FirestoreStore:
         ip_address: str | None,
         user_agent: str | None,
         expires_at: datetime,
+        auth0_session_id: str | None = None,
+        auth0_jti: str | None = None,
+        last_seen_at: datetime | None = None,
     ) -> dict[str, Any]:
         session_id = make_uuid()
         payload = {
@@ -129,11 +248,352 @@ class FirestoreStore:
             "user_agent": user_agent,
             "expires_at": expires_at,
             "revoked_at": None,
+            "auth0_session_id": auth0_session_id,
+            "auth0_jti": auth0_jti,
+            "last_seen_at": last_seen_at or utcnow(),
             "created_at": utcnow(),
         }
         self._col("sessions").document(session_id).set(payload)
         payload["id"] = session_id
         return payload
+
+    def upsert_auth0_session(
+        self,
+        session_key: str,
+        *,
+        user_id: str,
+        ip_address: str | None,
+        user_agent: str | None,
+        expires_at: datetime,
+        auth0_jti: str | None = None,
+        last_seen_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        payload = {
+            "user_id": user_id,
+            "token_hash": session_key,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "expires_at": expires_at,
+            "revoked_at": None,
+            "auth0_session_id": session_key,
+            "auth0_jti": auth0_jti,
+            "last_seen_at": last_seen_at or utcnow(),
+            "created_at": utcnow(),
+        }
+        self._col("sessions").document(session_key).set(payload, merge=True)
+        payload["id"] = session_key
+        return payload
+
+    def list_sessions(self, user_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        docs = list(self._col("sessions").where("user_id", "==", user_id).stream())
+        items = [_with_id(doc) for doc in docs]
+        items.sort(key=lambda item: item.get("last_seen_at") or item.get("created_at"), reverse=True)
+        return items[:limit]
+
+    def get_session(self, session_id: str) -> dict[str, Any] | None:
+        doc = self._col("sessions").document(session_id).get()
+        return _with_id(doc) if doc.exists else None
+
+    def revoke_session(self, session_id: str) -> dict[str, Any] | None:
+        patch = {"revoked_at": utcnow(), "updated_at": utcnow()}
+        self._col("sessions").document(session_id).set(patch, merge=True)
+        return self.get_session(session_id)
+
+    def create_provider_account(
+        self,
+        *,
+        user_id: str,
+        provider_slug: str,
+        connection_type: str,
+        display_name: str | None = None,
+        api_key: str | None = None,
+        extension_token_jti: str | None = None,
+        extension_token_expires_at: datetime | None = None,
+        monthly_cap_usd: float | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        provider_account_id = make_uuid()
+        now = utcnow()
+        payload: dict[str, Any] = {
+            "user_id": user_id,
+            "workspace_id": None,
+            "provider_slug": provider_slug,
+            "connection_type": connection_type,
+            "display_name": display_name,
+            "encrypted_api_key": None,
+            "api_key_nonce": None,
+            "api_key_preview": None,
+            "monthly_cap_usd": monthly_cap_usd,
+            "needs_reauth": False,
+            "extension_token_jti": extension_token_jti,
+            "extension_token_expires_at": extension_token_expires_at,
+            "extension_token_revoked_at": None,
+            "last_synced_at": None,
+            "is_active": True,
+            "metadata": metadata or {},
+            "created_at": now,
+            "updated_at": now,
+            "deleted_at": None,
+        }
+        if api_key is not None:
+            encrypted_api_key, api_key_nonce = self.encrypt_for_user(user_id, api_key.encode("utf-8"))
+            payload["encrypted_api_key"] = encrypted_api_key
+            payload["api_key_nonce"] = api_key_nonce
+        self._col("provider_accounts").document(provider_account_id).set(payload)
+        payload["id"] = provider_account_id
+        return payload
+
+    def get_provider_account(self, provider_account_id: str) -> dict[str, Any] | None:
+        doc = self._col("provider_accounts").document(provider_account_id).get()
+        return _with_id(doc) if doc.exists else None
+
+    def list_provider_accounts(self, user_id: str) -> list[dict[str, Any]]:
+        docs = list(self._col("provider_accounts").where("user_id", "==", user_id).stream())
+        items = [_with_id(doc) for doc in docs]
+        items = [item for item in items if item.get("deleted_at") is None]
+        items.sort(key=lambda item: item.get("created_at") or utcnow(), reverse=True)
+        return items
+
+    def update_provider_account(self, provider_account_id: str, patch: dict[str, Any]) -> dict[str, Any] | None:
+        patch["updated_at"] = utcnow()
+        self._col("provider_accounts").document(provider_account_id).set(patch, merge=True)
+        return self.get_provider_account(provider_account_id)
+
+    def revoke_provider_account(self, provider_account_id: str) -> dict[str, Any] | None:
+        account = self.get_provider_account(provider_account_id)
+        if not account:
+            return None
+
+        patch = {
+            "is_active": False,
+            "deleted_at": utcnow(),
+            "updated_at": utcnow(),
+            "encrypted_api_key": None,
+            "api_key_nonce": None,
+            "needs_reauth": False,
+        }
+        if account.get("extension_token_jti"):
+            patch["extension_token_revoked_at"] = utcnow()
+            self.revoke_extension_token(
+                str(account["extension_token_jti"]),
+                user_id=account.get("user_id"),
+                provider_account_id=provider_account_id,
+                expires_at=account.get("extension_token_expires_at"),
+            )
+        self._col("provider_accounts").document(provider_account_id).set(patch, merge=True)
+        return self.get_provider_account(provider_account_id)
+
+    def revoke_extension_token(
+        self,
+        jti: str,
+        *,
+        user_id: str | None = None,
+        provider_account_id: str | None = None,
+        expires_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        payload = {
+            "jti": jti,
+            "user_id": user_id,
+            "provider_account_id": provider_account_id,
+            "expires_at": expires_at,
+            "revoked_at": utcnow(),
+        }
+        self._col("extension_token_revocations").document(jti).set(payload, merge=True)
+        payload["id"] = jti
+        return payload
+
+    def is_extension_token_revoked(self, jti: str) -> bool:
+        doc = self._col("extension_token_revocations").document(jti).get()
+        return doc.exists
+
+    def create_api_log(
+        self,
+        *,
+        user_id: str,
+        provider_account_id: str,
+        provider_slug: str,
+        request_id: str | None,
+        conversations: list[dict[str, Any]],
+        source: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        api_log_id = make_uuid()
+        payload = {
+            "user_id": user_id,
+            "provider_account_id": provider_account_id,
+            "provider_slug": provider_slug,
+            "request_id": request_id,
+            "source": source,
+            "conversations": conversations,
+            "metadata": metadata or {},
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
+        self._col("api_logs").document(api_log_id).set(payload)
+        payload["id"] = api_log_id
+        return payload
+
+    def create_usage_record(
+        self,
+        *,
+        user_id: str,
+        provider_account_id: str | None,
+        provider_slug: str,
+        model: str | None,
+        prompt_tokens: int,
+        completion_tokens: int,
+        estimated_cost_usd: float,
+        conversation_id: str | None,
+        created_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        usage_id = make_uuid()
+        payload = {
+            "user_id": user_id,
+            "provider_account_id": provider_account_id,
+            "provider_slug": provider_slug,
+            "model": model,
+            "prompt_tokens": int(prompt_tokens),
+            "completion_tokens": int(completion_tokens),
+            "estimated_cost_usd": float(estimated_cost_usd),
+            "conversation_id": conversation_id,
+            "created_at": created_at or utcnow(),
+        }
+        self._col("usage_records").document(usage_id).set(payload)
+        payload["id"] = usage_id
+        return payload
+
+    def get_usage_summary(
+        self,
+        user_id: str,
+        *,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> dict[str, Any]:
+        docs = list(self._col("usage_records").where("user_id", "==", user_id).stream())
+        items = [_with_id(doc) for doc in docs]
+        if date_from:
+            items = [item for item in items if item.get("created_at") and item["created_at"] >= date_from]
+        if date_to:
+            items = [item for item in items if item.get("created_at") and item["created_at"] <= date_to]
+
+        provider_totals: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {
+                "provider_slug": None,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "estimated_cost_usd": 0.0,
+                "call_count": 0,
+            }
+        )
+        daily_totals: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {
+                "date": None,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "estimated_cost_usd": 0.0,
+                "call_count": 0,
+            }
+        )
+
+        totals = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "estimated_cost_usd": 0.0,
+            "call_count": 0,
+        }
+
+        for item in items:
+            created_at = item.get("created_at")
+            provider_slug = str(item.get("provider_slug") or "unknown")
+            cost = float(item.get("estimated_cost_usd") or 0.0)
+            prompt_tokens = int(item.get("prompt_tokens") or 0)
+            completion_tokens = int(item.get("completion_tokens") or 0)
+
+            totals["prompt_tokens"] += prompt_tokens
+            totals["completion_tokens"] += completion_tokens
+            totals["estimated_cost_usd"] += cost
+            totals["call_count"] += 1
+
+            provider_bucket = provider_totals[provider_slug]
+            provider_bucket["provider_slug"] = provider_slug
+            provider_bucket["prompt_tokens"] += prompt_tokens
+            provider_bucket["completion_tokens"] += completion_tokens
+            provider_bucket["estimated_cost_usd"] += cost
+            provider_bucket["call_count"] += 1
+
+            if created_at:
+                day_key = created_at.date().isoformat()
+                daily_bucket = daily_totals[day_key]
+                daily_bucket["date"] = created_at.date()
+                daily_bucket["prompt_tokens"] += prompt_tokens
+                daily_bucket["completion_tokens"] += completion_tokens
+                daily_bucket["estimated_cost_usd"] += cost
+                daily_bucket["call_count"] += 1
+
+        return {
+            "date_from": date_from,
+            "date_to": date_to,
+            "totals": totals,
+            "by_provider": sorted(provider_totals.values(), key=lambda item: item["estimated_cost_usd"], reverse=True),
+            "by_day": [daily_totals[key] for key in sorted(daily_totals.keys())],
+        }
+
+    def check_spend_cap(
+        self,
+        *,
+        user_id: str,
+        provider_account_id: str,
+        monthly_cap_usd: float,
+        as_of: datetime | None = None,
+    ) -> dict[str, Any]:
+        as_of = as_of or utcnow()
+        month_start = as_of.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        docs = list(
+            self._col("usage_records")
+            .where("user_id", "==", user_id)
+            .where("provider_account_id", "==", provider_account_id)
+            .stream()
+        )
+        items = [_with_id(doc) for doc in docs]
+        month_total = sum(
+            float(item.get("estimated_cost_usd") or 0.0)
+            for item in items
+            if item.get("created_at") and item["created_at"] >= month_start
+        )
+        return {
+            "monthly_cap_usd": float(monthly_cap_usd),
+            "month_total_usd": round(month_total, 6),
+            "remaining_usd": round(max(float(monthly_cap_usd) - month_total, 0.0), 6),
+            "exceeded": month_total >= float(monthly_cap_usd),
+            "month_start": month_start,
+        }
+
+    def list_api_logs(
+        self,
+        *,
+        user_id: str,
+        provider_account_id: str | None = None,
+        provider_slug: str | None = None,
+        since: datetime | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        query = self._col("api_logs").where("user_id", "==", user_id)
+        if provider_account_id:
+            query = query.where("provider_account_id", "==", provider_account_id)
+        if provider_slug:
+            query = query.where("provider_slug", "==", provider_slug)
+        docs = list(query.stream())
+        items = [_with_id(doc) for doc in docs]
+        if since:
+            items = [item for item in items if item.get("created_at") and item["created_at"] > since]
+        items.sort(key=lambda item: item.get("created_at") or utcnow(), reverse=False)
+        return items[:limit]
+
+    def touch_session(self, session_id: str, *, last_seen_at: datetime | None = None) -> dict[str, Any] | None:
+        patch = {"last_seen_at": last_seen_at or utcnow()}
+        self._col("sessions").document(session_id).set(patch, merge=True)
+        doc = self._col("sessions").document(session_id).get()
+        return _with_id(doc) if doc.exists else None
 
     def create_audit_log(
         self,
@@ -744,3 +1204,203 @@ class FirestoreStore:
             "generic": "Generic",
         }
         return mapping.get(slug, slug.replace("_", " ").title())
+
+    # ── Embedding storage ────────────────────────────────────────────────
+
+    def store_embedding(
+        self,
+        *,
+        message_id: str,
+        conversation_id: str,
+        user_id: str,
+        workspace_id: str | None,
+        chunk_index: int,
+        chunk_text: str,
+        vector: list[float],
+        model: str,
+        dimensions: int,
+        provider_slug: str | None = None,
+        created_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        embedding_id = make_uuid()
+        payload = {
+            "message_id": message_id,
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+            "workspace_id": workspace_id,
+            "chunk_index": chunk_index,
+            "chunk_text": chunk_text,
+            "vector": vector,
+            "model": model,
+            "dimensions": dimensions,
+            "provider_slug": provider_slug,
+            "created_at": created_at or utcnow(),
+        }
+        self._col("embeddings").document(embedding_id).set(payload)
+        payload["id"] = embedding_id
+        return payload
+
+    def list_embeddings_for_user(
+        self,
+        user_id: str,
+        *,
+        workspace_id: str | None = None,
+        provider_slug: str | None = None,
+        conversation_ids: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retrieve all embedding documents for a user (used by in-memory cosine search)."""
+        query = self._col("embeddings").where("user_id", "==", user_id)
+        if workspace_id:
+            query = query.where("workspace_id", "==", workspace_id)
+        if provider_slug:
+            query = query.where("provider_slug", "==", provider_slug)
+        docs = list(query.stream())
+        items = [_with_id(doc) for doc in docs]
+        if conversation_ids:
+            id_set = set(conversation_ids)
+            items = [item for item in items if item.get("conversation_id") in id_set]
+        return items
+
+    def list_embeddings_for_conversation(self, conversation_id: str) -> list[dict[str, Any]]:
+        docs = list(self._col("embeddings").where("conversation_id", "==", conversation_id).stream())
+        return [_with_id(doc) for doc in docs]
+
+    def delete_embeddings_for_message(self, message_id: str) -> int:
+        docs = list(self._col("embeddings").where("message_id", "==", message_id).stream())
+        for doc in docs:
+            doc.reference.delete()
+        return len(docs)
+
+    # ── Search history (for autocomplete suggestions) ────────────────────
+
+    SEARCH_HISTORY_CAP = 50
+
+    def record_search_query(self, *, user_id: str, query: str) -> None:
+        """Store a search query for autocomplete, capped at 50 per user.
+
+        Retention: only the most recent 50 queries are kept. Older entries
+        are deleted automatically. This data is used exclusively for
+        query-suggestion autocomplete and not for any other analytics.
+        """
+        entry_id = make_uuid()
+        payload = {
+            "user_id": user_id,
+            "query": query.strip(),
+            "created_at": utcnow(),
+        }
+        self._col("search_history").document(entry_id).set(payload)
+
+        # Enforce cap
+        docs = list(
+            self._col("search_history")
+            .where("user_id", "==", user_id)
+            .stream()
+        )
+        items = [_with_id(doc) for doc in docs]
+        items.sort(key=lambda item: item.get("created_at") or utcnow(), reverse=True)
+        for old in items[self.SEARCH_HISTORY_CAP:]:
+            self._col("search_history").document(old["id"]).delete()
+
+    def list_search_history(self, user_id: str, *, prefix: str = "", limit: int = 10) -> list[str]:
+        docs = list(
+            self._col("search_history")
+            .where("user_id", "==", user_id)
+            .stream()
+        )
+        items = [_with_id(doc) for doc in docs]
+        items.sort(key=lambda item: item.get("created_at") or utcnow(), reverse=True)
+        seen: set[str] = set()
+        result: list[str] = []
+        prefix_lower = prefix.lower()
+        for item in items:
+            q = str(item.get("query") or "")
+            key = q.lower()
+            if prefix_lower and not key.startswith(prefix_lower):
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(q)
+            if len(result) >= limit:
+                break
+        return result
+
+    # ── Duplicate pairs ──────────────────────────────────────────────────
+
+    def create_duplicate_pair(
+        self,
+        *,
+        user_id: str,
+        conv_a_id: str,
+        conv_b_id: str,
+        similarity: float,
+        detection_method: str,
+    ) -> dict[str, Any]:
+        pair_id = make_uuid()
+        payload = {
+            "user_id": user_id,
+            "conv_a_id": conv_a_id,
+            "conv_b_id": conv_b_id,
+            "similarity": similarity,
+            "detection_method": detection_method,
+            "is_confirmed": True,
+            "resolved_at": None,
+            "resolution": None,
+            "created_at": utcnow(),
+        }
+        self._col("duplicate_pairs").document(pair_id).set(payload)
+        payload["id"] = pair_id
+        return payload
+
+    def list_duplicate_pairs(self, user_id: str) -> list[dict[str, Any]]:
+        docs = list(self._col("duplicate_pairs").where("user_id", "==", user_id).stream())
+        items = [_with_id(doc) for doc in docs]
+        items = [item for item in items if item.get("is_confirmed") is True and item.get("resolved_at") is None]
+        items.sort(key=lambda item: item.get("similarity", 0), reverse=True)
+        return items
+
+    def get_duplicate_pair(self, pair_id: str) -> dict[str, Any] | None:
+        doc = self._col("duplicate_pairs").document(pair_id).get()
+        return _with_id(doc) if doc.exists else None
+
+    def resolve_duplicate_pair(self, pair_id: str, *, resolution: str) -> dict[str, Any] | None:
+        patch = {
+            "resolved_at": utcnow(),
+            "resolution": resolution,
+        }
+        if resolution == "dismiss":
+            patch["is_confirmed"] = False
+        self._col("duplicate_pairs").document(pair_id).set(patch, merge=True)
+        return self.get_duplicate_pair(pair_id)
+
+    def merge_conversations(self, *, keep_id: str, remove_id: str) -> dict[str, Any] | None:
+        """Merge messages from remove_id into keep_id, then soft-delete remove_id."""
+        keep = self.get_conversation(keep_id)
+        remove = self.get_conversation(remove_id)
+        if not keep or not remove:
+            return None
+
+        keep_messages = self.list_messages(keep_id)
+        remove_messages = self.list_messages(remove_id)
+        next_seq = (max((int(m.get("sequence_num") or 0) for m in keep_messages), default=0) + 1)
+
+        for i, msg in enumerate(remove_messages):
+            self.add_message(
+                conversation_id=keep_id,
+                user_id=msg["user_id"],
+                external_id=msg.get("external_id"),
+                role=msg["role"],
+                content=msg["content"],
+                content_type=msg.get("content_type", "text"),
+                model=msg.get("model"),
+                token_count=int(msg.get("token_count") or 0),
+                attachments=msg.get("attachments"),
+                tool_calls=msg.get("tool_calls"),
+                parent_id=None,
+                sequence_num=next_seq + i,
+                created_at=msg.get("created_at"),
+            )
+
+        self.soft_delete_conversation(remove_id)
+        self.update_conversation_message_stats(keep_id)
+        return self.get_conversation(keep_id)

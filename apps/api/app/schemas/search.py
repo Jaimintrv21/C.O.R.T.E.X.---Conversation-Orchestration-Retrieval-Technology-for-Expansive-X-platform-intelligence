@@ -1,6 +1,10 @@
 """Search schemas."""
 from __future__ import annotations
+
+from datetime import date
+from typing import Literal
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -8,15 +12,27 @@ class SemanticSearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=20, ge=1, le=100)
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
-    provider_ids: list[UUID] | None = None
+    provider_filter: str | None = None
+    date_from: date | None = None
+    date_to: date | None = None
     workspace_id: UUID | None = None
 
 
 class FullTextSearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=20, ge=1, le=100)
-    filters: dict | None = None
+    provider_filter: str | None = None
+    workspace_id: UUID | None = None
     highlight: bool = True
+
+
+class HybridSearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=2000)
+    limit: int = Field(default=20, ge=1, le=100)
+    provider_filter: str | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+    workspace_id: UUID | None = None
 
 
 class SimilaritySearchRequest(BaseModel):
@@ -26,16 +42,19 @@ class SimilaritySearchRequest(BaseModel):
 
 
 class SearchHit(BaseModel):
-    conversation_id: UUID
-    message_id: UUID | None = None
-    title: str | None
+    conversation_id: str
+    message_id: str | None = None
+    title: str | None = None
     snippet: str
     score: float
-    provider_slug: str | None
+    similarity_score: float | None = None
+    provider_slug: str | None = None
+    created_at: str | None = None
+    match_type: Literal["semantic", "exact", "both"] | None = None
     highlights: list[str] | None = None
 
 
 class SearchSuggestion(BaseModel):
     text: str
-    type: str  # "query" | "tag" | "topic"
+    type: str  # "query" | "tag" | "topic" | "history"
     score: float

@@ -78,7 +78,7 @@ async def add_member(
 @router.delete("/{workspace_id}/members/{member_user_id}", response_model=ApiResponse)
 async def remove_member(
     workspace_id: uuid.UUID,
-    member_user_id: uuid.UUID,
+    member_user_id: str,
     request: Request,
     user: dict = Depends(get_current_user),
 ):

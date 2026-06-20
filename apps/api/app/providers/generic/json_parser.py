@@ -49,7 +49,7 @@ class GenericJsonParser(BaseProvider):
     async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
         if False:
             yield CanonicalConversation(external_id="")
-        raise NotImplementedError("Generic provider sync is not implemented")
+        raise self._live_sync_not_supported()
 
     def get_schema_version(self) -> str:
         return "generic.v1"

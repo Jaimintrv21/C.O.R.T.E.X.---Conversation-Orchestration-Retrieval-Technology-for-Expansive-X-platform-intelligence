@@ -8,6 +8,7 @@ import structlog
 from app.firestore import FirestoreStore
 from app.providers.base import CanonicalConversation
 from app.providers.registry import load_and_parse
+from app.workers.tasks.embedding_tasks import embed_batch
 
 logger = structlog.get_logger()
 
@@ -39,49 +40,23 @@ class ImportPipelineService:
             file_path = payload.get("temp_path")
             provider_slug = payload.get("provider_slug")
             conversations = load_and_parse(file_path, provider_slug)
-            total = len(conversations)
-
-            imported = 0
-            skipped = 0
-            imported_ids: list[str] = []
-
-            for index, canonical in enumerate(conversations):
-                progress = 0.1 + (0.7 * (index + 1) / max(total, 1))
-                self.store.update_job(
-                    job_id,
-                    {
-                        "progress": round(progress, 3),
-                        "progress_detail": f"Importing {index + 1}/{total}: {canonical.title or 'Untitled'}",
-                    },
-                )
-
-                existing = None
-                if canonical.external_id:
-                    existing = self.store.get_conversation_by_external_id(job["user_id"], canonical.external_id)
-                if existing:
-                    skipped += 1
-                    continue
-
-                conversation = self._store_conversation(
-                    user_id=job["user_id"],
-                    workspace_id=job.get("workspace_id"),
-                    canonical=canonical,
-                )
-                imported += 1
-                imported_ids.append(conversation["id"])
-
-            result = {"imported": imported, "skipped": skipped, "total": total, "conversation_ids": imported_ids}
+            result = await self.process_conversations(
+                user_id=job["user_id"],
+                workspace_id=job.get("workspace_id"),
+                conversations=conversations,
+                progress_job_id=job_id,
+            )
             self.store.update_job(
                 job_id,
                 {
                     "status": "completed",
                     "progress": 1.0,
-                    "progress_detail": f"Done: {imported} imported, {skipped} skipped",
+                    "progress_detail": f"Done: {result['imported']} imported, {result['updated']} updated, {result['skipped']} skipped",
                     "completed_at": datetime.now(UTC),
                     "result": result,
                 },
             )
-            logger.info("import_completed", job_id=job_id, imported=imported, skipped=skipped)
+            logger.info("import_completed", job_id=job_id, **result)
             return result
         except Exception as exc:
             attempts = int(job.get("attempts") or 0) + 1
@@ -97,12 +72,76 @@ class ImportPipelineService:
             logger.exception("import_failed", job_id=job_id)
             raise
 
+    async def process_conversations(
+        self,
+        *,
+        user_id: str,
+        workspace_id: str | None,
+        conversations: list[CanonicalConversation],
+        progress_job_id: str | None = None,
+    ) -> dict:
+        total = len(conversations)
+        imported = 0
+        updated = 0
+        skipped = 0
+        imported_ids: list[str] = []
+        newly_added_message_ids: list[str] = []
+
+        for index, canonical in enumerate(conversations):
+            if progress_job_id:
+                progress = 0.1 + (0.7 * (index + 1) / max(total, 1))
+                self.store.update_job(
+                    progress_job_id,
+                    {
+                        "progress": round(progress, 3),
+                        "progress_detail": f"Importing {index + 1}/{total}: {canonical.title or 'Untitled'}",
+                    },
+                )
+
+            existing = None
+            if canonical.external_id:
+                existing = self.store.get_conversation_by_external_id(user_id, canonical.external_id)
+
+            if existing:
+                result = self._merge_conversation(
+                    existing=existing,
+                    canonical=canonical,
+                    newly_added_message_ids=newly_added_message_ids,
+                )
+                if result:
+                    updated += 1
+                else:
+                    skipped += 1
+                continue
+
+            conversation = self._store_conversation(
+                user_id=user_id,
+                workspace_id=workspace_id,
+                canonical=canonical,
+                newly_added_message_ids=newly_added_message_ids,
+            )
+            imported += 1
+            imported_ids.append(conversation["id"])
+
+        if newly_added_message_ids:
+            embed_batch.delay(message_ids=newly_added_message_ids)
+
+        return {
+            "imported": imported,
+            "updated": updated,
+            "skipped": skipped,
+            "total": total,
+            "conversation_ids": imported_ids,
+            "message_ids": newly_added_message_ids,
+        }
+
     def _store_conversation(
         self,
         *,
         user_id: str,
         workspace_id: str | None,
         canonical: CanonicalConversation,
+        newly_added_message_ids: list[str],
     ) -> dict:
         conversation = self.store.create_conversation(
             user_id=user_id,
@@ -122,7 +161,7 @@ class ImportPipelineService:
         )
 
         for sequence_num, message in enumerate(canonical.messages):
-            self.store.add_message(
+            stored_message = self.store.add_message(
                 conversation_id=conversation["id"],
                 user_id=user_id,
                 external_id=message.external_id,
@@ -137,5 +176,58 @@ class ImportPipelineService:
                 sequence_num=sequence_num,
                 created_at=message.created_at,
             )
+            newly_added_message_ids.append(stored_message["id"])
 
         return self.store.update_conversation_message_stats(conversation["id"]) or conversation
+
+    def _merge_conversation(
+        self,
+        *,
+        existing: dict,
+        canonical: CanonicalConversation,
+        newly_added_message_ids: list[str],
+    ) -> bool:
+        existing_messages = self.store.list_messages(existing["id"])
+        existing_count = len(existing_messages)
+        appended = False
+
+        if canonical.title and not existing.get("title"):
+            self.store.update_conversation(existing["id"], {"title": canonical.title})
+
+        if canonical.metadata:
+            merged_metadata = {**(existing.get("metadata") or {}), **canonical.metadata}
+            self.store.update_conversation(existing["id"], {"metadata": merged_metadata})
+
+        for sequence_num, message in enumerate(canonical.messages):
+            if sequence_num < existing_count:
+                continue
+            stored_message = self.store.add_message(
+                conversation_id=existing["id"],
+                user_id=existing["user_id"],
+                external_id=message.external_id,
+                role=message.role,
+                content=message.content,
+                content_type=message.content_type,
+                model=message.model,
+                token_count=message.token_count,
+                attachments=message.attachments,
+                tool_calls=message.tool_calls,
+                parent_id=message.parent_id,
+                sequence_num=sequence_num,
+                created_at=message.created_at,
+            )
+            newly_added_message_ids.append(stored_message["id"])
+            appended = True
+
+        if appended:
+            self.store.update_conversation(
+                existing["id"],
+                {
+                    "title": canonical.title or existing.get("title"),
+                    "provider_slug": canonical.provider_slug,
+                    "provider_name": self.store._provider_name(canonical.provider_slug),
+                },
+            )
+            self.store.update_conversation_message_stats(existing["id"])
+
+        return appended

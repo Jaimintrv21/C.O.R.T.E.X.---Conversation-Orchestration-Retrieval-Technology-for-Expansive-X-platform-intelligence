@@ -1,6 +1,7 @@
 """Celery application instance."""
 from celery import Celery
 from app.config import get_settings
+from app.workers.beat_schedule import beat_schedule
 
 settings = get_settings()
 
@@ -23,6 +24,7 @@ celery_app.conf.update(
     task_max_retries=3,
     worker_max_tasks_per_child=100,
     result_expires=86400,  # 24h
+    beat_schedule=beat_schedule,
 )
 
 # Auto-discover tasks

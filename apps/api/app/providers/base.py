@@ -60,13 +60,25 @@ class BaseProvider(ABC):
     def parse(self, raw: bytes, version: str = "latest") -> list[CanonicalConversation]:
         """Parse raw export bytes into canonical conversations."""
 
-    @abstractmethod
     async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
-        """Incremental API sync for connected provider accounts."""
+        """Incremental API sync for connected provider accounts.
+
+        Most consumer chat platforms do not expose a public conversation-history API.
+        The default implementation is intentionally explicit: it refuses to pretend a
+        sync exists unless a provider module overrides it with a documented, ToS-safe
+        source.
+        """
+        raise self._live_sync_not_supported()
 
     @abstractmethod
     def get_schema_version(self) -> str:
         """Return the parser schema version for migration tracking."""
+
+    def _live_sync_not_supported(self) -> NotImplementedError:
+        provider = self.name or self.slug
+        return NotImplementedError(
+            f"Live sync is not available for {provider}; use file export/import instead"
+        )
 
     def detect(self, data: Any) -> bool:
         """Compatibility shim for older call sites and tests."""

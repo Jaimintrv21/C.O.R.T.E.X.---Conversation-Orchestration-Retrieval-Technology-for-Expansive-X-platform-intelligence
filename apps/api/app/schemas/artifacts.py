@@ -1,7 +1,6 @@
 """Artifact and Job schemas."""
 from __future__ import annotations
 from datetime import datetime
-from uuid import UUID
 from pydantic import BaseModel, Field
 
 
@@ -10,21 +9,21 @@ from pydantic import BaseModel, Field
 class GenerateArtifactRequest(BaseModel):
     title: str = Field(max_length=500)
     artifact_type: str  # wiki | report | presentation | summary | etc.
-    source_ids: list[UUID] = Field(min_length=1)
+    source_ids: list[str] = Field(min_length=1)
     prompt: str | None = None
     model: str | None = None
-    workspace_id: UUID | None = None
+    workspace_id: str | None = None
     idempotency_key: str | None = None
 
 
 class ArtifactResponse(BaseModel):
-    id: UUID
-    user_id: UUID
-    workspace_id: UUID | None
+    id: str
+    user_id: str
+    workspace_id: str | None
     title: str
     artifact_type: str
     status: str
-    source_ids: list[UUID] | None
+    source_ids: list[str] | None
     prompt: str | None
     model_used: str | None
     content: dict | None
@@ -43,8 +42,8 @@ class ArtifactResponse(BaseModel):
 # ── Jobs ─────────────────────────────────────────────────────────────────
 
 class JobResponse(BaseModel):
-    id: UUID
-    user_id: UUID
+    id: str
+    user_id: str
     job_type: str
     status: str
     priority: int
@@ -80,8 +79,8 @@ class WorkspaceUpdate(BaseModel):
 
 
 class WorkspaceResponse(BaseModel):
-    id: UUID
-    owner_id: UUID
+    id: str
+    owner_id: str
     slug: str
     name: str
     description: str | None
@@ -95,5 +94,5 @@ class WorkspaceResponse(BaseModel):
 
 
 class AddMemberRequest(BaseModel):
-    user_id: UUID
+    user_id: str
     role: str = Field(default="member", pattern=r"^(admin|member|viewer)$")

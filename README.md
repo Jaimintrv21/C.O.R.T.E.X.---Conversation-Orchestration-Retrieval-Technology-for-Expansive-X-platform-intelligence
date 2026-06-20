@@ -50,6 +50,7 @@ For deep-dives into the architecture, planning, and specifications, refer to our
 - [Project Roadmap](./docs/planning/roadmap.md)
 - [Database Schema & ERD](./docs/planning/erd.md)
 - [Threat Model & Security](./docs/planning/threat-model.md)
+- [Auth0 Setup](./docs/architecture/auth0-setup.md)
 - [Folder Structure Reference](./docs/architecture/folder-structure.md)
 
 ---
@@ -66,6 +67,7 @@ For deep-dives into the architecture, planning, and specifications, refer to our
 
 ### Backend & Infrastructure
 - **API**: FastAPI + Celery
+- **Identity**: Auth0 (hosted login, MFA, refresh rotation)
 - **Primary Database**: Firebase / Firestore
 - **Relational Support**: PostgreSQL 16 + pgvector
 - **Search**: Meilisearch
