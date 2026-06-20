@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User, 
-  CreditCard, Box, Check, UserPlus, Trash2, X, Palette, Moon, Sun, 
+import {
+  Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User,
+  CreditCard, Box, Check, UserPlus, Trash2, X, Palette, Moon, Sun,
   Monitor, Smartphone, Mail, AlertOctagon, Download, Eraser
 } from 'lucide-react';
 import { popIn, staggerList, listItem } from '@/lib/motion';
 
-const tabs = ['Profile', 'Appearance', 'Integrations', 'Notifications', 'Privacy', 'Workspace', 'Billing', 'Danger Zone'];
+const tabs = ['Profile', 'Appearance', 'Integrations', 'Notifications', 'Privacy', 'Workspace', 'Billing', 'Help & Support', 'Danger Zone'];
 
 const providers = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', status: 'connected', color: '#00D97E' },
@@ -20,6 +20,52 @@ const providers = [
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('Integrations');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleUrlChange = () => {
+      // 1. Check query parameter (e.g. ?tab=Profile)
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam) {
+        const matched = tabs.find(t => t.toLowerCase() === tabParam.toLowerCase());
+        if (matched) {
+          setActiveTab(matched);
+          return;
+        }
+      }
+
+      // 2. Check hash (e.g. #Profile)
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        const decoded = decodeURIComponent(hash);
+        const matched = tabs.find(t => t.toLowerCase() === decoded.toLowerCase());
+        if (matched) {
+          setActiveTab(matched);
+        }
+      }
+    };
+
+    handleUrlChange();
+
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.hash = encodeURIComponent(tab);
+      window.history.pushState(null, '', currentUrl.toString());
+    }
+  };
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     sync: true,
     localModel: false,
@@ -30,7 +76,7 @@ export default function SettingsPage() {
     browserAlerts: true,
     reduceMotion: false
   });
-  
+
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3');
   const [themeMode, setThemeMode] = useState<'system' | 'dark' | 'light'>('dark');
@@ -47,7 +93,7 @@ export default function SettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<'Editor' | 'Viewer'>('Editor');
-  
+
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -65,14 +111,14 @@ export default function SettingsPage() {
   const handleInviteMember = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail || !inviteName) return;
-    
+
     const newMember = {
       id: Date.now().toString(),
       name: inviteName,
       email: inviteEmail,
       role: inviteRole
     };
-    
+
     setTeamMembers(prev => [...prev, newMember]);
     setInviteEmail('');
     setInviteName('');
@@ -94,40 +140,74 @@ export default function SettingsPage() {
     setToggles(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Bug Report Form State
+  const [bugTitle, setBugTitle] = useState('');
+  const [bugDescription, setBugDescription] = useState('');
+  const [isSubmittingBug, setIsSubmittingBug] = useState(false);
+
+  const handleReportBug = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bugTitle || !bugDescription) {
+      triggerToast('Please provide both title and description');
+      return;
+    }
+    
+    setIsSubmittingBug(true);
+    try {
+      const res = await fetch('/api/bug-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: bugTitle, description: bugDescription })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        triggerToast('Bug reported successfully! Issue created.');
+        setBugTitle('');
+        setBugDescription('');
+      } else {
+        triggerToast(`Failed to report bug: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      triggerToast('Error reporting bug.');
+    } finally {
+      setIsSubmittingBug(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-[24px] md:gap-[32px] max-w-[1000px] mx-auto w-full relative pb-[80px]">
-      
+    <div className="flex flex-col gap-[24px] md:gap-[32px] max-w-[1200px] mx-auto w-full relative pb-[80px]">
+
       {/* Header and Tabs */}
       <div className="flex flex-col gap-[16px] md:gap-[24px] px-[8px]">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
-        
+
         <div className="w-full overflow-x-auto custom-scrollbar pb-2 -mb-2">
           <div className="inline-flex gap-[4px] p-[4px] rounded-full bg-white/[0.04] border border-white/[0.08] w-fit min-w-max">
-          {tabs.map(tab => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`relative px-[16px] md:px-[20px] py-[6px] md:py-[8px] text-xs md:text-sm font-medium rounded-full transition-colors duration-200 z-10 whitespace-nowrap ${isActive ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="settingsTabPill"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="absolute inset-0 bg-white/[0.08] border border-white/[0.12] shadow-[0_4px_12px_rgba(0,0,0,0.2)] rounded-full -z-10"
-                  />
-                )}
-                {tab}
-              </button>
-            );
-          })}
+            {tabs.map(tab => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`relative px-[16px] md:px-[20px] py-[6px] md:py-[8px] text-xs md:text-sm font-medium rounded-full transition-colors duration-200 z-10 whitespace-nowrap ${isActive ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="settingsTabPill"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="absolute inset-0 bg-white/[0.08] border border-white/[0.12] shadow-[0_4px_12px_rgba(0,0,0,0.2)] rounded-full -z-10"
+                    />
+                  )}
+                  {tab}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div 
+        <motion.div
           key={activeTab}
           variants={popIn}
           initial="hidden"
@@ -152,14 +232,13 @@ export default function SettingsPage() {
                       { id: 'light', label: 'Light Mode', icon: Sun },
                       { id: 'system', label: 'System Match', icon: Monitor }
                     ].map(mode => (
-                      <button 
+                      <button
                         key={mode.id}
                         onClick={() => setThemeMode(mode.id as any)}
-                        className={`flex flex-col items-center gap-[12px] p-[20px] rounded-[20px] border transition-all ${
-                          themeMode === mode.id 
+                        className={`flex flex-col items-center gap-[12px] p-[20px] rounded-[20px] border transition-all ${themeMode === mode.id
                             ? 'bg-[#6C63FF]/10 border-[#6C63FF]/30 text-white shadow-[0_0_15px_rgba(108,99,255,0.15)]'
                             : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
-                        }`}
+                          }`}
                       >
                         <mode.icon size={24} />
                         <span className="text-sm font-medium">{mode.label}</span>
@@ -184,9 +263,8 @@ export default function SettingsPage() {
                         key={accent.color}
                         onClick={() => setAccentColor(accent.color)}
                         title={accent.name}
-                        className={`w-[48px] h-[48px] rounded-full transition-all flex items-center justify-center ${
-                          accentColor === accent.color ? 'scale-110 shadow-[0_0_20px_currentColor]' : 'hover:scale-105'
-                        }`}
+                        className={`w-[48px] h-[48px] rounded-full transition-all flex items-center justify-center ${accentColor === accent.color ? 'scale-110 shadow-[0_0_20px_currentColor]' : 'hover:scale-105'
+                          }`}
                         style={{ backgroundColor: accent.color, color: accent.color }}
                       >
                         {accentColor === accent.color && <Check size={20} className="text-white" />}
@@ -203,11 +281,11 @@ export default function SettingsPage() {
                     <h3 className="text-sm font-medium text-white mb-[4px]">Reduce UI Motion</h3>
                     <p className="text-xs text-white/50">Disables background shaders, hover micro-animations, and parallax effects.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleToggle('reduceMotion')}
                     className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.reduceMotion ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
                   >
-                    <motion.div 
+                    <motion.div
                       animate={{ x: toggles.reduceMotion ? 20 : 0 }}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
                       className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
@@ -242,11 +320,11 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={() => handleToggle(item.key)}
                       className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
                     >
-                      <motion.div 
+                      <motion.div
                         animate={{ x: toggles[item.key] ? 20 : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
@@ -329,7 +407,7 @@ export default function SettingsPage() {
 
                 <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[16px]">
                   {providers.map(provider => (
-                    <motion.div 
+                    <motion.div
                       key={provider.id}
                       variants={listItem}
                       className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-[16px] md:p-[20px] rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors duration-200 gap-[16px]"
@@ -347,12 +425,11 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <button 
-                        className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${
-                          provider.status === 'connected'
+                      <button
+                        className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${provider.status === 'connected'
                             ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
                             : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                        }`}
+                          }`}
                       >
                         {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
                       </button>
@@ -360,7 +437,7 @@ export default function SettingsPage() {
                   ))}
                 </motion.div>
               </section>
-              
+
               <section className="flex flex-col gap-[20px] md:gap-[24px]">
                 <div className="px-[8px]">
                   <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Local AI Integration (Ollama)</h2>
@@ -382,11 +459,11 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={() => handleToggle('ollamaActive')}
                       className={`relative w-[40px] h-[22px] md:w-[48px] md:h-[26px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.ollamaActive ? 'bg-[#00D2FF]' : 'bg-white/[0.1]'}`}
                     >
-                      <motion.div 
+                      <motion.div
                         animate={{ x: toggles.ollamaActive ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 22) : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-[2px] left-[2px] w-[16px] h-[16px] md:w-[20px] md:h-[20px] rounded-full bg-white shadow-md flex items-center justify-center"
@@ -397,28 +474,28 @@ export default function SettingsPage() {
                   </div>
 
                   {toggles.ollamaActive && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }} 
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       className="flex flex-col gap-[16px] pt-[16px] border-t border-white/[0.06]"
                     >
                       <div className="flex flex-col gap-[8px]">
                         <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Ollama Endpoint</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={ollamaHost}
                           onChange={(e) => setOllamaHost(e.target.value)}
-                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all" 
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all"
                         />
                       </div>
                       <div className="flex flex-col gap-[8px]">
                         <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Default Model</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={ollamaModel}
                           onChange={(e) => setOllamaModel(e.target.value)}
                           placeholder="e.g. llama3, mistral, phi3"
-                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all" 
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all"
                         />
                       </div>
                     </motion.div>
@@ -452,11 +529,11 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={() => handleToggle(item.key)}
                       className={`relative w-[40px] h-[22px] md:w-[44px] md:h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
                     >
-                      <motion.div 
+                      <motion.div
                         animate={{ x: toggles[item.key] ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 20) : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-[2px] left-[2px] w-[16px] h-[16px] md:w-[18px] md:h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
@@ -476,7 +553,7 @@ export default function SettingsPage() {
                 <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">User Profile</h2>
                 <p className="text-[11px] md:text-sm text-white/50">Manage your account details and preferences.</p>
               </div>
-              
+
               <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[32px]">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-[24px] text-center sm:text-left">
                   <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D2FF] flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
@@ -514,7 +591,7 @@ export default function SettingsPage() {
                       <option className="bg-[#0A0A0F]">UTC</option>
                     </select>
                   </div>
-                  
+
                   <button className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-white text-sm font-medium hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] transition-all">
                     Save Changes
                   </button>
@@ -533,27 +610,13 @@ export default function SettingsPage() {
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">New Password</label>
                     <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
                   </div>
-                  
+
                   <button className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full border border-[#00D2FF]/40 text-[#00D2FF] bg-[#00D2FF]/10 text-sm font-medium hover:bg-[#00D2FF]/20 transition-all">
                     Change Password
                   </button>
                 </div>
-
-                <div className="w-full h-[1px] bg-white/[0.06]" />
-
-                {/* Support Section */}
-                <div className="flex flex-col gap-[16px] md:gap-[20px] max-w-[500px] w-full">
-                  <h3 className="text-sm md:text-base font-medium text-white">Help & Support</h3>
-                  <p className="text-[11px] md:text-xs text-white/50 mb-[8px]">Encountered an issue or have a suggestion? Let us know so we can improve C.O.R.T.E.X.</p>
-                  <button 
-                    onClick={() => triggerToast('Bug report form opened')}
-                    className="w-full sm:w-fit px-[24px] py-[12px] md:py-[10px] rounded-full border border-white/[0.1] text-white/80 bg-white/[0.05] hover:bg-white/[0.1] hover:text-white text-sm font-medium transition-all"
-                  >
-                    Report a Bug
-                  </button>
-                </div>
-
               </div>
+
             </section>
           )}
 
@@ -563,7 +626,7 @@ export default function SettingsPage() {
                 <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Workspace Settings</h2>
                 <p className="text-[11px] md:text-sm text-white/50">Manage team members and workspace configurations.</p>
               </div>
-              
+
               <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[32px] md:gap-[40px]">
                 {/* General Workspace Settings */}
                 <div className="flex flex-col gap-[16px] md:gap-[24px]">
@@ -571,20 +634,19 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-[8px] max-w-[500px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Workspace Name</label>
                     <div className="flex flex-col sm:flex-row gap-[12px]">
-                      <input 
-                        type="text" 
-                        value={tempWorkspaceName} 
+                      <input
+                        type="text"
+                        value={tempWorkspaceName}
                         onChange={(e) => setTempWorkspaceName(e.target.value)}
-                        className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" 
+                        className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all"
                       />
-                      <button 
+                      <button
                         onClick={handleUpdateWorkspaceName}
                         disabled={tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()}
-                        className={`w-full sm:w-auto px-[24px] py-[10px] rounded-full text-xs md:text-sm font-medium transition-all ${
-                          tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()
+                        className={`w-full sm:w-auto px-[24px] py-[10px] rounded-full text-xs md:text-sm font-medium transition-all ${tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()
                             ? 'bg-white/[0.02] text-white/20 border border-white/[0.05] cursor-not-allowed'
                             : 'bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] hover:bg-[#6C63FF]/30'
-                        }`}
+                          }`}
                       >
                         Update
                       </button>
@@ -598,7 +660,7 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-[20px] md:gap-[24px]">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
                     <h3 className="text-sm md:text-base font-medium text-white">Team Members</h3>
-                    <button 
+                    <button
                       onClick={() => setIsInviteOpen(true)}
                       className="w-full sm:w-auto justify-center px-[16px] py-[8px] rounded-full bg-[#00D97E]/20 border border-[#00D97E]/40 text-[#00D97E] text-[11px] md:text-xs font-medium hover:bg-[#00D97E]/30 transition-all flex items-center gap-[6px]"
                     >
@@ -606,9 +668,9 @@ export default function SettingsPage() {
                       Invite Member
                     </button>
                   </div>
-                  
+
                   {isInviteOpen && (
-                    <motion.form 
+                    <motion.form
                       onSubmit={handleInviteMember}
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -616,8 +678,8 @@ export default function SettingsPage() {
                     >
                       <div className="flex items-center justify-between">
                         <h4 className="text-[13px] md:text-sm font-semibold text-white">Invite New Member</h4>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => setIsInviteOpen(false)}
                           className="p-[4px] rounded-full hover:bg-white/[0.08] text-white/50 hover:text-white transition-all"
                         >
@@ -649,14 +711,13 @@ export default function SettingsPage() {
                       </div>
                     </motion.form>
                   )}
-                  
+
                   <div className="flex flex-col rounded-[16px] border border-white/[0.06] overflow-hidden">
                     {teamMembers.map((member) => (
                       <div key={member.id} className="p-[12px] md:p-[16px] border-b last:border-0 border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/[0.02] transition-colors gap-[12px]">
                         <div className="flex items-center gap-[12px]">
-                          <div className={`w-[28px] h-[28px] md:w-[32px] md:h-[32px] rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0 ${
-                            member.role === 'Owner' ? 'from-[#6C63FF] to-[#00D2FF]' : 'from-white/10 to-white/5'
-                          }`}>
+                          <div className={`w-[28px] h-[28px] md:w-[32px] md:h-[32px] rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0 ${member.role === 'Owner' ? 'from-[#6C63FF] to-[#00D2FF]' : 'from-white/10 to-white/5'
+                            }`}>
                             <User size={14} className="text-white" />
                           </div>
                           <div className="flex flex-col">
@@ -734,7 +795,7 @@ export default function SettingsPage() {
                 {/* Pro Tier */}
                 <div className="rounded-[24px] backdrop-blur-xl bg-[#6C63FF]/[0.02] border border-[#6C63FF]/20 hover:border-[#6C63FF]/40 p-[24px] md:p-[32px] flex flex-col justify-between gap-[24px] md:gap-[28px] transition-all relative overflow-hidden group shadow-[0_0_30px_rgba(108,99,255,0.05)]">
                   <div className="absolute -top-[50px] -right-[50px] w-[120px] h-[120px] rounded-full bg-[#6C63FF]/10 blur-[40px] pointer-events-none group-hover:bg-[#6C63FF]/20 transition-all duration-300" />
-                  
+
                   <div className="flex flex-col gap-[16px] md:gap-[20px]">
                     <div className="flex justify-between items-start">
                       <div>
@@ -763,6 +824,67 @@ export default function SettingsPage() {
                     Upgrade to Pro
                   </button>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Help & Support' && (
+            <section className="flex flex-col gap-[20px] md:gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Help & Support</h2>
+                <p className="text-[11px] md:text-sm text-white/50">Report issues, submit feedback, or get help with C.O.R.T.E.X.</p>
+              </div>
+
+              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[24px]">
+                <div className="flex flex-col gap-[16px]">
+                  <h3 className="text-sm md:text-base font-medium text-white">Report a Bug</h3>
+                  <p className="text-[11px] md:text-xs text-white/50">Describe the issue you encountered. This will automatically create a new issue in our GitHub repository.</p>
+                </div>
+
+                <form onSubmit={handleReportBug} className="flex flex-col gap-[20px] max-w-[600px] w-full">
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Title</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Dashboard fails to load after sync" 
+                      value={bugTitle}
+                      onChange={(e) => setBugTitle(e.target.value)}
+                      required
+                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" 
+                    />
+                  </div>
+                  
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Description</label>
+                    <textarea 
+                      placeholder="Please provide steps to reproduce the issue, expected behavior, and actual behavior." 
+                      rows={5}
+                      value={bugDescription}
+                      onChange={(e) => setBugDescription(e.target.value)}
+                      required
+                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[16px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all resize-y" 
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingBug}
+                    className={`w-full sm:w-fit px-[24px] py-[12px] md:py-[10px] rounded-full text-sm font-medium transition-all flex items-center justify-center gap-[8px] ${
+                      isSubmittingBug 
+                        ? 'bg-white/[0.05] text-white/30 cursor-not-allowed border border-white/[0.1]' 
+                        : 'bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-white hover:shadow-[0_0_20px_rgba(108,99,255,0.4)]'
+                    }`}
+                  >
+                    {isSubmittingBug ? (
+                      <>
+                        <div className="w-[16px] h-[16px] border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Bug Report'
+                    )}
+                  </button>
+                </form>
               </div>
             </section>
           )}
