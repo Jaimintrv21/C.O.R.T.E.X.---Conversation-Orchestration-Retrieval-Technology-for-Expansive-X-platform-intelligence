@@ -131,9 +131,9 @@ export default function AnalyticsPage() {
       {/* Summary Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-[16px]">
         {[
-          { label: 'Total Conversations', value: overview?.total_conversations || 0, icon: MessageSquare, color: '#6C63FF' },
-          { label: 'Messages Processed', value: overview?.total_messages || 0, icon: Database, color: '#00D2FF' },
-          { label: 'Tokens Embedded', value: overview?.total_tokens || 0, icon: Zap, color: '#00D97E' },
+          { label: 'Total Conversations', value: overview?.total_conversations ?? 0, icon: MessageSquare, color: '#6C63FF' },
+          { label: 'Messages Processed', value: overview?.total_messages ?? 0, icon: Database, color: '#00D2FF' },
+          { label: 'Tokens Embedded', value: overview?.total_tokens ?? 0, icon: Zap, color: '#00D97E' },
         ].map((stat, i) => (
           <motion.div
             key={i}
