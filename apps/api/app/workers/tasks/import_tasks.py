@@ -1,9 +1,11 @@
 """Import pipeline Celery tasks."""
 from __future__ import annotations
+
 import asyncio
-import uuid
-from app.workers.celery_app import celery_app
+
 import structlog
+
+from app.workers.celery_app import celery_app
 
 logger = structlog.get_logger()
 
@@ -14,13 +16,11 @@ def run_import_pipeline(self, job_id: str):
     logger.info("import_task_started", job_id=job_id, task_id=self.request.id)
 
     async def _run():
-        from app.database import async_session_factory
         from app.services.import_service import ImportPipelineService
 
-        async with async_session_factory() as db:
-            service = ImportPipelineService(db)
-            result = await service.run(uuid.UUID(job_id))
-            return result
+        service = ImportPipelineService()
+        result = await service.run(job_id)
+        return result
 
     try:
         loop = asyncio.new_event_loop()

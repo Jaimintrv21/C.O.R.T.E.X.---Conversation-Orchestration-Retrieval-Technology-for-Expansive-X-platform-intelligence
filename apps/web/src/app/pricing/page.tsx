@@ -81,7 +81,7 @@ export default function PricingPage() {
             </div>
 
             <Link href="/register">
-              <LiquidButton className="w-full text-white border border-white/20 rounded-full" size="md">
+              <LiquidButton className="w-full text-white border border-white/20 rounded-full" size="default">
                 Get Started Free
               </LiquidButton>
             </Link>
@@ -127,7 +127,7 @@ export default function PricingPage() {
             </div>
 
             <Link href="/register">
-              <LiquidButton className="w-full text-white bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] rounded-full border border-[#6C63FF]/45" size="md">
+              <LiquidButton className="w-full text-white bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] rounded-full border border-[#6C63FF]/45" size="default">
                 Upgrade to Pro
               </LiquidButton>
             </Link>

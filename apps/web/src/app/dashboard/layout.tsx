@@ -14,11 +14,13 @@ import {
   Settings,
   Bell,
   ChevronRight,
-  User
+  User,
+  Bot
 } from 'lucide-react';
 import { WebGLShader } from '@/components/ui/web-gl-shader';
 
 const navItems = [
+  { name: 'Chat with AI', href: '/dashboard/ai-chat', icon: Bot },
   { name: 'Conversations', href: '/dashboard/conversations', icon: MessageSquare },
   { name: 'Compare', href: '/dashboard/compare', icon: GitCompare },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart2 },

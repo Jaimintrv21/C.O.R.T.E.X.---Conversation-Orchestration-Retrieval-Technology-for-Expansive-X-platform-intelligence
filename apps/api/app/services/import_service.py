@@ -1,160 +1,141 @@
-"""
-Import pipeline service — orchestrates the full import flow:
-
-  File → Parser → Normalizer → PII Scan → DB Store →
-  Embedding Queue → Meilisearch Index → Topic Extraction →
-  Knowledge Graph → Analytics Snapshot → WebSocket Push
-"""
+"""Firestore-backed import pipeline orchestration."""
 from __future__ import annotations
-import uuid
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
+
 import structlog
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.conversation import Conversation
-from app.models.message import Message
-from app.models.job import Job
-from app.models.provider import Provider
-from app.providers.base import CanonicalConversation, CanonicalMessage
+
+from app.firestore import FirestoreStore
+from app.providers.base import CanonicalConversation
 from app.providers.registry import load_and_parse
 
 logger = structlog.get_logger()
 
 
 class ImportPipelineService:
-    """Executes the full import pipeline for a given job."""
+    """Executes the import pipeline without relying on SQLAlchemy."""
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    def __init__(self, store: FirestoreStore | None = None):
+        self.store = store or FirestoreStore()
 
-    async def run(self, job_id: uuid.UUID) -> dict:
-        """Main pipeline entry point — called by Celery worker."""
-        job = await self.db.get(Job, job_id)
+    async def run(self, job_id: str) -> dict:
+        job = self.store.get_job(job_id)
         if not job:
             raise ValueError(f"Job {job_id} not found")
 
-        job.status = "running"
-        job.started_at = datetime.now(timezone.utc)
-        job.progress = 0.0
-        job.progress_detail = "Starting import..."
-        await self.db.commit()
+        self.store.update_job(
+            job_id,
+            {
+                "status": "running",
+                "started_at": datetime.now(UTC),
+                "progress": 0.0,
+                "progress_detail": "Starting import...",
+            },
+        )
 
         try:
-            # ── Step 1: Parse file ────────────────────────────────────
-            await self._update_progress(job, 0.1, "Parsing export file...")
-            file_path = job.payload.get("temp_path")
-            provider_slug = job.payload.get("provider_slug")
-
+            self.store.update_job(job_id, {"progress": 0.1, "progress_detail": "Parsing export file..."})
+            payload = job.get("payload") or {}
+            file_path = payload.get("temp_path")
+            provider_slug = payload.get("provider_slug")
             conversations = load_and_parse(file_path, provider_slug)
             total = len(conversations)
-            logger.info("import_parsed", job_id=str(job_id), conversations=total)
 
-            # ── Step 2: Store conversations ──────────────────────────
             imported = 0
             skipped = 0
+            imported_ids: list[str] = []
 
-            for i, canonical in enumerate(conversations):
-                progress = 0.1 + (0.6 * (i + 1) / max(total, 1))
-                await self._update_progress(job, progress, f"Importing {i+1}/{total}: {canonical.title or 'Untitled'}")
+            for index, canonical in enumerate(conversations):
+                progress = 0.1 + (0.7 * (index + 1) / max(total, 1))
+                self.store.update_job(
+                    job_id,
+                    {
+                        "progress": round(progress, 3),
+                        "progress_detail": f"Importing {index + 1}/{total}: {canonical.title or 'Untitled'}",
+                    },
+                )
 
-                # Idempotent: check external_id
+                existing = None
                 if canonical.external_id:
-                    existing = await self.db.execute(
-                        select(Conversation).where(
-                            Conversation.user_id == job.user_id,
-                            Conversation.external_id == canonical.external_id,
-                        )
-                    )
-                    if existing.scalar_one_or_none():
-                        skipped += 1
-                        continue
+                    existing = self.store.get_conversation_by_external_id(job["user_id"], canonical.external_id)
+                if existing:
+                    skipped += 1
+                    continue
 
-                # Resolve provider
-                provider = await self._resolve_provider(canonical.provider_slug)
-
-                conv = await self._store_conversation(job.user_id, job.workspace_id, provider, canonical)
+                conversation = self._store_conversation(
+                    user_id=job["user_id"],
+                    workspace_id=job.get("workspace_id"),
+                    canonical=canonical,
+                )
                 imported += 1
+                imported_ids.append(conversation["id"])
 
-            # ── Step 3: Post-processing (enqueue async tasks) ─────────
-            await self._update_progress(job, 0.8, "Queueing embeddings and indexing...")
-            # TODO: Enqueue embedding_tasks.embed_batch for all new messages
-            # TODO: Enqueue Meilisearch indexing
-            # TODO: Enqueue topic extraction
-            # TODO: Enqueue knowledge graph extraction
-            # TODO: Update analytics snapshot
-
-            # ── Step 4: Complete ──────────────────────────────────────
-            job.status = "completed"
-            job.progress = 1.0
-            job.progress_detail = f"Done: {imported} imported, {skipped} skipped"
-            job.completed_at = datetime.now(timezone.utc)
-            job.result = {"imported": imported, "skipped": skipped, "total": total}
-            await self.db.commit()
-
-            logger.info("import_completed", job_id=str(job_id), imported=imported, skipped=skipped)
-            return job.result
-
-        except Exception as e:
-            job.status = "failed"
-            job.error_message = str(e)
-            job.completed_at = datetime.now(timezone.utc)
-            job.attempts += 1
-            await self.db.commit()
-            logger.error("import_failed", job_id=str(job_id), error=str(e))
+            result = {"imported": imported, "skipped": skipped, "total": total, "conversation_ids": imported_ids}
+            self.store.update_job(
+                job_id,
+                {
+                    "status": "completed",
+                    "progress": 1.0,
+                    "progress_detail": f"Done: {imported} imported, {skipped} skipped",
+                    "completed_at": datetime.now(UTC),
+                    "result": result,
+                },
+            )
+            logger.info("import_completed", job_id=job_id, imported=imported, skipped=skipped)
+            return result
+        except Exception as exc:
+            attempts = int(job.get("attempts") or 0) + 1
+            self.store.update_job(
+                job_id,
+                {
+                    "status": "failed",
+                    "attempts": attempts,
+                    "error_message": str(exc),
+                    "completed_at": datetime.now(UTC),
+                },
+            )
+            logger.exception("import_failed", job_id=job_id)
             raise
 
-    async def _store_conversation(
+    def _store_conversation(
         self,
-        user_id: uuid.UUID,
-        workspace_id: uuid.UUID | None,
-        provider: Provider | None,
+        *,
+        user_id: str,
+        workspace_id: str | None,
         canonical: CanonicalConversation,
-    ) -> Conversation:
-        """Persists a canonical conversation and its messages to the DB."""
-        conv = Conversation(
+    ) -> dict:
+        conversation = self.store.create_conversation(
             user_id=user_id,
             workspace_id=workspace_id,
-            provider_id=provider.id if provider else None,
+            provider_slug=canonical.provider_slug,
             external_id=canonical.external_id,
             title=canonical.title,
+            summary=None,
             status="active",
             import_source="file_upload",
-            message_count=len(canonical.messages),
-            token_count=sum(m.token_count for m in canonical.messages),
             language=canonical.language,
-            topics=canonical.topics or None,
-            tags=canonical.tags or None,
+            topics=canonical.topics,
+            tags=canonical.tags,
             started_at=canonical.started_at,
             ended_at=canonical.ended_at,
-            metadata_=canonical.metadata,
+            metadata=canonical.metadata,
         )
-        self.db.add(conv)
-        await self.db.flush()
 
-        for seq, msg in enumerate(canonical.messages):
-            db_msg = Message(
-                conversation_id=conv.id,
-                external_id=msg.external_id,
-                role=msg.role,
-                content=msg.content,
-                content_type=msg.content_type,
-                model=msg.model,
-                token_count=msg.token_count,
-                attachments=msg.attachments,
-                tool_calls=msg.tool_calls,
-                sequence_num=seq,
-                metadata_=msg.metadata,
+        for sequence_num, message in enumerate(canonical.messages):
+            self.store.add_message(
+                conversation_id=conversation["id"],
+                user_id=user_id,
+                external_id=message.external_id,
+                role=message.role,
+                content=message.content,
+                content_type=message.content_type,
+                model=message.model,
+                token_count=message.token_count,
+                attachments=message.attachments,
+                tool_calls=message.tool_calls,
+                parent_id=message.parent_id,
+                sequence_num=sequence_num,
+                created_at=message.created_at,
             )
-            self.db.add(db_msg)
 
-        await self.db.flush()
-        return conv
-
-    async def _resolve_provider(self, slug: str) -> Provider | None:
-        result = await self.db.execute(select(Provider).where(Provider.slug == slug))
-        return result.scalar_one_or_none()
-
-    async def _update_progress(self, job: Job, progress: float, detail: str) -> None:
-        job.progress = round(progress, 3)
-        job.progress_detail = detail
-        await self.db.commit()
+        return self.store.update_conversation_message_stats(conversation["id"]) or conversation

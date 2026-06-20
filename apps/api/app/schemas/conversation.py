@@ -19,6 +19,7 @@ class MessageResponse(BaseModel):
     parent_id: UUID | None
     sequence_num: int
     created_at: datetime
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -29,6 +30,8 @@ class ConversationResponse(BaseModel):
     user_id: UUID
     workspace_id: UUID | None
     provider_id: UUID | None
+    provider_slug: str | None = None
+    provider_name: str | None = None
     external_id: str | None
     title: str | None
     summary: str | None
@@ -43,6 +46,9 @@ class ConversationResponse(BaseModel):
     is_pinned: bool
     is_shared: bool
     quality_score: float | None
+    preview: str | None = None
+    metadata: dict | None = None
+    last_message_at: datetime | None = None
     started_at: datetime | None
     ended_at: datetime | None
     created_at: datetime
@@ -50,6 +56,16 @@ class ConversationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ConversationCreate(BaseModel):
+    title: str | None = Field(default="New Chat", max_length=200)
+    provider_slug: str | None = Field(default="chatgpt", max_length=80)
+    workspace_id: UUID | None = None
+    summary: str | None = None
+    tags: list[str] | None = None
+    topics: list[str] | None = None
+    metadata: dict | None = None
 
 
 class ConversationUpdate(BaseModel):
@@ -80,6 +96,19 @@ class ImportRequest(BaseModel):
 
 class CompareRequest(BaseModel):
     conversation_ids: list[UUID] = Field(min_length=2, max_length=5)
+
+
+class ChatMessageRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=20000)
+    provider_slug: str | None = None
+    model: str | None = None
+    local_only: bool | None = None
+
+
+class ChatTurnResponse(BaseModel):
+    conversation: ConversationResponse
+    user_message: MessageResponse
+    assistant_message: MessageResponse
 
 
 class CompareResult(BaseModel):

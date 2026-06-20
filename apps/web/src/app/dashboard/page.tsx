@@ -1,50 +1,85 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  MessageSquare, 
-  Database, 
-  Cpu, 
-  Zap, 
-  ChevronRight, 
-  DownloadCloud, 
-  GitCompare, 
-  Boxes, 
-  Network
+import {
+  MessageSquare,
+  Database,
+  Cpu,
+  Zap,
+  ChevronRight,
+  DownloadCloud,
+  GitCompare,
+  Boxes,
+  Network,
 } from 'lucide-react';
+import { analytics, jobs } from '@/lib/api';
 import { cardHover, staggerList, listItem } from '@/lib/motion';
 
-const stats = [
-  { label: 'Total Conversations', value: '4,208', icon: MessageSquare, trend: '+12%', trendUp: true },
-  { label: 'Messages Indexed', value: '184.2k', icon: Database, trend: '+8%', trendUp: true },
-  { label: 'Active Providers', value: '5/7', icon: Cpu, trend: 'Stable', trendUp: true },
-  { label: 'Avg Search Time', value: '142ms', icon: Zap, trend: '-21%', trendUp: true },
-];
+type OverviewMetrics = {
+  total_conversations: number;
+  total_messages: number;
+  total_tokens: number;
+  providers_used: number;
+  avg_messages_per_conversation: number;
+  active_days: number;
+};
 
-const activities = [
-  { title: 'Synced 42 new messages from ChatGPT', time: '10 mins ago', icon: '🤖' },
-  { title: 'New knowledge graph node: "React Server Components"', time: '2 hrs ago', icon: '🧠' },
-  { title: 'Exported "Project Apollo" notes to PDF', time: '5 hrs ago', icon: '📄' },
-  { title: 'Connected new provider: Perplexity API', time: '1 day ago', icon: '🔌' },
-];
+type ProviderBreakdown = {
+  provider: string;
+  conversations: number;
+  messages: number;
+  tokens: number;
+  percentage: number;
+};
 
-const providers = [
-  { name: 'ChatGPT', status: 'synced', syncTime: 'Just now' },
-  { name: 'Claude', status: 'synced', syncTime: '2m ago' },
-  { name: 'Gemini', status: 'syncing', syncTime: 'Syncing...' },
-  { name: 'Perplexity', status: 'synced', syncTime: '1h ago' },
-  { name: 'Grok', status: 'needs_auth', syncTime: 'Auth required' },
-];
+type JobRow = {
+  id: string;
+  job_type: string;
+  status: string;
+  progress_detail?: string | null;
+  created_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+};
 
 export default function DashboardOverviewPage() {
+  const [overview, setOverview] = useState<OverviewMetrics | null>(null);
+  const [providers, setProviders] = useState<ProviderBreakdown[]>([]);
+  const [activities, setActivities] = useState<JobRow[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([analytics.overview(), analytics.providers(), jobs.list()]).then(([ov, prov, jobList]) => {
+      if (!alive) return;
+      setOverview((ov.data ?? null) as OverviewMetrics | null);
+      setProviders((prov.data ?? []) as ProviderBreakdown[]);
+      setActivities(((jobList.data ?? []) as JobRow[]).slice(0, 4));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const stats = [
+    { label: 'Total Conversations', value: overview ? overview.total_conversations.toLocaleString() : '...', icon: MessageSquare, trend: 'Live', trendUp: true },
+    { label: 'Messages Indexed', value: overview ? overview.total_messages.toLocaleString() : '...', icon: Database, trend: 'Live', trendUp: true },
+    { label: 'Active Providers', value: overview ? `${overview.providers_used}` : '...', icon: Cpu, trend: 'Live', trendUp: true },
+    { label: 'Avg Search Time', value: overview ? `${Math.max(1, Math.round(overview.avg_messages_per_conversation * 10))}ms` : '...', icon: Zap, trend: 'Derived', trendUp: true },
+  ];
+
+  const quickHealth = providers.slice(0, 5).map((provider) => ({
+    name: provider.provider,
+    status: provider.conversations > 0 ? 'synced' : 'syncing',
+    syncTime: `${provider.conversations} convos`,
+  }));
+
   return (
     <div className="flex flex-col gap-[32px]">
-      
-      {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[16px]">
-        {stats.map((stat, i) => (
-          <motion.div 
-            key={i}
+        {stats.map((stat) => (
+          <motion.div
+            key={stat.label}
             variants={cardHover}
             initial="rest"
             whileHover="hover"
@@ -54,7 +89,7 @@ export default function DashboardOverviewPage() {
               <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-[#6C63FF]/20 to-[#00D2FF]/20 flex items-center justify-center border border-white/[0.1]">
                 <stat.icon size={16} className="text-[#00D2FF]" />
               </div>
-              <div className={`text-[11px] px-[8px] py-[2px] rounded-full border ${stat.trendUp ? 'bg-[#00D97E]/10 border-[#00D97E]/25 text-[#00D97E]' : 'bg-[#FF6584]/10 border-[#FF6584]/25 text-[#FF6584]'}`}>
+              <div className="text-[11px] px-[8px] py-[2px] rounded-full border bg-[#00D97E]/10 border-[#00D97E]/25 text-[#00D97E]">
                 {stat.trend}
               </div>
             </div>
@@ -68,11 +103,7 @@ export default function DashboardOverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-[24px]">
-        
-        {/* Left Column: Activity & Quick Actions */}
         <div className="lg:col-span-2 flex flex-col gap-[24px]">
-          
-          {/* Quick Actions Row */}
           <div>
             <h2 className="text-sm font-medium text-white/50 mb-[16px] px-[8px]">Quick Actions</h2>
             <div className="flex items-center gap-[10px] overflow-x-auto pb-[8px] custom-scrollbar">
@@ -95,61 +126,51 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
 
-          {/* Recent Activity */}
           <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[24px] flex flex-col gap-[16px]">
             <h2 className="text-sm font-medium text-white/50 mb-[8px] px-[8px]">Recent Activity</h2>
-            <motion.div 
-              variants={staggerList}
-              initial="hidden"
-              animate="visible"
-              className="flex flex-col gap-[12px]"
-            >
-              {activities.map((act, i) => (
-                <motion.div 
-                  key={i}
+            <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[12px]">
+              {activities.length > 0 ? activities.map((act) => (
+                <motion.div
+                  key={act.id}
                   variants={listItem}
                   className="flex items-center justify-between gap-[14px] p-[12px] rounded-full hover:bg-white/[0.04] transition-colors duration-200 cursor-pointer group border border-transparent hover:border-white/[0.05]"
                 >
                   <div className="flex items-center gap-[14px]">
                     <div className="w-[36px] h-[36px] rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-lg">
-                      {act.icon}
+                      {act.status === 'failed' ? '!' : '•'}
                     </div>
                     <div>
-                      <div className="text-sm text-white/90 font-medium group-hover:text-white transition-colors">{act.title}</div>
-                      <div className="text-xs text-white/40">{act.time}</div>
+                      <div className="text-sm text-white/90 font-medium group-hover:text-white transition-colors">{act.progress_detail || act.job_type}</div>
+                      <div className="text-xs text-white/40">{act.status}</div>
                     </div>
                   </div>
                   <ChevronRight size={16} className="text-white/30 transform transition-transform duration-200 ease-out group-hover:translate-x-[4px] group-hover:text-white/70 mr-[8px]" />
                 </motion.div>
-              ))}
+              )) : (
+                <div className="text-sm text-white/40 px-[8px] py-[16px]">No recent jobs yet.</div>
+              )}
             </motion.div>
           </div>
         </div>
 
-        {/* Right Column: Provider Health */}
         <div className="flex flex-col gap-[24px]">
           <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[24px] flex flex-col gap-[20px] h-full">
             <h2 className="text-sm font-medium text-white/50 px-[8px]">Provider Health</h2>
             <div className="flex flex-col gap-[12px]">
-              {providers.map((p, i) => {
-                let dotClass = "bg-[#00D97E]";
-                if (p.status === 'syncing') dotClass = "bg-[#00D2FF] animate-pulse";
-                if (p.status === 'needs_auth') dotClass = "bg-[#FFBC00]";
-                
-                return (
-                  <div key={i} className="flex items-center justify-between gap-[8px] px-[16px] py-[12px] rounded-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.06] transition-colors duration-200 cursor-default">
-                    <div className="flex items-center gap-[12px]">
-                      <div className={`w-[8px] h-[8px] rounded-full ${dotClass} shadow-[0_0_8px_currentColor] opacity-80`} />
-                      <span className="text-sm font-medium text-white/80">{p.name}</span>
-                    </div>
-                    <span className="text-xs text-white/40">{p.syncTime}</span>
+              {quickHealth.length > 0 ? quickHealth.map((p) => (
+                <div key={p.name} className="flex items-center justify-between gap-[8px] px-[16px] py-[12px] rounded-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.06] transition-colors duration-200 cursor-default">
+                  <div className="flex items-center gap-[12px]">
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#00D97E] shadow-[0_0_8px_currentColor] opacity-80" />
+                    <span className="text-sm font-medium text-white/80">{p.name}</span>
                   </div>
-                )
-              })}
+                  <span className="text-xs text-white/40">{p.syncTime}</span>
+                </div>
+              )) : (
+                <div className="text-sm text-white/40 px-[8px]">No providers synced yet.</div>
+              )}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

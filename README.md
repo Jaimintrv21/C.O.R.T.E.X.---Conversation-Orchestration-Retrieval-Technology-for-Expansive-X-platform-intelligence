@@ -64,9 +64,10 @@ For deep-dives into the architecture, planning, and specifications, refer to our
 - **Animations**: Framer Motion
 - **Icons**: Lucide React
 
-### Backend & Infrastructure (Planned/Integrating)
+### Backend & Infrastructure
 - **API**: FastAPI + Celery
-- **Database**: PostgreSQL 16 + pgvector
+- **Primary Database**: Firebase / Firestore
+- **Relational Support**: PostgreSQL 16 + pgvector
 - **Search**: Meilisearch
 - **Cache**: Redis 7
 - **AI Router**: LiteLLM (Cloud) / Ollama (Local)
@@ -94,6 +95,27 @@ npm run dev
 ```
 
 Visit `http://localhost:3000/dashboard` to experience the Liquid Glass interface.
+
+## Production Deploy
+
+The production stack is defined in [`docker-compose.yml`](./docker-compose.yml) and includes the web app, FastAPI API, Celery worker and beat scheduler, PostgreSQL, Redis, Meilisearch, MinIO, Caddy, Ollama, and optional observability services.
+
+```bash
+git clone <repo-url>
+cd cortex
+cp .env.example .env
+docker compose up -d
+```
+
+Open `https://localhost` for the edge proxy, or use `http://localhost:3000` and `http://localhost:8000` for direct service access during local development.
+
+Firebase/Firestore still needs a valid service account in `.env` for the current backend persistence layer. Set `C.O.R.T.E.X._FIREBASE_PROJECT_ID` and either `C.O.R.T.E.X._FIREBASE_SERVICE_ACCOUNT_PATH` or `C.O.R.T.E.X._FIREBASE_SERVICE_ACCOUNT_JSON` before bringing the stack up.
+
+To enable observability, start the optional profile:
+
+```bash
+docker compose --profile observability up -d
+```
 
 ---
 

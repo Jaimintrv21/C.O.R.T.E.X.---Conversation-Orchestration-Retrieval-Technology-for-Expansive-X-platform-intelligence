@@ -1,97 +1,55 @@
-"""Analytics router: overview, topics, timeline, providers, heatmap, models."""
+"""Analytics router backed by Firebase/Firestore."""
 from __future__ import annotations
+
 from datetime import date
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
+
+from fastapi import APIRouter, Depends
+
 from app.dependencies import get_current_user
-from app.models.conversation import Conversation
-from app.models.message import Message
-from app.models.user import User
-from app.schemas.analytics import (
-    HeatmapCell, ModelUsage, OverviewMetrics,
-    ProviderBreakdown, TimelinePoint, TopicCount,
-)
-from app.schemas.common import ApiResponse, ApiListResponse
+from app.firestore import FirestoreStore
+from app.schemas.analytics import HeatmapCell, ModelUsage, OverviewMetrics, ProviderBreakdown, TimelinePoint, TopicCount
+from app.schemas.common import ApiListResponse, ApiResponse
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
 @router.get("/overview", response_model=ApiResponse[OverviewMetrics])
-async def analytics_overview(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Aggregate usage stats for the authenticated user."""
-    conv_q = select(
-        func.count(Conversation.id),
-        func.coalesce(func.sum(Conversation.message_count), 0),
-        func.coalesce(func.sum(Conversation.token_count), 0),
-        func.count(func.distinct(Conversation.provider_id)),
-    ).where(Conversation.user_id == user.id, Conversation.deleted_at.is_(None))
-
-    result = await db.execute(conv_q)
-    row = result.one()
-
-    total_convs = row[0] or 0
-    return ApiResponse(data=OverviewMetrics(
-        total_conversations=total_convs,
-        total_messages=row[1],
-        total_tokens=row[2],
-        providers_used=row[3],
-        avg_messages_per_conversation=round(row[1] / max(total_convs, 1), 1),
-        active_days=0,  # TODO: count distinct days
-    ))
+async def analytics_overview(user: dict = Depends(get_current_user)):
+    metrics = FirestoreStore().compute_overview_metrics(user["id"])
+    return ApiResponse(data=OverviewMetrics.model_validate(metrics))
 
 
 @router.get("/topics", response_model=ApiListResponse[TopicCount])
-async def analytics_topics(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Top topics across user's conversations."""
-    # TODO: unnest topics array and count
-    return ApiListResponse(data=[])
+async def analytics_topics(user: dict = Depends(get_current_user)):
+    topics = FirestoreStore().topic_breakdown(user["id"])
+    return ApiListResponse(data=[TopicCount.model_validate(item) for item in topics])
 
 
 @router.get("/timeline", response_model=ApiListResponse[TimelinePoint])
 async def analytics_timeline(
     date_from: date | None = None,
     date_to: date | None = None,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
-    """Daily conversation/message counts over time."""
-    # TODO: Group by date
-    return ApiListResponse(data=[])
+    points = FirestoreStore().timeline(user["id"])
+    if date_from:
+        points = [point for point in points if point["date"] >= date_from]
+    if date_to:
+        points = [point for point in points if point["date"] <= date_to]
+    return ApiListResponse(data=[TimelinePoint.model_validate(item) for item in points])
 
 
 @router.get("/providers", response_model=ApiListResponse[ProviderBreakdown])
-async def analytics_providers(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Per-provider conversation breakdown."""
-    # TODO: Group by provider_id with join to providers table
-    return ApiListResponse(data=[])
+async def analytics_providers(user: dict = Depends(get_current_user)):
+    providers = FirestoreStore().provider_breakdown(user["id"])
+    return ApiListResponse(data=[ProviderBreakdown.model_validate(item) for item in providers])
 
 
 @router.get("/heatmap", response_model=ApiListResponse[HeatmapCell])
-async def analytics_heatmap(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Activity heatmap by day-of-week and hour."""
-    # TODO: Extract day/hour from conversation timestamps
+async def analytics_heatmap(user: dict = Depends(get_current_user)):
     return ApiListResponse(data=[])
 
 
 @router.get("/models", response_model=ApiListResponse[ModelUsage])
-async def analytics_models(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Usage breakdown by AI model."""
-    # TODO: Group messages by model field
+async def analytics_models(user: dict = Depends(get_current_user)):
     return ApiListResponse(data=[])

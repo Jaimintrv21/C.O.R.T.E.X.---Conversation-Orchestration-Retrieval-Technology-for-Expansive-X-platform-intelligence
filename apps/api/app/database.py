@@ -1,11 +1,15 @@
-"""
-Async SQLAlchemy engine and session factory.
+"""Legacy SQLAlchemy scaffolding.
+
+Firebase/Firestore is now the primary application database. This module stays in
+place so existing model imports do not explode while the remaining services are
+migrated off SQLAlchemy.
 """
 from __future__ import annotations
 from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from app.config import get_settings
+from app.firestore import get_firestore_client
 
 settings = get_settings()
 
@@ -27,20 +31,11 @@ class Base(DeclarativeBase):
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    yield None
 
 
 async def init_db() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    get_firestore_client()
 
 
 async def close_db() -> None:

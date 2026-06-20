@@ -31,10 +31,12 @@ export const auth = {
 // Conversations
 export const conversations = {
   list: (cursor?: string, limit = 50) => request("GET", `/conversations?limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`),
+  create: (data: { title?: string; provider_slug?: string; workspace_id?: string; summary?: string; tags?: string[]; topics?: string[]; metadata?: Record<string, unknown> }) => request("POST", "/conversations", data),
   get: (id: string) => request("GET", `/conversations/${id}`),
   update: (id: string, data: Record<string, unknown>) => request("PATCH", `/conversations/${id}`, data),
   delete: (id: string) => request("DELETE", `/conversations/${id}`),
   messages: (id: string, cursor?: string) => request("GET", `/conversations/${id}/messages${cursor ? `?cursor=${cursor}` : ""}`),
+  sendMessage: (id: string, data: { content: string; provider_slug?: string; model?: string; local_only?: boolean }) => request("POST", `/conversations/${id}/messages`, data),
   compare: (ids: string[]) => request("POST", "/conversations/compare", { conversation_ids: ids }),
   duplicates: () => request("GET", "/conversations/duplicates"),
 };
@@ -66,8 +68,10 @@ export const knowledge = {
 
 // Artifacts
 export const artifacts = {
+  list: () => request("GET", "/artifacts"),
   generate: (data: { title: string; artifact_type: string; source_ids: string[]; prompt?: string }) => request("POST", "/artifacts/generate", data),
   get: (id: string) => request("GET", `/artifacts/${id}`),
+  download: (id: string) => request("GET", `/artifacts/${id}/download`),
   delete: (id: string) => request("DELETE", `/artifacts/${id}`),
 };
 

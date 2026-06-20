@@ -1,6 +1,9 @@
-"""Generic JSON parser — fallback for unrecognized JSON exports."""
+"""Generic JSON parser fallback."""
 from __future__ import annotations
-from typing import Any
+
+from collections.abc import AsyncIterator
+
+from app.models.provider import ProviderAccount
 from app.providers.base import BaseProvider, CanonicalConversation, CanonicalMessage
 
 
@@ -9,20 +12,24 @@ class GenericJsonParser(BaseProvider):
     slug = "generic"
     version = "1.0"
 
-    def detect(self, data: Any) -> bool:
-        """Accepts any list of dicts with message-like structure."""
-        if isinstance(data, list) and len(data) > 0:
+    def detect_format(self, raw: bytes) -> bool:
+        try:
+            data = self._load_json(raw)
+        except (UnicodeDecodeError, ValueError):
+            return False
+
+        if isinstance(data, list) and data:
             return isinstance(data[0], dict)
         if isinstance(data, dict):
             return "messages" in data or "conversations" in data
         return False
 
-    def parse(self, data: Any) -> list[CanonicalConversation]:
+    def parse(self, raw: bytes, version: str = "latest") -> list[CanonicalConversation]:
+        data = self._load_json(raw)
         if isinstance(data, dict):
             if "conversations" in data:
                 data = data["conversations"]
             elif "messages" in data:
-                # Single conversation
                 data = [data]
             else:
                 data = [data]
@@ -30,38 +37,47 @@ class GenericJsonParser(BaseProvider):
         if not isinstance(data, list):
             return []
 
-        conversations = []
-        for i, item in enumerate(data):
+        conversations: list[CanonicalConversation] = []
+        for index, item in enumerate(data):
             if not isinstance(item, dict):
                 continue
-            conv = self._parse_item(item, i)
+            conv = self._parse_item(item, index)
             if conv:
                 conversations.append(conv)
         return conversations
 
-    def _parse_item(self, raw: dict, index: int) -> CanonicalConversation | None:
-        messages = []
-        raw_msgs = raw.get("messages", raw.get("chat", []))
+    async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
+        if False:
+            yield CanonicalConversation(external_id="")
+        raise NotImplementedError("Generic provider sync is not implemented")
 
+    def get_schema_version(self) -> str:
+        return "generic.v1"
+
+    def _parse_item(self, raw: dict, index: int) -> CanonicalConversation | None:
+        raw_msgs = raw.get("messages", raw.get("chat", []))
         if not isinstance(raw_msgs, list):
             return None
 
-        for j, msg in enumerate(raw_msgs):
+        messages: list[CanonicalMessage] = []
+        for message_index, msg in enumerate(raw_msgs):
             if not isinstance(msg, dict):
                 continue
             role = msg.get("role", msg.get("author", "user"))
             content = msg.get("content", msg.get("text", msg.get("body", "")))
             if isinstance(content, list):
-                content = "\n".join(str(c) for c in content)
+                content = "\n".join(str(value) for value in content)
             if not str(content).strip():
                 continue
 
-            messages.append(CanonicalMessage(
-                external_id=msg.get("id", f"gen-{index}-{j}"),
-                role=str(role),
-                content=str(content),
-                model=msg.get("model"),
-            ))
+            messages.append(
+                CanonicalMessage(
+                    external_id=msg.get("id", f"gen-{index}-{message_index}"),
+                    role=str(role),
+                    content=str(content),
+                    model=msg.get("model"),
+                )
+            )
 
         if not messages:
             return None

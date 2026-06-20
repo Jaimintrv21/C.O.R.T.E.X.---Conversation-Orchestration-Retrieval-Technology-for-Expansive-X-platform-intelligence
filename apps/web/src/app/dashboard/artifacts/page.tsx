@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Globe, LayoutDashboard, FileText, Presentation, 
   BookOpen, Network, CheckCircle2, Loader2, ArrowRight, ArrowLeft, Check, LoaderCircleIcon, Sparkles,
   Search, ArrowUpDown, Eye, Trash2, Calendar, HardDrive, Cpu, X, DownloadCloud
 } from 'lucide-react';
 import { popIn, staggerList, listItem } from '@/lib/motion';
+import { artifacts as artifactsApi } from '@/lib/api';
 
 import {
   Stepper,
@@ -37,12 +38,35 @@ const artifactTypes = [
   { id: 'mindmap', name: 'Mind Map', icon: Network, desc: 'Visual concept graphs and idea networks' },
 ];
 
-const initialArtifacts = [
-  { id: 'art-1', name: 'CORTEX Marketing Strategy', type: 'wiki', model: 'Claude 3.5', size: '1.2 MB', time: '2h ago', timestamp: Date.now() - 2 * 60 * 60 * 1000, desc: 'A complete wiki detailing market placement, user personas, and target messaging derived from user sessions.', previewText: '# Marketing Strategy Wiki\n\n## Target Audience\n- AI Engineers & Developers\n- Technology Orchestrators\n- Enterprise Architects\n\n## Value Proposition\nLocal-first, secure, cross-platform intelligence parsing.' },
-  { id: 'art-2', name: 'Next.js App Router Blueprint', type: 'website', model: 'GPT-4o', size: '4.5 MB', time: '1d ago', timestamp: Date.now() - 24 * 60 * 60 * 1000, desc: 'Fully structured next.js codebase template using Tailwind CSS, TypeScript, and shadcn component standards.', previewText: '// Next.js App Router Template\nexport default function Page() {\n  return (\n    <main className="min-h-screen bg-black text-white p-8">\n      <h1>Welcome to CORTEX</h1>\n    </main>\n  );\n}' },
-  { id: 'art-3', name: 'Subsystem Budget Cost Summary', type: 'report', model: 'Llama 3 (Local)', size: '2.1 MB', time: '3d ago', timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000, desc: 'Fabrication and procurement costing report for ANVIKSHA subsystem metrics.', previewText: 'Cost Audit Report - June 2026\n\n- Component Procurement (B): 30%\n- Fabrication & Testing (C): 70%\n- Lifecycle Escallations: Active\n- Total Budget Ceiling Locked: $450,000' },
-  { id: 'art-4', name: 'Cross-Platform Synced Architecture', type: 'mindmap', model: 'GPT-4o', size: '512 KB', time: '1w ago', timestamp: Date.now() - 7 * 24 * 60 * 60 * 1000, desc: 'Mental blueprint map tracing how Ollama local synchronization is wired with React components.', previewText: 'Graph Visualization Data:\n- Nodes: 12\n- Connections: 24\n- Main Anchor: /dashboard/layout\n- Sync Interval: 5000ms' }
-];
+type ArtifactCard = {
+  id: string;
+  name: string;
+  type: string;
+  model: string;
+  size: string;
+  time: string;
+  timestamp: number;
+  desc: string;
+  previewText: string;
+  sourceIds: string[];
+};
+
+const mapArtifact = (artifact: any): ArtifactCard => {
+  const createdAt = artifact.created_at ? new Date(artifact.created_at).getTime() : Date.now();
+  const previewText = artifact.content?.markdown || artifact.content?.payload?.summary || artifact.prompt || '';
+  return {
+    id: artifact.id,
+    name: artifact.title || 'Untitled Artifact',
+    type: artifact.artifact_type || 'report',
+    model: artifact.model_used || 'local',
+    size: artifact.file_size ? `${Math.max(1, Math.round(artifact.file_size / 1024))} KB` : '0 KB',
+    time: 'Just now',
+    timestamp: createdAt,
+    desc: artifact.prompt || 'Generated from synced conversations.',
+    previewText,
+    sourceIds: artifact.source_ids || [],
+  };
+};
 
 export default function ArtifactsPage() {
   const [activeTab, setActiveTab] = useState<'generate' | 'manage'>('generate');
@@ -51,11 +75,20 @@ export default function ArtifactsPage() {
   const [progress, setProgress] = useState(0);
 
   // Manage Tab States
-  const [artifacts, setArtifacts] = useState(initialArtifacts);
+  const [artifacts, setArtifacts] = useState<ArtifactCard[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'size'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [selectedPreviewArtifact, setSelectedPreviewArtifact] = useState<typeof initialArtifacts[0] | null>(null);
+  const [selectedPreviewArtifact, setSelectedPreviewArtifact] = useState<ArtifactCard | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    artifactsApi.list().then((res) => {
+      if (!alive) return;
+      setArtifacts(((res.data ?? []) as any[]).map(mapArtifact));
+    });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     if (currentStep === 3) {
@@ -364,20 +397,9 @@ export default function ArtifactsPage() {
                       >
                         <button 
                           onClick={() => { 
-                            // Add newly generated artifact dynamically
-                            const name = `Synthesized ${selectedType ? selectedType.toUpperCase() : 'Artifact'}`;
-                            const newArt = {
-                              id: `art-${Date.now()}`,
-                              name,
-                              type: selectedType || 'wiki',
-                              model: 'GPT-4o',
-                              size: '256 KB',
-                              time: 'Just now',
-                              timestamp: Date.now(),
-                              desc: 'Dynamically synthesized content framework.',
-                              previewText: '# ' + name + '\n\nAutomatically generated CORTEX template.'
-                            };
-                            setArtifacts([newArt, ...artifacts]);
+                            artifactsApi.list().then((res) => {
+                              setArtifacts(((res.data ?? []) as any[]).map(mapArtifact));
+                            });
                             setCurrentStep(1);
                             setSelectedType(null);
                             setActiveTab('manage');
@@ -498,7 +520,11 @@ export default function ArtifactsPage() {
                             <Eye size={12} /> See Details
                           </button>
                           <button 
-                            onClick={() => setArtifacts(artifacts.filter(a => a.id !== art.id))}
+                            onClick={() => {
+                              artifactsApi.delete(art.id).then(() => {
+                                setArtifacts((current) => current.filter((item) => item.id !== art.id));
+                              });
+                            }}
                             className="p-[6px] rounded-full hover:bg-[#FF6584]/10 text-white/30 hover:text-[#FF6584] transition-colors border border-transparent hover:border-[#FF6584]/20"
                           >
                             <Trash2 size={14} />

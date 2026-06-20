@@ -1,72 +1,81 @@
-"""FastAPI dependency injection: auth, DB session, audit logging."""
+"""FastAPI dependency helpers for Firebase-backed persistence."""
 from __future__ import annotations
-import uuid
-from datetime import datetime, timezone
+
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
-from app.models.user import User
-from app.models.audit import AuditLog
+
+from app.firestore import FirestoreStore
 from app.utils.tokens import decode_token
 
 security = HTTPBearer(auto_error=False)
 
 
+def get_store() -> FirestoreStore:
+    return FirestoreStore()
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """Validates JWT and returns the authenticated user."""
+) -> dict:
+    """Validate JWT and return the authenticated Firestore user document."""
     if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization header",
+        )
 
     try:
         payload = decode_token(credentials.credentials)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        ) from exc
 
     if payload.get("type") != "access":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+        )
 
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
 
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id), User.is_active.is_(True)))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    user = FirestoreStore().get_user(user_id)
+    if not user or not user.get("is_active", False):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
 
     return user
 
 
 async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
-    """Returns user if authenticated, None otherwise."""
+) -> dict | None:
     if not credentials:
         return None
     try:
-        return await get_current_user(credentials, db)
+        return await get_current_user(credentials)
     except HTTPException:
         return None
 
 
 async def emit_audit_log(
-    db: AsyncSession,
-    user_id: uuid.UUID | None,
+    user_id: str | None,
     action: str,
     resource_type: str,
-    resource_id: uuid.UUID | None = None,
+    resource_id: str | None = None,
     request: Request | None = None,
     before_state: dict | None = None,
     after_state: dict | None = None,
 ) -> None:
-    """Emits an audit log entry for every mutation."""
-    log = AuditLog(
+    FirestoreStore().create_audit_log(
         user_id=user_id,
         action=action,
         resource_type=resource_type,
@@ -76,7 +85,6 @@ async def emit_audit_log(
         before_state=before_state,
         after_state=after_state,
     )
-    db.add(log)
 
 
 def get_idempotency_key(
