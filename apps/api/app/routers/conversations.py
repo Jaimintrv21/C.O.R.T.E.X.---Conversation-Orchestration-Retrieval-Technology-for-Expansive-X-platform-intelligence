@@ -158,6 +158,7 @@ async def _get_ollama_chat_response(
     user_id: str,
     messages: list[dict],
     model: str,
+    use_knowledge: bool = True,
 ) -> str:
     # 1. Retrieve query (last message content)
     user_query = ""
@@ -166,42 +167,46 @@ async def _get_ollama_chat_response(
             user_query = msg.get("content") or ""
             break
             
-    # 2. Retrieve search results from knowledge base
     context_chunks = []
-    if user_query:
+    if use_knowledge:
+        # 2. Retrieve search results from knowledge base
+        if user_query:
+            try:
+                from app.routers.search import _run_semantic_search
+                hits = await _run_semantic_search(query=user_query, user_id=user_id, limit=5)
+                for hit in hits:
+                    context_chunks.append(f"Source (Conversation: {hit.title}): {hit.snippet}")
+            except Exception:
+                pass
+                
+        # 3. Retrieve knowledge nodes from Firestore knowledge graph
         try:
-            from app.routers.search import _run_semantic_search
-            hits = await _run_semantic_search(query=user_query, user_id=user_id, limit=5)
-            for hit in hits:
-                context_chunks.append(f"Source (Conversation: {hit.title}): {hit.snippet}")
+            from app.firestore import FirestoreStore
+            store = FirestoreStore()
+            nodes = store.list_knowledge_nodes(user_id=user_id, limit=10)
+            if nodes:
+                node_context = "Knowledge Graph Nodes:\n" + "\n".join(
+                    [f"- {node.get('label') or node.get('name')}: {node.get('description') or ''}" 
+                     for node in nodes if node.get('description')]
+                )
+                context_chunks.append(node_context)
         except Exception:
             pass
-            
-    # 3. Retrieve knowledge nodes from Firestore knowledge graph
-    try:
-        from app.firestore import FirestoreStore
-        store = FirestoreStore()
-        nodes = store.list_knowledge_nodes(user_id=user_id, limit=10)
-        if nodes:
-            node_context = "Knowledge Graph Nodes:\n" + "\n".join(
-                [f"- {node.get('label') or node.get('name')}: {node.get('description') or ''}" 
-                 for node in nodes if node.get('description')]
-            )
-            context_chunks.append(node_context)
-    except Exception:
-        pass
         
     context_text = "\n\n".join(context_chunks)
     
     # 4. Formulate the system prompt with knowledge context
-    system_prompt = (
-        "You are an AI assistant with access to the user's personal knowledge base.\n"
-        "Here is the relevant context from the user's knowledge base:\n"
-        "---------------------\n"
-        f"{context_text}\n"
-        "---------------------\n"
-        "Use this context to answer the user's question. If the context is not relevant, answer using your general knowledge."
-    )
+    if use_knowledge and context_text.strip():
+        system_prompt = (
+            "You are an AI assistant with access to the user's personal knowledge base.\n"
+            "Here is the relevant context from the user's knowledge base:\n"
+            "---------------------\n"
+            f"{context_text}\n"
+            "---------------------\n"
+            "Use this context to answer the user's question. If the context is not relevant, answer using your general knowledge."
+        )
+    else:
+        system_prompt = "You are a helpful, concise local AI assistant named CORTEX."
     
     # 5. Format messages list for Ollama SDK
     messages_for_ollama = [{"role": "system", "content": system_prompt}]
@@ -232,6 +237,7 @@ async def _stream_ollama_chat(
     user_id: str,
     messages: list[dict],
     model: str,
+    use_knowledge: bool = True,
 ) -> typing.AsyncIterator[str]:
     import typing
     # 1. Retrieve query (last message content)
@@ -241,42 +247,46 @@ async def _stream_ollama_chat(
             user_query = msg.get("content") or ""
             break
             
-    # 2. Retrieve search results from knowledge base
     context_chunks = []
-    if user_query:
+    if use_knowledge:
+        # 2. Retrieve search results from knowledge base
+        if user_query:
+            try:
+                from app.routers.search import _run_semantic_search
+                hits = await _run_semantic_search(query=user_query, user_id=user_id, limit=5)
+                for hit in hits:
+                    context_chunks.append(f"Source (Conversation: {hit.title}): {hit.snippet}")
+            except Exception:
+                pass
+                
+        # 3. Retrieve knowledge nodes from Firestore knowledge graph
         try:
-            from app.routers.search import _run_semantic_search
-            hits = await _run_semantic_search(query=user_query, user_id=user_id, limit=5)
-            for hit in hits:
-                context_chunks.append(f"Source (Conversation: {hit.title}): {hit.snippet}")
+            from app.firestore import FirestoreStore
+            store = FirestoreStore()
+            nodes = store.list_knowledge_nodes(user_id=user_id, limit=10)
+            if nodes:
+                node_context = "Knowledge Graph Nodes:\n" + "\n".join(
+                    [f"- {node.get('label') or node.get('name')}: {node.get('description') or ''}" 
+                     for node in nodes if node.get('description')]
+                )
+                context_chunks.append(node_context)
         except Exception:
             pass
-            
-    # 3. Retrieve knowledge nodes from Firestore knowledge graph
-    try:
-        from app.firestore import FirestoreStore
-        store = FirestoreStore()
-        nodes = store.list_knowledge_nodes(user_id=user_id, limit=10)
-        if nodes:
-            node_context = "Knowledge Graph Nodes:\n" + "\n".join(
-                [f"- {node.get('label') or node.get('name')}: {node.get('description') or ''}" 
-                 for node in nodes if node.get('description')]
-            )
-            context_chunks.append(node_context)
-    except Exception:
-        pass
         
     context_text = "\n\n".join(context_chunks)
     
     # 4. Formulate the system prompt with knowledge context
-    system_prompt = (
-        "You are an AI assistant with access to the user's personal knowledge base.\n"
-        "Here is the relevant context from the user's knowledge base:\n"
-        "---------------------\n"
-        f"{context_text}\n"
-        "---------------------\n"
-        "Use this context to answer the user's question. If the context is not relevant, answer using your general knowledge."
-    )
+    if use_knowledge and context_text.strip():
+        system_prompt = (
+            "You are an AI assistant with access to the user's personal knowledge base.\n"
+            "Here is the relevant context from the user's knowledge base:\n"
+            "---------------------\n"
+            f"{context_text}\n"
+            "---------------------\n"
+            "Use this context to answer the user's question. If the context is not relevant, answer using your general knowledge."
+        )
+    else:
+        system_prompt = "You are a helpful, concise local AI assistant named CORTEX."
     
     # 5. Format messages list for Ollama SDK
     messages_for_ollama = [{"role": "system", "content": system_prompt}]
@@ -473,6 +483,7 @@ async def send_message(
             user_id=user["id"],
             messages=store.list_messages(str(conversation_id)),
             model=resolved_model,
+            use_knowledge=body.use_knowledge if body.use_knowledge is not None else True,
         )
     else:
         try:
@@ -617,6 +628,7 @@ async def stream_message(
                         user_id=user["id"],
                         messages=store.list_messages(str(conversation_id)),
                         model=resolved_model,
+                        use_knowledge=body.use_knowledge if body.use_knowledge is not None else True,
                     ):
                         await queue.put(("chunk", chunk))
                 else:

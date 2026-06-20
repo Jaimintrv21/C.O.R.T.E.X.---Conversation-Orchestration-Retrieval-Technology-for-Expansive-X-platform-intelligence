@@ -225,7 +225,7 @@ export const conversations = {
   update: (id: string, data: Record<string, unknown>) => request<ConversationResponse>("PATCH", `/conversations/${id}`, data),
   delete: (id: string) => request<unknown>("DELETE", `/conversations/${id}`),
   messages: (id: string, cursor?: string) => request<MessageResponse[]>("GET", `/conversations/${id}/messages${cursor ? `?cursor=${cursor}` : ""}`),
-  sendMessage: (id: string, data: { content: string; provider_slug?: string; model?: string; local_only?: boolean }) => request<MessageResponse>("POST", `/conversations/${id}/messages`, data),
+  sendMessage: (id: string, data: { content: string; provider_slug?: string; model?: string; local_only?: boolean; use_knowledge?: boolean }) => request<MessageResponse>("POST", `/conversations/${id}/messages`, data),
   compare: (ids: string[]) => request<Record<string, unknown>>("POST", "/conversations/compare", { conversation_ids: ids }),
   duplicates: () => request<unknown>("GET", "/conversations/duplicates"),
 };

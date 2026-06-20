@@ -104,6 +104,7 @@ class ChatMessageRequest(BaseModel):
     provider: Literal["local", "openai", "anthropic", "gemini", "grok", "ollama"] = "local"
     model: str | None = None
     local_only: bool | None = None
+    use_knowledge: bool | None = None
 
 
 class ChatStreamDeltaResponse(BaseModel):

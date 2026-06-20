@@ -42,9 +42,7 @@ type MessageRow = {
 };
 
 const providerChoices = [
-  { slug: 'chatgpt', label: 'ChatGPT', accent: '#00D97E' },
-  { slug: 'claude', label: 'Claude', accent: '#D97757' },
-  { slug: 'glm-5.2:cloud', label: 'GLM Agent', accent: '#8B5CF6' },
+  { slug: 'glm-5.2:cloud', label: 'CORTEX Local', accent: '#8B5CF6' },
 ] as const;
 
 const providerLabel = (slug?: string | null, name?: string | null) => {
@@ -72,9 +70,10 @@ export default function AiChatPage() {
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [activeId, setActiveId] = useState<string>('');
-  const [composerProvider, setComposerProvider] = useState<'chatgpt' | 'claude' | 'glm-5.2:cloud'>('chatgpt');
+  const [composerProvider, setComposerProvider] = useState<'glm-5.2:cloud'>('glm-5.2:cloud');
   const [searchQuery, setSearchQuery] = useState('');
-  const [providerFilter, setProviderFilter] = useState<'all' | 'chatgpt' | 'claude' | 'glm-5.2:cloud'>('all');
+  const [providerFilter, setProviderFilter] = useState<'all' | 'glm-5.2:cloud'>('all');
+  const [useKnowledge, setUseKnowledge] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [inputText, setInputText] = useState('');
@@ -124,14 +123,7 @@ export default function AiChatPage() {
   useEffect(() => {
     if (activeId) {
       loadMessages(activeId);
-      const active = conversations.find((item) => item.id === activeId);
-      if (active?.provider_slug === 'claude' || active?.provider_name === 'Claude') {
-        setComposerProvider('claude');
-      } else if (active?.provider_slug === 'glm-5.2:cloud' || active?.provider_name === 'GLM Agent') {
-        setComposerProvider('glm-5.2:cloud');
-      } else {
-        setComposerProvider('chatgpt');
-      }
+      setComposerProvider('glm-5.2:cloud');
     }
   }, [activeId]);
 
@@ -178,7 +170,7 @@ export default function AiChatPage() {
   const createConversation = async () => {
     const response = await conversationsApi.create({
       title: 'New Chat',
-      provider_slug: composerProvider,
+      provider_slug: 'glm-5.2:cloud',
       metadata: { source: 'dashboard-ai-chat' },
     });
     const created = response.data as ConversationRow | null;
@@ -203,7 +195,7 @@ export default function AiChatPage() {
 
   const handleSelectConversation = (conversation: ConversationRow) => {
     setActiveId(conversation.id);
-    setComposerProvider((conversation.provider_slug as 'chatgpt' | 'claude' | 'glm-5.2:cloud' | undefined) ?? 'chatgpt');
+    setComposerProvider('glm-5.2:cloud');
     setIsSidebarOpen(false); // Auto-close sidebar on mobile after selection
   };
 
@@ -257,13 +249,13 @@ export default function AiChatPage() {
       const res = await fetch(`/api/v1/conversations/${conversationId}/messages/stream`, {
         method: 'POST',
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ content, provider_slug: composerProvider }),
+        body: JSON.stringify({ content, provider_slug: 'glm-5.2:cloud', use_knowledge: useKnowledge }),
       });
 
       if (!res.ok) {
         // Fallback to normal non-streaming if /stream doesn't exist (e.g. 404)
         if (res.status === 404) {
-          const fallbackRes = await conversationsApi.sendMessage(conversationId, { content, provider_slug: composerProvider });
+          const fallbackRes = await conversationsApi.sendMessage(conversationId, { content, provider_slug: 'glm-5.2:cloud', use_knowledge: useKnowledge });
           const turn = fallbackRes.data as any;
           if (turn) {
             setMessages(prev => [...prev.filter(m => !m.id.startsWith('temp-')), turn.user_message, turn.assistant_message]);
@@ -341,21 +333,32 @@ export default function AiChatPage() {
               </div>
             </div>
 
-            <div className="hidden sm:flex items-center rounded-full bg-white/[0.04] border border-white/[0.08] p-[3px] shadow-inner flex-shrink-0">
-              {providerChoices.map((provider) => (
-                <button
-                  key={provider.slug}
-                  onClick={() => setComposerProvider(provider.slug)}
-                  className={`flex items-center gap-[6px] px-[12px] md:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
-                    composerProvider === provider.slug
-                      ? 'bg-white/[0.12] text-white border border-white/[0.14]'
-                      : 'text-white/40 hover:text-white/75'
-                  }`}
-                >
-                  <span className="w-[6px] h-[6px] rounded-full" style={{ backgroundColor: provider.accent }} />
-                  {provider.label}
-                </button>
-              ))}
+            {/* Knowledge Base Toggle */}
+            <div className="flex items-center rounded-full bg-white/[0.04] border border-white/[0.08] p-[3px] shadow-inner flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setUseKnowledge(true)}
+                className={`flex items-center gap-[6px] px-[12px] md:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
+                  useKnowledge
+                    ? 'bg-[#8B5CF6]/20 text-white border border-[#8B5CF6]/30 shadow-[0_0_12px_rgba(139,92,246,0.2)]'
+                    : 'text-white/40 hover:text-white/75'
+                }`}
+              >
+                <Sparkles size={11} className={useKnowledge ? "text-[#8B5CF6] animate-pulse" : "text-white/40"} />
+                Knowledge Base
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseKnowledge(false)}
+                className={`flex items-center gap-[6px] px-[12px] md:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
+                  !useKnowledge
+                    ? 'bg-white/[0.12] text-white border border-white/[0.14]'
+                    : 'text-white/40 hover:text-white/75'
+                }`}
+              >
+                <Bot size={11} className={!useKnowledge ? "text-cyan-400" : "text-white/40"} />
+                Direct Chat
+              </button>
             </div>
           </div>
 
@@ -519,26 +522,11 @@ export default function AiChatPage() {
           </div>
 
           <div className="flex flex-col gap-[10px] pb-[12px] border-b border-white/[0.08] flex-shrink-0">
-            <div className="flex gap-[4px] flex-wrap">
-              {(['all', 'chatgpt', 'claude', 'glm-5.2:cloud'] as const).map((provider) => (
-                <button
-                  key={provider}
-                  onClick={() => setProviderFilter(provider)}
-                  className={`px-[10px] py-[4px] rounded-full text-[10px] font-medium transition-all ${
-                    providerFilter === provider
-                      ? 'bg-white/[0.08] border border-white/[0.15] text-white'
-                      : 'text-white/40 hover:text-white/70'
-                  }`}
-                >
-                  {provider === 'all' ? 'All' : providerLabel(provider)}
-                </button>
-              ))}
-            </div>
             <div className="flex items-center justify-between text-[10px] text-white/40 pt-[2px]">
               <span>Sort: <strong className="text-white/60">{sortBy === 'date' ? 'Date' : 'Title'}</strong></span>
               <div className="flex items-center gap-[4px]">
-                <button onClick={() => toggleSort('date')} className={`px-[6px] py-[2px] rounded hover:bg-white/[0.05] flex items-center gap-1 ${sortBy === 'date' ? 'text-white/80 font-semibold' : ''}`}><Clock size={8} /> Date</button>
-                <button onClick={() => toggleSort('title')} className={`px-[6px] py-[2px] rounded hover:bg-white/[0.05] flex items-center gap-1 ${sortBy === 'title' ? 'text-white/80 font-semibold' : ''}`}><ArrowUpDown size={8} /> Title</button>
+                <button type="button" onClick={() => toggleSort('date')} className={`px-[6px] py-[2px] rounded hover:bg-white/[0.05] flex items-center gap-1 ${sortBy === 'date' ? 'text-white/80 font-semibold' : ''}`}><Clock size={8} /> Date</button>
+                <button type="button" onClick={() => toggleSort('title')} className={`px-[6px] py-[2px] rounded hover:bg-white/[0.05] flex items-center gap-1 ${sortBy === 'title' ? 'text-white/80 font-semibold' : ''}`}><ArrowUpDown size={8} /> Title</button>
               </div>
             </div>
           </div>
