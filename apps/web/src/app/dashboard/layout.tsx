@@ -15,11 +15,13 @@ import {
   Bell,
   ChevronRight,
   User,
-  Bot
+  Bot,
+  LayoutDashboard
 } from 'lucide-react';
 import { WebGLShader } from '@/components/ui/web-gl-shader';
 
 const navItems = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Chat with AI', href: '/dashboard/ai-chat', icon: Bot },
   { name: 'Conversations', href: '/dashboard/conversations', icon: MessageSquare },
   { name: 'Compare', href: '/dashboard/compare', icon: GitCompare },
@@ -58,7 +60,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="py-[16px] flex flex-col gap-[8px]">
           <nav className="flex flex-col gap-[6px] px-[10px]">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+              const isActive = item.href === '/dashboard' 
+                ? pathname === '/dashboard' 
+                : (pathname === item.href || pathname?.startsWith(item.href + '/'));
               return (
                 <Link 
                   key={item.name} 

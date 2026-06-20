@@ -1,11 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User, CreditCard, Box, Check, UserPlus, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User, 
+  CreditCard, Box, Check, UserPlus, Trash2, X, Palette, Moon, Sun, 
+  Monitor, Smartphone, Mail, AlertOctagon, Download, Eraser
+} from 'lucide-react';
 import { popIn, staggerList, listItem } from '@/lib/motion';
 
-const tabs = ['Profile', 'Integrations', 'Privacy', 'Workspace', 'Billing'];
+const tabs = ['Profile', 'Appearance', 'Integrations', 'Notifications', 'Privacy', 'Workspace', 'Billing', 'Danger Zone'];
 
 const providers = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', status: 'connected', color: '#00D97E' },
@@ -20,12 +24,17 @@ export default function SettingsPage() {
     sync: true,
     localModel: false,
     telemetry: false,
-    notifications: true,
-    ollamaActive: false
+    ollamaActive: false,
+    emailDigest: true,
+    pushNotifs: false,
+    browserAlerts: true,
+    reduceMotion: false
   });
   
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3');
+  const [themeMode, setThemeMode] = useState<'system' | 'dark' | 'light'>('dark');
+  const [accentColor, setAccentColor] = useState('#6C63FF');
 
   // Workspace Management States
   const [workspaceName, setWorkspaceName] = useState('Personal Workspace');
@@ -44,9 +53,7 @@ export default function SettingsPage() {
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
-    // Auto clear after 3 seconds
-    const timer = setTimeout(() => setToastMessage(null), 3000);
-    return () => clearTimeout(timer);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleUpdateWorkspaceName = () => {
@@ -88,20 +95,20 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[32px] max-w-[1000px] mx-auto w-full">
+    <div className="flex flex-col gap-[24px] md:gap-[32px] max-w-[1000px] mx-auto w-full relative pb-[80px]">
       
       {/* Header and Tabs */}
-      <div className="flex flex-col gap-[24px]">
-        <h1 className="text-2xl font-bold text-white px-[8px]">Settings</h1>
+      <div className="flex flex-col gap-[16px] md:gap-[24px] px-[8px]">
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
         
-        <div className="flex gap-[8px] p-[6px] rounded-full bg-white/[0.04] border border-white/[0.08] w-fit overflow-x-auto custom-scrollbar">
+        <div className="flex gap-[4px] p-[4px] rounded-full bg-white/[0.04] border border-white/[0.08] w-full overflow-x-auto custom-scrollbar">
           {tabs.map(tab => {
             const isActive = activeTab === tab;
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-[20px] py-[8px] text-sm font-medium rounded-full transition-colors duration-200 z-10 whitespace-nowrap ${isActive ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+                className={`relative px-[16px] md:px-[20px] py-[6px] md:py-[8px] text-xs md:text-sm font-medium rounded-full transition-colors duration-200 z-10 whitespace-nowrap ${isActive ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
               >
                 {isActive && (
                   <motion.div
@@ -117,491 +124,650 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <motion.div 
-        key={activeTab}
-        variants={popIn}
-        initial="hidden"
-        animate="visible"
-        className="flex flex-col gap-[32px]"
-      >
-        {activeTab === 'Integrations' && (
-          <>
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={activeTab}
+          variants={popIn}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          className="flex flex-col gap-[32px]"
+        >
+          {activeTab === 'Appearance' && (
             <section className="flex flex-col gap-[24px]">
               <div className="px-[8px]">
-                <h2 className="text-lg font-medium text-white mb-[4px]">Cloud AI Providers</h2>
-                <p className="text-sm text-white/50">Connect your accounts to sync conversation history automatically.</p>
+                <h2 className="text-lg font-medium text-white mb-[4px]">Appearance</h2>
+                <p className="text-sm text-white/50">Customize the visual aesthetic of the platform.</p>
               </div>
 
-              <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[16px]">
-                {providers.map(provider => (
-                  <motion.div 
-                    key={provider.id}
-                    variants={listItem}
-                    className="flex items-center justify-between p-[20px] rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors duration-200"
-                  >
-                    <div className="flex items-center gap-[16px]">
-                      <div className="w-[48px] h-[48px] rounded-full flex items-center justify-center border border-white/[0.1]" style={{ backgroundColor: `${provider.color}15` }}>
-                        <Cpu size={24} color={provider.color} />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-medium text-white/90 mb-[2px]">{provider.name}</h3>
-                        <div className="flex items-center gap-[6px]">
-                          <div className={`w-[6px] h-[6px] rounded-full ${provider.status === 'connected' ? 'bg-[#00D97E]' : provider.status === 'error' ? 'bg-[#FFBC00]' : 'bg-white/20'}`} />
-                          <span className="text-xs text-white/50 capitalize">{provider.status}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      className={`px-[20px] py-[8px] rounded-full text-sm font-medium transition-all duration-200 border ${
-                        provider.status === 'connected'
-                          ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
-                          : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                      }`}
-                    >
-                      {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
-                    </button>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </section>
-            
-            {/* Local AI Integration (Ollama) */}
-            <section className="flex flex-col gap-[24px]">
-              <div className="px-[8px]">
-                <h2 className="text-lg font-medium text-white mb-[4px]">Local AI Integration (Ollama)</h2>
-                <p className="text-sm text-white/50">Run open-source models completely locally. CORTEX can use Ollama for completely private indexing and semantic search.</p>
-              </div>
-
-              <motion.div variants={staggerList} initial="hidden" animate="visible" className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[24px] flex flex-col gap-[24px]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-[16px]">
-                    <div className="w-[48px] h-[48px] rounded-full flex items-center justify-center border border-[#00D2FF]/30 bg-[#00D2FF]/10">
-                      <Database size={24} className="text-[#00D2FF]" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-medium text-white/90 mb-[2px]">Ollama Local Server</h3>
-                      <div className="flex items-center gap-[6px]">
-                        <div className={`w-[6px] h-[6px] rounded-full ${toggles.ollamaActive ? 'bg-[#00D97E] shadow-[0_0_6px_#00D97E]' : 'bg-[#FF6584]'}`} />
-                        <span className="text-xs text-white/50">{toggles.ollamaActive ? 'Connected & Running' : 'Disconnected'}</span>
-                      </div>
-                    </div>
+              <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] flex flex-col overflow-hidden p-[24px] gap-[32px]">
+                {/* Theme Mode */}
+                <div className="flex flex-col gap-[16px]">
+                  <h3 className="text-sm font-medium text-white">Theme Mode</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
+                    {[
+                      { id: 'dark', label: 'Dark Mode', icon: Moon },
+                      { id: 'light', label: 'Light Mode', icon: Sun },
+                      { id: 'system', label: 'System Match', icon: Monitor }
+                    ].map(mode => (
+                      <button 
+                        key={mode.id}
+                        onClick={() => setThemeMode(mode.id as any)}
+                        className={`flex flex-col items-center gap-[12px] p-[20px] rounded-[20px] border transition-all ${
+                          themeMode === mode.id 
+                            ? 'bg-[#6C63FF]/10 border-[#6C63FF]/30 text-white shadow-[0_0_15px_rgba(108,99,255,0.15)]'
+                            : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                        }`}
+                      >
+                        <mode.icon size={24} />
+                        <span className="text-sm font-medium">{mode.label}</span>
+                      </button>
+                    ))}
                   </div>
-
-                  {/* Toggle Connection */}
-                  <button 
-                    onClick={() => handleToggle('ollamaActive')}
-                    className={`relative w-[48px] h-[26px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.ollamaActive ? 'bg-[#00D2FF]' : 'bg-white/[0.1]'}`}
-                  >
-                    <motion.div 
-                      animate={{ x: toggles.ollamaActive ? 22 : 0 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      className="absolute top-[2px] left-[2px] w-[20px] h-[20px] rounded-full bg-white shadow-md flex items-center justify-center"
-                    >
-                      {toggles.ollamaActive && <div className="w-[4px] h-[4px] rounded-full bg-[#00D2FF]" />}
-                    </motion.div>
-                  </button>
                 </div>
 
-                {toggles.ollamaActive && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex flex-col gap-[16px] pt-[16px] border-t border-white/[0.06]"
-                  >
-                    <div className="flex flex-col gap-[8px]">
-                      <label className="text-xs text-white/50 pl-[8px]">Ollama Endpoint</label>
-                      <input 
-                        type="text" 
-                        value={ollamaHost}
-                        onChange={(e) => setOllamaHost(e.target.value)}
-                        className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all" 
-                      />
-                    </div>
-                    <div className="flex flex-col gap-[8px]">
-                      <label className="text-xs text-white/50 pl-[8px]">Default Model</label>
-                      <input 
-                        type="text" 
-                        value={ollamaModel}
-                        onChange={(e) => setOllamaModel(e.target.value)}
-                        placeholder="e.g. llama3, mistral, phi3"
-                        className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all" 
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            </section>
-          </>
-        )}
+                <div className="w-full h-[1px] bg-white/[0.06]" />
 
-        {activeTab === 'Privacy' && (
-          <section className="flex flex-col gap-[24px]">
-            <div className="px-[8px]">
-              <h2 className="text-lg font-medium text-white mb-[4px]">Privacy & Data Control</h2>
-              <p className="text-sm text-white/50">Control how your data is processed and stored.</p>
-            </div>
-
-            <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] flex flex-col overflow-hidden">
-              {[
-                { key: 'sync', title: 'Cloud Sync', desc: 'Back up your encrypted index to the CORTEX cloud', icon: Shield },
-                { key: 'localModel', title: 'Local AI Processing', desc: 'Force all semantic searches to use local Ollama models', icon: Cpu },
-                { key: 'telemetry', title: 'Anonymous Telemetry', desc: 'Help us improve by sending crash reports', icon: SettingsIcon },
-                { key: 'notifications', title: 'Push Notifications', desc: 'Alert me when background syncs complete', icon: Bell },
-              ].map((item, index) => (
-                <div key={item.key} className={`p-[24px] flex items-center justify-between gap-[24px] ${index !== 3 ? 'border-b border-white/[0.06]' : ''}`}>
-                  <div className="flex items-start gap-[16px]">
-                    <div className="w-[40px] h-[40px] rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-white/50 flex-shrink-0 mt-[2px]">
-                      <item.icon size={18} />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-medium text-white/90 mb-[4px]">{item.title}</h3>
-                      <p className="text-sm text-white/50 leading-relaxed">{item.desc}</p>
-                    </div>
+                {/* Accent Color */}
+                <div className="flex flex-col gap-[16px]">
+                  <h3 className="text-sm font-medium text-white">Primary Accent Color</h3>
+                  <div className="flex flex-wrap gap-[16px]">
+                    {[
+                      { color: '#6C63FF', name: 'Violet (Default)' },
+                      { color: '#00D2FF', name: 'Cyan' },
+                      { color: '#00D97E', name: 'Emerald' },
+                      { color: '#FF6584', name: 'Rose' }
+                    ].map(accent => (
+                      <button
+                        key={accent.color}
+                        onClick={() => setAccentColor(accent.color)}
+                        title={accent.name}
+                        className={`w-[48px] h-[48px] rounded-full transition-all flex items-center justify-center ${
+                          accentColor === accent.color ? 'scale-110 shadow-[0_0_20px_currentColor]' : 'hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: accent.color, color: accent.color }}
+                      >
+                        {accentColor === accent.color && <Check size={20} className="text-white" />}
+                      </button>
+                    ))}
                   </div>
+                </div>
 
+                <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                {/* Accessibility / Motion */}
+                <div className="flex items-center justify-between gap-[24px]">
+                  <div>
+                    <h3 className="text-sm font-medium text-white mb-[4px]">Reduce UI Motion</h3>
+                    <p className="text-xs text-white/50">Disables background shaders, hover micro-animations, and parallax effects.</p>
+                  </div>
                   <button 
-                    onClick={() => handleToggle(item.key)}
-                    className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                    onClick={() => handleToggle('reduceMotion')}
+                    className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.reduceMotion ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
                   >
                     <motion.div 
-                      animate={{ x: toggles[item.key] ? 20 : 0 }}
+                      animate={{ x: toggles.reduceMotion ? 20 : 0 }}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
                       className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
-                    >
-                      {toggles[item.key] && <div className="w-[4px] h-[4px] rounded-full bg-[#6C63FF] opacity-50" />}
-                    </motion.div>
+                    />
                   </button>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </div>
+            </section>
+          )}
 
-        {/* Placeholders for other tabs */}
-        {activeTab === 'Profile' && (
-          <section className="flex flex-col gap-[24px]">
-            <div className="px-[8px]">
-              <h2 className="text-lg font-medium text-white mb-[4px]">User Profile</h2>
-              <p className="text-sm text-white/50">Manage your account details and preferences.</p>
-            </div>
-            
-            <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[32px] flex flex-col gap-[32px]">
-              <div className="flex items-center gap-[24px]">
-                <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D2FF] flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
-                  <User size={32} className="text-white" />
-                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <span className="text-xs font-medium text-white">Edit</span>
-                  </div>
-                </div>
-                <div className="flex flex-col">
-                  <h3 className="text-white font-medium">Profile Picture</h3>
-                  <p className="text-white/50 text-sm mb-[12px]">PNG, JPG up to 5MB</p>
-                  <div className="flex gap-[12px]">
-                    <button className="px-[16px] py-[6px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white hover:bg-white/[0.1] transition-all">Upload New</button>
-                    <button className="px-[16px] py-[6px] rounded-full border border-transparent text-xs font-medium text-white/50 hover:text-red-400 transition-all">Remove</button>
-                  </div>
-                </div>
+          {activeTab === 'Notifications' && (
+            <section className="flex flex-col gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-lg font-medium text-white mb-[4px]">Notifications</h2>
+                <p className="text-sm text-white/50">Decide how and when you want to be alerted.</p>
               </div>
 
-              <div className="w-full h-[1px] bg-white/[0.06]" />
+              <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] flex flex-col overflow-hidden">
+                {[
+                  { key: 'emailDigest', title: 'Weekly Email Digests', desc: 'Receive a summary of new concepts and artifacts generated from your history.', icon: Mail },
+                  { key: 'pushNotifs', title: 'Desktop Push Notifications', desc: 'Alerts for long-running artifact generations and workspace invites.', icon: Bell },
+                  { key: 'browserAlerts', title: 'In-App Alerts', desc: 'Show toast notifications for errors, successes, and general feedback.', icon: Smartphone },
+                ].map((item, index) => (
+                  <div key={item.key} className={`p-[20px] md:p-[24px] flex items-center justify-between gap-[16px] md:gap-[24px] ${index !== 2 ? 'border-b border-white/[0.06]' : ''}`}>
+                    <div className="flex items-start gap-[16px] min-w-0">
+                      <div className="w-[36px] h-[36px] md:w-[40px] md:h-[40px] rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-white/50 flex-shrink-0 mt-[2px]">
+                        <item.icon size={18} />
+                      </div>
+                      <div className="min-w-0 pr-4">
+                        <h3 className="text-sm md:text-base font-medium text-white/90 mb-[4px] truncate">{item.title}</h3>
+                        <p className="text-xs md:text-sm text-white/50 leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
 
-              <div className="flex flex-col gap-[24px] max-w-[500px]">
-                <div className="flex flex-col gap-[8px]">
-                  <label className="text-xs text-white/50 pl-[8px]">Full Name</label>
-                  <input type="text" defaultValue="John Doe" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
-                </div>
-                <div className="flex flex-col gap-[8px]">
-                  <label className="text-xs text-white/50 pl-[8px]">Email Address</label>
-                  <input type="email" defaultValue="john@cortex.ai" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
-                </div>
-                <div className="flex flex-col gap-[8px]">
-                  <label className="text-xs text-white/50 pl-[8px]">Timezone</label>
-                  <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all appearance-none cursor-pointer">
-                    <option className="bg-[#0A0A0F]">Pacific Time (US & Canada)</option>
-                    <option className="bg-[#0A0A0F]">Eastern Time (US & Canada)</option>
-                    <option className="bg-[#0A0A0F]">UTC</option>
-                  </select>
-                </div>
-                
-                <button className="w-fit mt-[8px] px-[24px] py-[10px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-white text-sm font-medium hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] transition-all">
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {activeTab === 'Workspace' && (
-          <section className="flex flex-col gap-[24px]">
-            <div className="px-[8px]">
-              <h2 className="text-lg font-medium text-white mb-[4px]">Workspace Settings</h2>
-              <p className="text-sm text-white/50">Manage team members and workspace-level configurations.</p>
-            </div>
-            
-            <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[32px] flex flex-col gap-[40px]">
-              {/* General Workspace Settings */}
-              <div className="flex flex-col gap-[24px]">
-                <h3 className="text-base font-medium text-white">General</h3>
-                <div className="flex flex-col gap-[8px] max-w-[500px]">
-                  <label className="text-xs text-white/50 pl-[8px]">Workspace Name</label>
-                  <div className="flex gap-[12px]">
-                    <input 
-                      type="text" 
-                      value={tempWorkspaceName} 
-                      onChange={(e) => setTempWorkspaceName(e.target.value)}
-                      className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" 
-                    />
                     <button 
-                      onClick={handleUpdateWorkspaceName}
-                      disabled={tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()}
-                      className={`px-[24px] py-[10px] rounded-full text-sm font-medium transition-all ${
-                        tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()
-                          ? 'bg-white/[0.02] text-white/20 border border-white/[0.05] cursor-not-allowed'
-                          : 'bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] hover:bg-[#6C63FF]/30'
-                      }`}
+                      onClick={() => handleToggle(item.key)}
+                      className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
                     >
-                      Update
+                      <motion.div 
+                        animate={{ x: toggles[item.key] ? 20 : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
+                      />
                     </button>
                   </div>
-                </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Danger Zone' && (
+            <section className="flex flex-col gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-lg font-medium text-red-400 mb-[4px]">Danger Zone</h2>
+                <p className="text-sm text-red-400/60">Destructive actions and data wiping. Proceed with caution.</p>
               </div>
 
-              <div className="w-full h-[1px] bg-white/[0.06]" />
-
-              {/* Team Members */}
-              <div className="flex flex-col gap-[24px]">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium text-white">Team Members</h3>
-                  <button 
-                    onClick={() => setIsInviteOpen(true)}
-                    className="px-[16px] py-[8px] rounded-full bg-[#00D97E]/20 border border-[#00D97E]/40 text-[#00D97E] text-xs font-medium hover:bg-[#00D97E]/30 transition-all flex items-center gap-[6px]"
-                  >
-                    <UserPlus size={14} />
-                    Invite Member
+              <div className="rounded-[24px] backdrop-blur-xl bg-red-500/[0.03] border border-red-500/20 flex flex-col overflow-hidden">
+                <div className="p-[20px] md:p-[24px] flex flex-col md:flex-row items-start md:items-center justify-between gap-[16px] border-b border-red-500/10">
+                  <div className="flex items-start gap-[16px]">
+                    <div className="w-[40px] h-[40px] rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-white/70 flex-shrink-0">
+                      <Download size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white/90 mb-[4px]">Export All Data</h3>
+                      <p className="text-xs md:text-sm text-white/50 leading-relaxed max-w-[400px]">Download a complete JSON export of all your synced conversations, artifacts, and knowledge graph edges.</p>
+                    </div>
+                  </div>
+                  <button className="px-[20px] py-[10px] rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-xs font-semibold text-white transition-all whitespace-nowrap self-start md:self-auto">
+                    Export JSON Archive
                   </button>
                 </div>
-                
-                {/* Invite Modal Overlay/Form */}
-                {isInviteOpen && (
-                  <motion.form 
-                    onSubmit={handleInviteMember}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-[24px] rounded-[20px] bg-white/[0.04] border border-white/[0.1] flex flex-col gap-[16px]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold text-white">Invite New Member</h4>
+
+                <div className="p-[20px] md:p-[24px] flex flex-col md:flex-row items-start md:items-center justify-between gap-[16px] border-b border-red-500/10">
+                  <div className="flex items-start gap-[16px]">
+                    <div className="w-[40px] h-[40px] rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                      <Eraser size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white/90 mb-[4px]">Clear Cloud Index</h3>
+                      <p className="text-xs md:text-sm text-white/50 leading-relaxed max-w-[400px]">Wipes your entire vector database and semantic index. This cannot be undone, but you can re-sync from providers later.</p>
+                    </div>
+                  </div>
+                  <button className="px-[20px] py-[10px] rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 hover:text-red-300 transition-all whitespace-nowrap self-start md:self-auto">
+                    Clear Index
+                  </button>
+                </div>
+
+                <div className="p-[20px] md:p-[24px] flex flex-col md:flex-row items-start md:items-center justify-between gap-[16px]">
+                  <div className="flex items-start gap-[16px]">
+                    <div className="w-[40px] h-[40px] rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 flex-shrink-0">
+                      <AlertOctagon size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-red-400 mb-[4px]">Delete Account</h3>
+                      <p className="text-xs md:text-sm text-red-400/60 leading-relaxed max-w-[400px]">Permanently deletes your CORTEX account, all workspaces, artifacts, and integrations. This is irreversible.</p>
+                    </div>
+                  </div>
+                  <button className="px-[20px] py-[10px] rounded-full bg-red-500 hover:bg-red-600 border border-red-400 text-xs font-bold text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all whitespace-nowrap self-start md:self-auto">
+                    Delete Account
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Integrations' && (
+            <>
+              <section className="flex flex-col gap-[20px] md:gap-[24px]">
+                <div className="px-[8px]">
+                  <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Cloud AI Providers</h2>
+                  <p className="text-xs md:text-sm text-white/50">Connect your accounts to sync conversation history automatically.</p>
+                </div>
+
+                <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[16px]">
+                  {providers.map(provider => (
+                    <motion.div 
+                      key={provider.id}
+                      variants={listItem}
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-[16px] md:p-[20px] rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors duration-200 gap-[16px]"
+                    >
+                      <div className="flex items-center gap-[16px]">
+                        <div className="w-[40px] h-[40px] md:w-[48px] md:h-[48px] rounded-full flex items-center justify-center border border-white/[0.1] flex-shrink-0" style={{ backgroundColor: `${provider.color}15` }}>
+                          <Cpu size={20} className="md:w-[24px] md:h-[24px]" color={provider.color} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm md:text-base font-medium text-white/90 mb-[2px]">{provider.name}</h3>
+                          <div className="flex items-center gap-[6px]">
+                            <div className={`w-[6px] h-[6px] rounded-full ${provider.status === 'connected' ? 'bg-[#00D97E]' : provider.status === 'error' ? 'bg-[#FFBC00]' : 'bg-white/20'}`} />
+                            <span className="text-[10px] md:text-xs text-white/50 capitalize">{provider.status}</span>
+                          </div>
+                        </div>
+                      </div>
+
                       <button 
-                        type="button" 
-                        onClick={() => setIsInviteOpen(false)}
-                        className="p-[4px] rounded-full hover:bg-white/[0.08] text-white/50 hover:text-white transition-all"
+                        className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${
+                          provider.status === 'connected'
+                            ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
+                            : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                        }`}
                       >
-                        <X size={16} />
+                        {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
                       </button>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </section>
+              
+              <section className="flex flex-col gap-[20px] md:gap-[24px]">
+                <div className="px-[8px]">
+                  <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Local AI Integration (Ollama)</h2>
+                  <p className="text-[11px] md:text-sm text-white/50 leading-relaxed">Run open-source models completely locally. CORTEX can use Ollama for private indexing.</p>
+                </div>
+
+                <motion.div variants={staggerList} initial="hidden" animate="visible" className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[16px] md:p-[24px] flex flex-col gap-[24px]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-[16px]">
+                      <div className="w-[40px] h-[40px] md:w-[48px] md:h-[48px] rounded-full flex items-center justify-center border border-[#00D2FF]/30 bg-[#00D2FF]/10 flex-shrink-0">
+                        <Database size={20} className="md:w-[24px] md:h-[24px] text-[#00D2FF]" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm md:text-base font-medium text-white/90 mb-[2px]">Ollama Local Server</h3>
+                        <div className="flex items-center gap-[6px]">
+                          <div className={`w-[6px] h-[6px] rounded-full ${toggles.ollamaActive ? 'bg-[#00D97E] shadow-[0_0_6px_#00D97E]' : 'bg-[#FF6584]'}`} />
+                          <span className="text-[10px] md:text-xs text-white/50">{toggles.ollamaActive ? 'Connected & Running' : 'Disconnected'}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-[16px]">
+                    <button 
+                      onClick={() => handleToggle('ollamaActive')}
+                      className={`relative w-[40px] h-[22px] md:w-[48px] md:h-[26px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.ollamaActive ? 'bg-[#00D2FF]' : 'bg-white/[0.1]'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: toggles.ollamaActive ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 22) : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[2px] left-[2px] w-[16px] h-[16px] md:w-[20px] md:h-[20px] rounded-full bg-white shadow-md flex items-center justify-center"
+                      >
+                        {toggles.ollamaActive && <div className="w-[4px] h-[4px] rounded-full bg-[#00D2FF]" />}
+                      </motion.div>
+                    </button>
+                  </div>
+
+                  {toggles.ollamaActive && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="flex flex-col gap-[16px] pt-[16px] border-t border-white/[0.06]"
+                    >
                       <div className="flex flex-col gap-[8px]">
-                        <label className="text-[11px] text-white/40 pl-[8px]">Full Name</label>
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Ollama Endpoint</label>
                         <input 
                           type="text" 
-                          placeholder="Sarah Connor" 
-                          value={inviteName}
-                          onChange={(e) => setInviteName(e.target.value)}
-                          required
-                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all"
+                          value={ollamaHost}
+                          onChange={(e) => setOllamaHost(e.target.value)}
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all" 
                         />
                       </div>
                       <div className="flex flex-col gap-[8px]">
-                        <label className="text-[11px] text-white/40 pl-[8px]">Email Address</label>
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Default Model</label>
                         <input 
-                          type="email" 
-                          placeholder="sarah@cortex.ai" 
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          required
-                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all"
+                          type="text" 
+                          value={ollamaModel}
+                          onChange={(e) => setOllamaModel(e.target.value)}
+                          placeholder="e.g. llama3, mistral, phi3"
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#00D2FF]/50 focus:bg-white/[0.05] transition-all" 
                         />
                       </div>
-                      <div className="flex flex-col gap-[8px]">
-                        <label className="text-[11px] text-white/40 pl-[8px]">Workspace Role</label>
-                        <select 
-                          value={inviteRole}
-                          onChange={(e) => setInviteRole(e.target.value as any)}
-                          className="bg-[#0A0A0F] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all cursor-pointer"
-                        >
-                          <option value="Editor">Editor (Can edit and manage)</option>
-                          <option value="Viewer">Viewer (Read-only access)</option>
-                        </select>
+                    </motion.div>
+                  )}
+                </motion.div>
+              </section>
+            </>
+          )}
+
+          {activeTab === 'Privacy' && (
+            <section className="flex flex-col gap-[20px] md:gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Privacy & Data Control</h2>
+                <p className="text-[11px] md:text-sm text-white/50">Control how your data is processed and stored.</p>
+              </div>
+
+              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] flex flex-col overflow-hidden">
+                {[
+                  { key: 'sync', title: 'Cloud Sync', desc: 'Back up your encrypted index to the CORTEX cloud', icon: Shield },
+                  { key: 'localModel', title: 'Local AI Processing', desc: 'Force all semantic searches to use local Ollama models', icon: Cpu },
+                  { key: 'telemetry', title: 'Anonymous Telemetry', desc: 'Help us improve by sending crash reports', icon: SettingsIcon }
+                ].map((item, index) => (
+                  <div key={item.key} className={`p-[16px] md:p-[24px] flex items-center justify-between gap-[16px] md:gap-[24px] ${index !== 2 ? 'border-b border-white/[0.06]' : ''}`}>
+                    <div className="flex items-start gap-[12px] md:gap-[16px]">
+                      <div className="w-[36px] h-[36px] md:w-[40px] md:h-[40px] rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-white/50 flex-shrink-0 mt-[2px]">
+                        <item.icon size={16} className="md:w-[18px] md:h-[18px]" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm md:text-base font-medium text-white/90 mb-[2px] md:mb-[4px]">{item.title}</h3>
+                        <p className="text-[11px] md:text-sm text-white/50 leading-relaxed max-w-[400px]">{item.desc}</p>
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-[12px] mt-[8px]">
-                      <button 
-                        type="button" 
-                        onClick={() => setIsInviteOpen(false)}
-                        className="px-[16px] py-[8px] rounded-full border border-white/[0.1] text-xs text-white/60 hover:bg-white/[0.05] transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit" 
-                        className="px-[20px] py-[8px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs font-semibold text-white hover:shadow-[0_0_15px_rgba(108,99,255,0.3)] transition-all"
-                      >
-                        Send Invitation
-                      </button>
-                    </div>
-                  </motion.form>
-                )}
-                
-                <div className="flex flex-col rounded-[16px] border border-white/[0.06] overflow-hidden">
-                  {teamMembers.map((member) => (
-                    <div 
-                      key={member.id}
-                      className="p-[16px] border-b last:border-0 border-white/[0.06] flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                    <button 
+                      onClick={() => handleToggle(item.key)}
+                      className={`relative w-[40px] h-[22px] md:w-[44px] md:h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
                     >
-                      <div className="flex items-center gap-[12px]">
-                        <div className={`w-[32px] h-[32px] rounded-full bg-gradient-to-br ${
-                          member.role === 'Owner' ? 'from-[#6C63FF] to-[#00D2FF]' : 'from-white/10 to-white/5'
-                        } flex items-center justify-center shadow-[0_0_10px_rgba(108,99,255,0.2)]`}>
-                          <User size={16} className="text-white" />
+                      <motion.div 
+                        animate={{ x: toggles[item.key] ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 20) : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[2px] left-[2px] w-[16px] h-[16px] md:w-[18px] md:h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
+                      >
+                        {toggles[item.key] && <div className="w-[4px] h-[4px] rounded-full bg-[#6C63FF] opacity-50" />}
+                      </motion.div>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Profile' && (
+            <section className="flex flex-col gap-[20px] md:gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">User Profile</h2>
+                <p className="text-[11px] md:text-sm text-white/50">Manage your account details and preferences.</p>
+              </div>
+              
+              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[32px]">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-[24px] text-center sm:text-left">
+                  <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D2FF] flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
+                    <User size={32} className="text-white" />
+                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <span className="text-xs font-medium text-white">Edit</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <h3 className="text-white font-medium text-sm md:text-base">Profile Picture</h3>
+                    <p className="text-white/50 text-[11px] md:text-sm mb-[12px]">PNG, JPG up to 5MB</p>
+                    <div className="flex justify-center sm:justify-start gap-[12px]">
+                      <button className="px-[16px] py-[6px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white hover:bg-white/[0.1] transition-all">Upload New</button>
+                      <button className="px-[16px] py-[6px] rounded-full border border-transparent text-xs font-medium text-white/50 hover:text-red-400 transition-all">Remove</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                <div className="flex flex-col gap-[20px] md:gap-[24px] max-w-[500px] w-full">
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Full Name</label>
+                    <input type="text" defaultValue="John Doe" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                  </div>
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Email Address</label>
+                    <input type="email" defaultValue="john@cortex.ai" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                  </div>
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Timezone</label>
+                    <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all appearance-none cursor-pointer">
+                      <option className="bg-[#0A0A0F]">Pacific Time (US & Canada)</option>
+                      <option className="bg-[#0A0A0F]">Eastern Time (US & Canada)</option>
+                      <option className="bg-[#0A0A0F]">UTC</option>
+                    </select>
+                  </div>
+                  
+                  <button className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-white text-sm font-medium hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] transition-all">
+                    Save Changes
+                  </button>
+                </div>
+
+                <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                {/* Security Section */}
+                <div className="flex flex-col gap-[20px] md:gap-[24px] max-w-[500px] w-full">
+                  <h3 className="text-sm md:text-base font-medium text-white">Security</h3>
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Current Password</label>
+                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                  </div>
+                  <div className="flex flex-col gap-[8px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">New Password</label>
+                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                  </div>
+                  
+                  <button className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full border border-[#00D2FF]/40 text-[#00D2FF] bg-[#00D2FF]/10 text-sm font-medium hover:bg-[#00D2FF]/20 transition-all">
+                    Change Password
+                  </button>
+                </div>
+
+                <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                {/* Support Section */}
+                <div className="flex flex-col gap-[16px] md:gap-[20px] max-w-[500px] w-full">
+                  <h3 className="text-sm md:text-base font-medium text-white">Help & Support</h3>
+                  <p className="text-[11px] md:text-xs text-white/50 mb-[8px]">Encountered an issue or have a suggestion? Let us know so we can improve C.O.R.T.E.X.</p>
+                  <button 
+                    onClick={() => triggerToast('Bug report form opened')}
+                    className="w-full sm:w-fit px-[24px] py-[12px] md:py-[10px] rounded-full border border-white/[0.1] text-white/80 bg-white/[0.05] hover:bg-white/[0.1] hover:text-white text-sm font-medium transition-all"
+                  >
+                    Report a Bug
+                  </button>
+                </div>
+
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Workspace' && (
+            <section className="flex flex-col gap-[20px] md:gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Workspace Settings</h2>
+                <p className="text-[11px] md:text-sm text-white/50">Manage team members and workspace configurations.</p>
+              </div>
+              
+              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[32px] md:gap-[40px]">
+                {/* General Workspace Settings */}
+                <div className="flex flex-col gap-[16px] md:gap-[24px]">
+                  <h3 className="text-sm md:text-base font-medium text-white">General</h3>
+                  <div className="flex flex-col gap-[8px] max-w-[500px]">
+                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Workspace Name</label>
+                    <div className="flex flex-col sm:flex-row gap-[12px]">
+                      <input 
+                        type="text" 
+                        value={tempWorkspaceName} 
+                        onChange={(e) => setTempWorkspaceName(e.target.value)}
+                        className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" 
+                      />
+                      <button 
+                        onClick={handleUpdateWorkspaceName}
+                        disabled={tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()}
+                        className={`w-full sm:w-auto px-[24px] py-[10px] rounded-full text-xs md:text-sm font-medium transition-all ${
+                          tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()
+                            ? 'bg-white/[0.02] text-white/20 border border-white/[0.05] cursor-not-allowed'
+                            : 'bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] hover:bg-[#6C63FF]/30'
+                        }`}
+                      >
+                        Update
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                {/* Team Members */}
+                <div className="flex flex-col gap-[20px] md:gap-[24px]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
+                    <h3 className="text-sm md:text-base font-medium text-white">Team Members</h3>
+                    <button 
+                      onClick={() => setIsInviteOpen(true)}
+                      className="w-full sm:w-auto justify-center px-[16px] py-[8px] rounded-full bg-[#00D97E]/20 border border-[#00D97E]/40 text-[#00D97E] text-[11px] md:text-xs font-medium hover:bg-[#00D97E]/30 transition-all flex items-center gap-[6px]"
+                    >
+                      <UserPlus size={14} />
+                      Invite Member
+                    </button>
+                  </div>
+                  
+                  {isInviteOpen && (
+                    <motion.form 
+                      onSubmit={handleInviteMember}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-[16px] md:p-[24px] rounded-[20px] bg-white/[0.04] border border-white/[0.1] flex flex-col gap-[16px]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[13px] md:text-sm font-semibold text-white">Invite New Member</h4>
+                        <button 
+                          type="button" 
+                          onClick={() => setIsInviteOpen(false)}
+                          className="p-[4px] rounded-full hover:bg-white/[0.08] text-white/50 hover:text-white transition-all"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[16px]">
+                        <div className="flex flex-col gap-[8px]">
+                          <label className="text-[10px] md:text-[11px] text-white/40 pl-[8px]">Full Name</label>
+                          <input type="text" placeholder="Sarah Connor" value={inviteName} onChange={(e) => setInviteName(e.target.value)} required className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all" />
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-white">
-                            {member.name} {member.isYou && '(You)'}
-                          </span>
-                          <span className="text-xs text-white/50">{member.email}</span>
+                        <div className="flex flex-col gap-[8px]">
+                          <label className="text-[10px] md:text-[11px] text-white/40 pl-[8px]">Email Address</label>
+                          <input type="email" placeholder="sarah@cortex.ai" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all" />
+                        </div>
+                        <div className="flex flex-col gap-[8px]">
+                          <label className="text-[10px] md:text-[11px] text-white/40 pl-[8px]">Workspace Role</label>
+                          <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="bg-[#0A0A0F] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all cursor-pointer">
+                            <option value="Editor">Editor (Can edit and manage)</option>
+                            <option value="Viewer">Viewer (Read-only access)</option>
+                          </select>
                         </div>
                       </div>
 
-                      <div className="flex gap-[12px] items-center">
-                        {member.role === 'Owner' ? (
-                          <span className="text-xs font-medium text-[#6C63FF] bg-[#6C63FF]/10 border border-[#6C63FF]/20 px-[10px] py-[4px] rounded-full">Owner</span>
-                        ) : (
-                          <>
-                            <select
-                              value={member.role}
-                              onChange={(e) => handleChangeRole(member.id, e.target.value as any)}
-                              className="bg-white/[0.04] border border-white/[0.08] rounded-full px-[12px] py-[4px] text-xs text-white/70 focus:outline-none cursor-pointer hover:bg-white/[0.08] transition-colors"
-                            >
-                              <option value="Editor" className="bg-[#0A0A0F]">Editor</option>
-                              <option value="Viewer" className="bg-[#0A0A0F]">Viewer</option>
-                            </select>
-                            <button 
-                              onClick={() => handleRemoveMember(member.id, member.name)}
-                              className="p-[6px] rounded-full hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"
-                              title="Remove member"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
+                      <div className="flex flex-col sm:flex-row justify-end gap-[12px] mt-[8px]">
+                        <button type="button" onClick={() => setIsInviteOpen(false)} className="w-full sm:w-auto px-[16px] py-[8px] rounded-full border border-white/[0.1] text-xs text-white/60 hover:bg-white/[0.05] transition-all">Cancel</button>
+                        <button type="submit" className="w-full sm:w-auto px-[20px] py-[8px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs font-semibold text-white hover:shadow-[0_0_15px_rgba(108,99,255,0.3)] transition-all">Send Invitation</button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
+                    </motion.form>
+                  )}
+                  
+                  <div className="flex flex-col rounded-[16px] border border-white/[0.06] overflow-hidden">
+                    {teamMembers.map((member) => (
+                      <div key={member.id} className="p-[12px] md:p-[16px] border-b last:border-0 border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/[0.02] transition-colors gap-[12px]">
+                        <div className="flex items-center gap-[12px]">
+                          <div className={`w-[28px] h-[28px] md:w-[32px] md:h-[32px] rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0 ${
+                            member.role === 'Owner' ? 'from-[#6C63FF] to-[#00D2FF]' : 'from-white/10 to-white/5'
+                          }`}>
+                            <User size={14} className="text-white" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[13px] md:text-sm font-medium text-white">{member.name} {member.isYou && '(You)'}</span>
+                            <span className="text-[10px] md:text-xs text-white/50">{member.email}</span>
+                          </div>
+                        </div>
 
-        {activeTab === 'Billing' && (
-          <section className="flex flex-col gap-[24px]">
-            <div className="px-[8px]">
-              <h2 className="text-lg font-medium text-white mb-[4px]">Billing & Plans</h2>
-              <p className="text-sm text-white/50">Manage your subscription tier, billing cycle, and workspace quotas.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
-              {/* Free Tier */}
-              <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-[32px] flex flex-col justify-between gap-[28px] transition-all relative overflow-hidden group">
-                <div className="flex flex-col gap-[20px]">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-bold text-white mb-[4px]">Free Tier</h3>
-                      <p className="text-xs text-white/40">Ideal for individual exploration & local hosting.</p>
-                    </div>
-                    <span className="text-xs font-semibold text-[#00D97E] bg-[#00D97E]/10 border border-[#00D97E]/20 px-[10px] py-[3px] rounded-full">Current Plan</span>
-                  </div>
-
-                  <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[20px]">
-                    <span className="text-4xl font-extrabold text-white">$0</span>
-                    <span className="text-xs text-white/40">/ month</span>
-                  </div>
-
-                  <ul className="flex flex-col gap-[12px] text-xs text-white/70">
-                    {[
-                      'Access to all core features & widgets',
-                      'Integrate local Ollama models',
-                      'Standard conversation history syncing',
-                      'Basic knowledge graph mapping',
-                      'Export generated artifacts as static packages'
-                    ].map((feature, i) => (
-                      <li key={i} className="flex items-center gap-[8px]">
-                        <Check className="text-[#00D97E] flex-shrink-0" size={14} />
-                        <span>{feature}</span>
-                      </li>
+                        <div className="flex gap-[12px] items-center self-start sm:self-auto pl-[40px] sm:pl-0">
+                          {member.role === 'Owner' ? (
+                            <span className="text-[11px] md:text-xs font-medium text-[#6C63FF] bg-[#6C63FF]/10 border border-[#6C63FF]/20 px-[10px] py-[4px] rounded-full">Owner</span>
+                          ) : (
+                            <>
+                              <select
+                                value={member.role}
+                                onChange={(e) => handleChangeRole(member.id, e.target.value as any)}
+                                className="bg-white/[0.04] border border-white/[0.08] rounded-full px-[12px] py-[4px] text-[11px] md:text-xs text-white/70 focus:outline-none cursor-pointer hover:bg-white/[0.08] transition-colors"
+                              >
+                                <option value="Editor" className="bg-[#0A0A0F]">Editor</option>
+                                <option value="Viewer" className="bg-[#0A0A0F]">Viewer</option>
+                              </select>
+                              <button onClick={() => handleRemoveMember(member.id, member.name)} className="p-[6px] rounded-full hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors" title="Remove member">
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
+              </div>
+            </section>
+          )}
 
-                <button className="w-full py-[11px] rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-white/40 font-semibold cursor-not-allowed transition-all">
-                  Active Subscription
-                </button>
+          {activeTab === 'Billing' && (
+            <section className="flex flex-col gap-[20px] md:gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Billing & Plans</h2>
+                <p className="text-[11px] md:text-sm text-white/50">Manage your subscription tier, billing cycle, and workspace quotas.</p>
               </div>
 
-              {/* Pro Tier */}
-              <div className="rounded-[24px] backdrop-blur-xl bg-[#6C63FF]/[0.02] border border-[#6C63FF]/20 hover:border-[#6C63FF]/40 p-[32px] flex flex-col justify-between gap-[28px] transition-all relative overflow-hidden group shadow-[0_0_30px_rgba(108,99,255,0.05)]">
-                {/* Glowing Aura */}
-                <div className="absolute -top-[50px] -right-[50px] w-[120px] h-[120px] rounded-full bg-[#6C63FF]/10 blur-[40px] pointer-events-none group-hover:bg-[#6C63FF]/20 transition-all duration-300" />
-                
-                <div className="flex flex-col gap-[20px]">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-bold text-white mb-[4px]">Pro Tier</h3>
-                      <p className="text-xs text-white/40">For team syncs, workspaces, and priority AI model access.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] md:gap-[24px]">
+                {/* Free Tier */}
+                <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-[24px] md:p-[32px] flex flex-col justify-between gap-[24px] md:gap-[28px] transition-all relative overflow-hidden group">
+                  <div className="flex flex-col gap-[16px] md:gap-[20px]">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-[4px]">Free Tier</h3>
+                        <p className="text-[11px] md:text-xs text-white/40">Ideal for individual exploration.</p>
+                      </div>
+                      <span className="text-[10px] md:text-xs font-semibold text-[#00D97E] bg-[#00D97E]/10 border border-[#00D97E]/20 px-[8px] md:px-[10px] py-[3px] rounded-full">Current</span>
                     </div>
-                    <span className="text-xs font-semibold text-[#6C63FF] bg-[#6C63FF]/15 border border-[#6C63FF]/30 px-[10px] py-[3px] rounded-full shadow-[0_0_12px_rgba(108,99,255,0.2)]">Recommended</span>
+
+                    <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[16px] md:pb-[20px]">
+                      <span className="text-3xl md:text-4xl font-extrabold text-white">$0</span>
+                      <span className="text-[11px] md:text-xs text-white/40">/ month</span>
+                    </div>
+
+                    <ul className="flex flex-col gap-[10px] md:gap-[12px] text-[11px] md:text-xs text-white/70">
+                      {['Access to all core features', 'Integrate local Ollama models', 'Standard syncing', 'Basic knowledge graph', 'Export generated artifacts'].map((feature, i) => (
+                        <li key={i} className="flex items-start gap-[8px]">
+                          <Check className="text-[#00D97E] flex-shrink-0 mt-[2px]" size={12} />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[20px]">
-                    <span className="text-4xl font-extrabold text-white">$20</span>
-                    <span className="text-xs text-white/40">/ month</span>
-                  </div>
-
-                  <ul className="flex flex-col gap-[12px] text-xs text-white/70">
-                    {[
-                      'Everything included in the Free tier',
-                      '+Workspace access (Multi-workspace & team collab)',
-                      'Access new premium AI models first (e.g. Claude 3.5 Sonnet v2)',
-                      'Access new beta functions & agents first',
-                      'Unlimited history backup & cloud synchronization',
-                      'Priority synthesis rendering with dedicated resources'
-                    ].map((feature, i) => (
-                      <li key={i} className="flex items-center gap-[8px]">
-                        <Check className="text-[#6C63FF] flex-shrink-0" size={14} />
-                        <span className={i > 0 && i < 4 ? 'text-white font-medium' : ''}>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <button className="w-full py-[10px] md:py-[11px] rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-white/40 font-semibold cursor-not-allowed transition-all mt-[12px]">
+                    Active Subscription
+                  </button>
                 </div>
 
-                <button className="w-full py-[11px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs text-white font-bold hover:shadow-[0_0_20px_rgba(108,99,255,0.35)] transition-all">
-                  Upgrade to Pro
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
+                {/* Pro Tier */}
+                <div className="rounded-[24px] backdrop-blur-xl bg-[#6C63FF]/[0.02] border border-[#6C63FF]/20 hover:border-[#6C63FF]/40 p-[24px] md:p-[32px] flex flex-col justify-between gap-[24px] md:gap-[28px] transition-all relative overflow-hidden group shadow-[0_0_30px_rgba(108,99,255,0.05)]">
+                  <div className="absolute -top-[50px] -right-[50px] w-[120px] h-[120px] rounded-full bg-[#6C63FF]/10 blur-[40px] pointer-events-none group-hover:bg-[#6C63FF]/20 transition-all duration-300" />
+                  
+                  <div className="flex flex-col gap-[16px] md:gap-[20px]">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-[4px]">Pro Tier</h3>
+                        <p className="text-[11px] md:text-xs text-white/40">For team syncs and priority models.</p>
+                      </div>
+                      <span className="text-[10px] md:text-xs font-semibold text-[#6C63FF] bg-[#6C63FF]/15 border border-[#6C63FF]/30 px-[8px] md:px-[10px] py-[3px] rounded-full shadow-[0_0_12px_rgba(108,99,255,0.2)]">Recommended</span>
+                    </div>
 
-      </motion.div>
+                    <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[16px] md:pb-[20px]">
+                      <span className="text-3xl md:text-4xl font-extrabold text-white">$20</span>
+                      <span className="text-[11px] md:text-xs text-white/40">/ month</span>
+                    </div>
+
+                    <ul className="flex flex-col gap-[10px] md:gap-[12px] text-[11px] md:text-xs text-white/70">
+                      {['Everything in Free tier', '+Workspace access & collab', 'Access premium AI models first', 'Unlimited history backup', 'Priority synthesis rendering'].map((feature, i) => (
+                        <li key={i} className="flex items-start gap-[8px]">
+                          <Check className="text-[#6C63FF] flex-shrink-0 mt-[2px]" size={12} />
+                          <span className={i > 0 && i < 3 ? 'text-white font-medium' : ''}>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <button className="w-full py-[10px] md:py-[11px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs text-white font-bold hover:shadow-[0_0_20px_rgba(108,99,255,0.35)] transition-all mt-[12px] relative z-10">
+                    Upgrade to Pro
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+        </motion.div>
+      </AnimatePresence>
 
       {/* Glass-morphic Toast Notification Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl backdrop-blur-3xl bg-black/80 border border-white/[0.1] px-5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 rounded-2xl backdrop-blur-3xl bg-black/80 border border-white/[0.1] px-5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className="w-2 h-2 rounded-full bg-[#00D97E] animate-ping" />
-          <span className="text-xs font-medium text-white/90">{toastMessage}</span>
+          <span className="text-[11px] md:text-xs font-medium text-white/90">{toastMessage}</span>
         </div>
       )}
     </div>

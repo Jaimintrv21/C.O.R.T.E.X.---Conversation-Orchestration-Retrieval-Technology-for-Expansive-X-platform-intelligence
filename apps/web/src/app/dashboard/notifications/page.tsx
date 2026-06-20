@@ -1,84 +1,68 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Bell, CheckCircle2, Info, AlertTriangle, AlertCircle, Clock, Check } from 'lucide-react';
-import { popIn, staggerList, listItem } from '@/lib/motion';
-
-const notifications = [
-  { id: 1, type: 'success', title: 'Model Sync Complete', desc: 'Llama 3 successfully downloaded to Ollama instance.', time: '2 mins ago', read: false },
-  { id: 2, type: 'info', title: 'New Artifact Generated', desc: 'Dashboard scaffolding is ready for download in your artifacts page.', time: '1 hour ago', read: false },
-  { id: 3, type: 'warning', title: 'Usage Alert', desc: 'Approaching 80% of OpenAI monthly budget limit.', time: '4 hours ago', read: false },
-  { id: 4, type: 'error', title: 'Connection Failed', desc: 'Failed to connect to local Redis cache. Retrying...', time: '1 day ago', read: true },
-  { id: 5, type: 'info', title: 'System Update', desc: 'CORTEX Engine v2.4.1 has been successfully deployed.', time: '2 days ago', read: true },
-  { id: 6, type: 'success', title: 'Payment Successful', desc: 'Your monthly Pro subscription has been renewed.', time: '3 days ago', read: true },
-];
-
-const getIcon = (type: string) => {
-  switch (type) {
-    case 'success': return <CheckCircle2 className="text-[#00D97E]" size={20} />;
-    case 'warning': return <AlertTriangle className="text-[#FFBC00]" size={20} />;
-    case 'error': return <AlertCircle className="text-[#FF6584]" size={20} />;
-    default: return <Info className="text-[#00D2FF]" size={20} />;
-  }
-};
-
-const getColor = (type: string) => {
-  switch (type) {
-    case 'success': return '#00D97E';
-    case 'warning': return '#FFBC00';
-    case 'error': return '#FF6584';
-    default: return '#00D2FF';
-  }
-};
+import { Bell, Check, Trash2, Cpu, Sparkles, AlertTriangle } from 'lucide-react';
+import { staggerList, listItem } from '@/lib/motion';
 
 export default function NotificationsPage() {
+  const notifications = [
+    { id: 1, title: 'Model Sync Complete', desc: 'Llama 3 downloaded to Ollama successfully.', time: '2 mins ago', icon: Cpu, color: '#00D97E', read: false },
+    { id: 2, title: 'New Artifact Generated', desc: 'Dashboard scaffolding React components are ready to view.', time: '1 hour ago', icon: Sparkles, color: '#6C63FF', read: false },
+    { id: 3, title: 'Usage Alert', desc: 'You have reached 80% of your OpenAI monthly budget.', time: '4 hours ago', icon: AlertTriangle, color: '#FFBC00', read: false },
+    { id: 4, title: 'Workspace Invite', desc: 'Sarah joined your "Personal Workspace" as an Editor.', time: '1 day ago', icon: Bell, color: '#00D2FF', read: true },
+    { id: 5, title: 'Weekly Digest', desc: 'You processed 1,204 messages and extracted 45 new entities this week.', time: '2 days ago', icon: Bell, color: '#6C63FF', read: true },
+  ];
+
   return (
-    <div className="flex flex-col gap-[32px] max-w-[1000px] mx-auto w-full">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-[16px]">
-          <div className="w-[48px] h-[48px] rounded-full bg-[#6C63FF]/20 border border-[#6C63FF]/40 flex items-center justify-center">
-            <Bell className="text-[#6C63FF]" size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Notifications</h1>
-            <p className="text-sm text-white/50">Stay updated on your workspace activity.</p>
-          </div>
+    <div className="flex flex-col gap-[32px] max-w-[1000px] mx-auto w-full pb-[40px]">
+      <div className="flex items-center justify-between px-[8px]">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-[4px]">Notifications</h1>
+          <p className="text-sm text-white/50">Manage your alerts, system updates, and workspace activity.</p>
         </div>
-        <button className="flex items-center gap-[8px] px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-white/[0.1] text-white/70 hover:text-white hover:bg-white/[0.1] transition-all text-sm font-medium">
-          <Check size={16} />
-          Mark all as read
-        </button>
+        <div className="flex gap-[12px]">
+          <button className="px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white/70 hover:text-white hover:bg-white/[0.08] transition-all flex items-center gap-[6px]">
+            <Check size={14} />
+            Mark all as read
+          </button>
+          <button className="px-[16px] py-[8px] rounded-full bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-white transition-all flex items-center gap-[6px]">
+            <Trash2 size={14} />
+            Clear all
+          </button>
+        </div>
       </div>
 
-      {/* Notifications List */}
-      <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[8px]">
+      <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] overflow-hidden">
         <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col">
-          {notifications.map((notif) => (
-            <motion.div
+          {notifications.map((notif, i) => (
+            <motion.div 
               key={notif.id}
               variants={listItem}
-              className={`flex items-start gap-[16px] p-[24px] rounded-[16px] transition-all duration-200 cursor-pointer ${
-                notif.read ? 'hover:bg-white/[0.02]' : 'bg-white/[0.04] hover:bg-white/[0.06] shadow-[inset_4px_0_0_0_rgba(108,99,255,0.5)]'
-              }`}
+              className={`p-[24px] flex items-start gap-[20px] transition-colors border-b border-white/[0.04] last:border-0 ${notif.read ? 'bg-transparent opacity-70' : 'bg-white/[0.02] hover:bg-white/[0.04]'}`}
             >
-              <div className="mt-[2px] flex-shrink-0">
-                {getIcon(notif.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-[4px]">
-                  <h3 className={`font-semibold ${notif.read ? 'text-white/80' : 'text-white'}`}>{notif.title}</h3>
-                  <div className="flex items-center gap-[6px] text-white/40 text-xs">
-                    <Clock size={12} />
-                    {notif.time}
-                  </div>
+              <div className="relative mt-[2px] flex-shrink-0">
+                <div className="w-[40px] h-[40px] rounded-full border flex items-center justify-center" style={{ backgroundColor: `${notif.color}15`, borderColor: `${notif.color}30` }}>
+                  <notif.icon size={18} color={notif.color} />
                 </div>
-                <p className={`text-sm ${notif.read ? 'text-white/40' : 'text-white/60'}`}>{notif.desc}</p>
+                {!notif.read && (
+                  <div className="absolute top-0 right-0 w-[10px] h-[10px] rounded-full border-2 border-[#0A0A0F]" style={{ backgroundColor: notif.color }} />
+                )}
               </div>
-              {!notif.read && (
-                <div className="w-[8px] h-[8px] rounded-full mt-[8px]" style={{ backgroundColor: getColor(notif.type), boxShadow: `0 0 10px ${getColor(notif.type)}` }} />
-              )}
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-[16px] mb-[4px]">
+                  <h3 className={`text-base font-medium truncate ${notif.read ? 'text-white/70' : 'text-white'}`}>{notif.title}</h3>
+                  <span className="text-xs text-white/40 flex-shrink-0">{notif.time}</span>
+                </div>
+                <p className="text-sm text-white/50 leading-relaxed">{notif.desc}</p>
+                
+                {!notif.read && (
+                  <div className="mt-[12px] flex gap-[12px]">
+                    <button className="text-xs font-medium text-[#00D2FF] hover:text-white transition-colors">View details</button>
+                    <button className="text-xs font-medium text-white/40 hover:text-white/80 transition-colors">Dismiss</button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           ))}
         </motion.div>

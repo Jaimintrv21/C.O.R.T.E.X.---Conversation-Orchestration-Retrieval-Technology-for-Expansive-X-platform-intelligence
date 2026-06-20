@@ -49,7 +49,7 @@ export default function LandingPage() {
       1: () => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }),
       2: () => router.push("/pricing"),
       4: () => document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" }),
-      5: () => window.open("https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence.git", "_blank"),
+      5: () => router.push("/docs"),
       7: () => router.push("/login"),
       8: () => router.push("/register"),
     };
