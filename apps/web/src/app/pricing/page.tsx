@@ -1,20 +1,134 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Sparkles, Zap, Shield, Globe, Cpu } from "lucide-react";
+import { ArrowLeft, Check, X, ChevronDown, Sparkles } from "lucide-react";
 import { WebGLShader } from "@/components/ui/web-gl-shader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
-import { motion } from "framer-motion";
-import { popIn, staggerList, listItem } from "@/lib/motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { staggerList, listItem } from "@/lib/motion";
+
+const plans = [
+  {
+    name: "Free",
+    subtitle: "Self-Hosted",
+    price: "$0",
+    period: "/ month",
+    desc: "Perfect for individual developer setups and privacy-first local indexes.",
+    badge: "Self Hosted",
+    badgeClass: "text-white/40 bg-white/[0.05] border-white/[0.08]",
+    borderClass: "border-white/[0.06] hover:border-white/[0.12]",
+    bgClass: "bg-white/[0.02]",
+    checkColor: "text-[#00D97E]",
+    features: [
+      "Unlimited conversations",
+      "Local AI via Ollama",
+      "Hybrid search (full-text + semantic)",
+      "JSON & Markdown export",
+      "Single user workspace",
+      "PII redaction & offline security",
+    ],
+    cta: "Get Started Free",
+    ctaClass: "text-white border border-white/20",
+    href: "/register",
+  },
+  {
+    name: "Pro",
+    subtitle: "Self-hosted Pro",
+    price: "$20",
+    period: "/ month",
+    desc: "For teams, shared collaboration workspace sync, and advanced AI utilities.",
+    badge: "Most Popular",
+    badgeClass: "text-[#6C63FF] bg-[#6C63FF]/15 border-[#6C63FF]/30 shadow-[0_0_12px_rgba(108,99,255,0.2)]",
+    borderClass: "border-[#6C63FF]/20 hover:border-[#6C63FF]/45",
+    bgClass: "bg-[#6C63FF]/[0.02]",
+    checkColor: "text-[#6C63FF]",
+    highlight: true,
+    features: [
+      "Everything in Free +",
+      "Semantic search with embeddings",
+      "Artifact generation engine",
+      "Full analytics & heatmaps",
+      "Multi-user workspace (up to 5)",
+      "Priority support",
+    ],
+    cta: "Upgrade to Pro",
+    ctaClass: "text-white bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] border-[#6C63FF]/45",
+    href: "/register",
+  },
+  {
+    name: "Enterprise",
+    subtitle: "Custom",
+    price: "Custom",
+    period: "",
+    desc: "Fortune 500 IT/Security. SSO, PII redaction, tamper-evident audit, multi-tenant.",
+    badge: "Contact Us",
+    badgeClass: "text-[#00D2FF] bg-[#00D2FF]/10 border-[#00D2FF]/20",
+    borderClass: "border-white/[0.06] hover:border-[#00D2FF]/30",
+    bgClass: "bg-white/[0.02]",
+    checkColor: "text-[#00D2FF]",
+    features: [
+      "Everything in Pro +",
+      "SSO / SAML integration",
+      "PII redaction pipeline",
+      "Tamper-evident audit logs",
+      "Unlimited users & workspaces",
+      "SLA & dedicated support",
+    ],
+    cta: "Contact Sales",
+    ctaClass: "text-white border border-[#00D2FF]/30",
+    href: "mailto:sales@cortex.ai",
+  },
+];
+
+const comparisonRows = [
+  { name: "Conversation Import (All Providers)", free: true, pro: true, enterprise: true },
+  { name: "Local Ollama Integration", free: true, pro: true, enterprise: true },
+  { name: "Hybrid Search (BM25 + Semantic)", free: true, pro: true, enterprise: true },
+  { name: "Model Compare Mode", free: true, pro: true, enterprise: true },
+  { name: "Artifact Generation", free: false, pro: true, enterprise: true },
+  { name: "Full Analytics & Heatmaps", free: false, pro: true, enterprise: true },
+  { name: "Knowledge Graph", free: false, pro: true, enterprise: true },
+  { name: "Team Workspaces & RBAC", free: false, pro: "Up to 5", enterprise: "Unlimited" },
+  { name: "SSO / SAML", free: false, pro: false, enterprise: true },
+  { name: "PII Redaction", free: "Basic", pro: "Advanced", enterprise: "Enterprise" },
+  { name: "Audit Logs", free: false, pro: false, enterprise: true },
+  { name: "Cloud Sync & Backups", free: false, pro: "Unlimited", enterprise: "Unlimited" },
+  { name: "SLA", free: false, pro: false, enterprise: "99.9%" },
+];
+
+const faqs = [
+  {
+    q: "Is CORTEX truly self-hostable?",
+    a: "Yes. The entire platform runs via Docker Compose on your own infrastructure. No external calls are made by default — everything from AI processing (Ollama) to search (Meilisearch) runs locally.",
+  },
+  {
+    q: "What data leaves my machine?",
+    a: "By default, zero. CORTEX is local-first. Cloud sync is an opt-in Pro feature that uses AES-256 encrypted channels. You control the toggle in Settings → Privacy.",
+  },
+  {
+    q: "Can I upgrade from Free to Pro later?",
+    a: "Absolutely. Your existing data, conversations, and knowledge graph transfer seamlessly when you upgrade. No re-import needed.",
+  },
+  {
+    q: "What AI models does CORTEX support?",
+    a: "CORTEX supports any Ollama-compatible model locally (Llama 3, Mistral, Phi-3, Qwen) and can optionally route to cloud LLMs via LiteLLM (GPT-4o, Claude 3.5, Gemini).",
+  },
+  {
+    q: "How does Enterprise pricing work?",
+    a: "Enterprise pricing is customized based on seat count, compliance requirements, and SLA tier. Contact our sales team for a tailored quote.",
+  },
+];
 
 export default function PricingPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
   return (
     <main className="relative min-h-screen bg-black text-white py-20 px-6 md:px-12 overflow-y-auto">
-      {/* WebGL animated background shader */}
       <WebGLShader />
 
-      <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-12">
-        {/* Navigation back and logo */}
+      <div className="relative z-10 max-w-6xl mx-auto flex flex-col gap-12">
+        {/* Navigation */}
         <div className="flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-2 text-xs font-semibold text-white/40 hover:text-white transition-colors w-fit bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full backdrop-blur-md">
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
@@ -26,146 +140,147 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Pricing Title & Header */}
+        {/* Title */}
         <div className="text-center flex flex-col gap-4 max-w-2xl mx-auto">
           <span className="text-xs font-semibold text-[#6C63FF] tracking-[0.2em] uppercase">Pricing & Plans</span>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Flexible Plans for <span className="bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">Every Journey</span>
+            Simple, <span className="bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">Transparent</span> Pricing
           </h1>
           <p className="text-white/40 text-sm md:text-base">
-            Whether you are running open-source models completely locally or syncing across workspaces with your team, we have you covered.
+            Self-host for free or unlock team features. No hidden costs, no data lock-in.
           </p>
         </div>
 
-        {/* Plan Cards Grid */}
-        <motion.div 
+        {/* Plan Cards — 3 col */}
+        <motion.div
           variants={staggerList}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto w-full mt-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
         >
-          {/* Free Tier */}
-          <motion.div 
-            variants={listItem}
-            className="rounded-[32px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-8 md:p-10 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group"
-          >
-            <div className="flex flex-col gap-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">Free Tier</h3>
-                  <p className="text-xs text-white/45">Perfect for individual developer setups and privacy-first local indexes.</p>
+          {plans.map((plan, i) => (
+            <motion.div
+              key={plan.name}
+              variants={listItem}
+              className={`rounded-[32px] backdrop-blur-xl ${plan.bgClass} border ${plan.borderClass} p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group`}
+            >
+              {plan.highlight && (
+                <div className="absolute -top-[60px] -right-[60px] w-[150px] h-[150px] rounded-full bg-[#6C63FF]/10 blur-[50px] pointer-events-none group-hover:bg-[#6C63FF]/25 transition-all duration-500" />
+              )}
+
+              <div className="flex flex-col gap-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+                    <p className="text-xs text-white/45">{plan.desc}</p>
+                  </div>
+                  <span className={`text-xs font-semibold border px-3 py-1 rounded-full flex-shrink-0 ${plan.badgeClass}`}>
+                    {plan.badge}
+                  </span>
                 </div>
-                <span className="text-xs font-semibold text-white/40 bg-white/[0.05] border border-white/[0.08] px-3 py-1 rounded-full">Self Hosted</span>
-              </div>
 
-              <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
-                <span className="text-5xl font-extrabold text-white">$0</span>
-                <span className="text-xs text-white/40">/ month</span>
-              </div>
-
-              <ul className="flex flex-col gap-3 text-xs text-white/70">
-                {[
-                  'Sync conversation logs from ChatGPT, Claude, Gemini, Perplexity, and Grok',
-                  'Local vector indexing and hybrid semantic search via SQLite/pgvector',
-                  'Private data indexing using local Ollama endpoints (Llama 3, Mistral, etc.)',
-                  'Compare outputs side-by-side across various models',
-                  'Basic dashboard widgets (token counting, usage history trackers)',
-                  'PII Redaction and strict offline security compliance'
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <Check className="text-[#00D97E] flex-shrink-0 mt-0.5" size={14} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Link href="/register">
-              <LiquidButton className="w-full text-white border border-white/20 rounded-full" size="default">
-                Get Started Free
-              </LiquidButton>
-            </Link>
-          </motion.div>
-
-          {/* Pro Tier */}
-          <motion.div 
-            variants={listItem}
-            className="rounded-[32px] backdrop-blur-xl bg-[#6C63FF]/[0.02] border border-[#6C63FF]/20 hover:border-[#6C63FF]/45 p-8 md:p-10 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group shadow-[0_0_40px_rgba(108,99,255,0.06)]"
-          >
-            {/* Glowing Accent Aura */}
-            <div className="absolute -top-[60px] -right-[60px] w-[150px] h-[150px] rounded-full bg-[#6C63FF]/10 blur-[50px] pointer-events-none group-hover:bg-[#6C63FF]/25 transition-all duration-500" />
-            
-            <div className="flex flex-col gap-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">Pro Tier</h3>
-                  <p className="text-xs text-white/45 font-medium">For teams, shared collaboration workspace sync, and advanced AI utilities.</p>
+                <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
+                  <span className="text-5xl font-extrabold text-white">{plan.price}</span>
+                  {plan.period && <span className="text-xs text-white/40">{plan.period}</span>}
                 </div>
-                <span className="text-xs font-semibold text-[#6C63FF] bg-[#6C63FF]/15 border border-[#6C63FF]/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(108,99,255,0.2)]">Recommended</span>
+
+                <ul className="flex flex-col gap-3 text-xs text-white/70">
+                  {plan.features.map((feature, j) => (
+                    <li key={j} className="flex items-start gap-2.5">
+                      <Check className={`${plan.checkColor} flex-shrink-0 mt-0.5`} size={14} />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
-                <span className="text-5xl font-extrabold text-white">$20</span>
-                <span className="text-xs text-white/40">/ month</span>
-              </div>
-
-              <ul className="flex flex-col gap-3 text-xs text-white/70">
-                {[
-                  'Everything included in the Free tier',
-                  '+Workspace Access: Share context, prompt libraries, and indexes with team members',
-                  'Access new premium AI models first (Priority cloud LLM routing)',
-                  'Access new beta functions, pipelines, and background agent integrations first',
-                  'Unlimited secure cloud backups & automatic cross-device synchronization',
-                  'Priority synthesis rendering with dedicated computational workers'
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <Check className="text-[#6C63FF] flex-shrink-0 mt-0.5" size={14} />
-                    <span className={i > 0 && i < 5 ? 'text-white font-medium' : ''}>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Link href="/register">
-              <LiquidButton className="w-full text-white bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] rounded-full border border-[#6C63FF]/45" size="default">
-                Upgrade to Pro
-              </LiquidButton>
-            </Link>
-          </motion.div>
+              <Link href={plan.href}>
+                <LiquidButton className={`w-full rounded-full ${plan.ctaClass}`} size="default">
+                  {plan.cta}
+                </LiquidButton>
+              </Link>
+            </motion.div>
+          ))}
         </motion.div>
 
         {/* Feature Comparison Table */}
-        <div className="mt-16 flex flex-col gap-6">
-          <h2 className="text-2xl font-bold text-white text-center">Feature Breakdown</h2>
+        <div className="mt-8 flex flex-col gap-6">
+          <h2 className="text-2xl font-bold text-white text-center">Feature Comparison</h2>
           <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-white/[0.01] backdrop-blur-md">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                  <th className="p-4 font-semibold text-white">Features & Modules</th>
-                  <th className="p-4 font-semibold text-white">Free Plan</th>
-                  <th className="p-4 font-semibold text-white">Pro Plan ($20/mo)</th>
+                  <th className="p-4 font-semibold text-white">Feature</th>
+                  <th className="p-4 font-semibold text-white text-center">Free</th>
+                  <th className="p-4 font-semibold text-white text-center">Pro</th>
+                  <th className="p-4 font-semibold text-white text-center">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="text-white/60">
-                {[
-                  { name: "Conversation Syncing (All Platforms)", free: "Yes", pro: "Yes" },
-                  { name: "Self-Hosted Ollama & SQLite Local Stack", free: "Yes", pro: "Yes" },
-                  { name: "Model Compare Mode", free: "Yes", pro: "Yes" },
-                  { name: "Shared Team Workspaces & RBAC", free: "No", pro: "Yes" },
-                  { name: "Beta Model Router Access", free: "No", pro: "Yes (Early Access)" },
-                  { name: "Beta Agentic Pipeline Widgets", free: "No", pro: "Yes (Early Access)" },
-                  { name: "Encryption Keys & Telemetry Controls", free: "Yes (Fully Local)", pro: "Yes (Cloud Encrypted)" },
-                  { name: "Cloud Backups & Sync", free: "No", pro: "Unlimited" }
-                ].map((row, i) => (
-                  <tr key={i} className="border-b border-white/[0.04] hover:bg-white/[0.01] transition-colors">
+                {comparisonRows.map((row, i) => (
+                  <tr key={i} className={`border-b border-white/[0.04] hover:bg-white/[0.01] transition-colors ${i % 2 === 0 ? 'bg-white/[0.005]' : ''}`}>
                     <td className="p-4 font-medium text-white/95">{row.name}</td>
-                    <td className="p-4">{row.free}</td>
-                    <td className="p-4 text-white font-medium">{row.pro}</td>
+                    {[row.free, row.pro, row.enterprise].map((val, j) => (
+                      <td key={j} className="p-4 text-center">
+                        {val === true ? (
+                          <Check size={16} className="text-[#00D97E] mx-auto" />
+                        ) : val === false ? (
+                          <X size={16} className="text-white/20 mx-auto" />
+                        ) : (
+                          <span className="text-white font-medium">{val}</span>
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* FAQ Accordion */}
+        <div className="mt-8 flex flex-col gap-6">
+          <h2 className="text-2xl font-bold text-white text-center">Frequently Asked Questions</h2>
+          <div className="flex flex-col gap-3 max-w-3xl mx-auto w-full">
+            {faqs.map((faq, i) => (
+              <div
+                key={i}
+                className="rounded-[20px] border border-white/[0.08] bg-white/[0.02] backdrop-blur-md overflow-hidden transition-all hover:border-white/[0.12]"
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left"
+                >
+                  <span className="text-sm font-medium text-white/90">{faq.q}</span>
+                  <motion.div
+                    animate={{ rotate: openFaq === i ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown size={16} className="text-white/40 flex-shrink-0" />
+                  </motion.div>
+                </button>
+                <AnimatePresence>
+                  {openFaq === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="px-5 pb-5 text-sm text-white/50 leading-relaxed border-t border-white/[0.06] pt-4">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-white/20 mt-4">
+          © 2026 CORTEX Core Team. Distributed under Apache License 2.0.
         </div>
       </div>
     </main>
