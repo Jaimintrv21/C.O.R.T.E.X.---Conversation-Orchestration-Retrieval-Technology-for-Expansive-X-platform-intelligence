@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User,
   CreditCard, Box, Check, UserPlus, Trash2, X, Palette, Moon, Sun,
-  Monitor, Smartphone, Mail, AlertOctagon, Download, Eraser
+  Monitor, Smartphone, Mail, AlertOctagon, Download, Eraser, Sparkles
 } from 'lucide-react';
 import { popIn, staggerList, listItem } from '@/lib/motion';
 
@@ -74,13 +74,21 @@ export default function SettingsPage() {
     emailDigest: true,
     pushNotifs: false,
     browserAlerts: true,
-    reduceMotion: false
+    reduceMotion: false,
+    springSidebar: true,
+    mouseGlow: true,
+    particles: false,
+    audioFeedback: false
   });
 
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3');
-  const [themeMode, setThemeMode] = useState<'system' | 'dark' | 'light'>('dark');
   const [accentColor, setAccentColor] = useState('#6C63FF');
+  const [activeAppearanceSubTab, setActiveAppearanceSubTab] = useState<'Style' | 'Color' | 'Motion' | 'Layout' | 'Labs'>('Style');
+  const [themeStyle, setThemeStyle] = useState<'liquid-glass' | 'cyber-obsidian' | 'minimal-slate'>('liquid-glass');
+  const [shaderSpeed, setShaderSpeed] = useState<'paused' | 'slow' | 'normal' | 'hyper'>('normal');
+  const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>('left');
+  const [layoutPadding, setLayoutPadding] = useState<'compact' | 'cozy' | 'cinematic'>('cozy');
 
   // Workspace Management States
   const [workspaceName, setWorkspaceName] = useState('Personal Workspace');
@@ -222,75 +230,303 @@ export default function SettingsPage() {
                 <p className="text-sm text-white/50">Customize the visual aesthetic of the platform.</p>
               </div>
 
-              <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] flex flex-col overflow-hidden p-[24px] gap-[32px]">
-                {/* Theme Mode */}
-                <div className="flex flex-col gap-[16px]">
-                  <h3 className="text-sm font-medium text-white">Theme Mode</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
-                    {[
-                      { id: 'dark', label: 'Dark Mode', icon: Moon },
-                      { id: 'light', label: 'Light Mode', icon: Sun },
-                      { id: 'system', label: 'System Match', icon: Monitor }
-                    ].map(mode => (
+              <div className="flex flex-col md:flex-row gap-[24px] items-start">
+                {/* Left Column: Sub-navigation */}
+                <div className="w-full md:w-[220px] flex flex-row md:flex-col gap-[6px] p-[6px] rounded-[24px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] overflow-x-auto md:overflow-x-visible custom-scrollbar">
+                  {[
+                    { id: 'Style', label: 'Style', desc: 'Theme styles' },
+                    { id: 'Color', label: 'Color', desc: 'Colors & shaders' },
+                    { id: 'Motion', label: 'Motion', desc: 'Transitions & animations' },
+                    { id: 'Layout', label: 'Layout', desc: 'Sidebar & structure' },
+                    { id: 'Labs', label: 'Labs', desc: 'Experimental features' }
+                  ].map(subTab => {
+                    const isActive = activeAppearanceSubTab === subTab.id;
+                    return (
                       <button
-                        key={mode.id}
-                        onClick={() => setThemeMode(mode.id as any)}
-                        className={`flex flex-col items-center gap-[12px] p-[20px] rounded-[20px] border transition-all ${themeMode === mode.id
-                            ? 'bg-[#6C63FF]/10 border-[#6C63FF]/30 text-white shadow-[0_0_15px_rgba(108,99,255,0.15)]'
-                            : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
-                          }`}
+                        key={subTab.id}
+                        onClick={() => setActiveAppearanceSubTab(subTab.id as any)}
+                        className={`flex flex-col items-start px-[18px] py-[10px] rounded-[18px] transition-all text-left w-full min-w-[120px] md:min-w-0 ${
+                          isActive
+                            ? 'bg-[#6C63FF]/15 border border-[#6C63FF]/30 text-white shadow-[0_0_15px_rgba(108,99,255,0.1)]'
+                            : 'border border-transparent text-white/50 hover:bg-white/[0.04] hover:text-white/80'
+                        }`}
                       >
-                        <mode.icon size={24} />
-                        <span className="text-sm font-medium">{mode.label}</span>
+                        <span className="text-sm font-semibold">{subTab.label}</span>
+                        <span className="text-[10px] opacity-60 hidden md:block mt-[2px]">{subTab.desc}</span>
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
 
-                <div className="w-full h-[1px] bg-white/[0.06]" />
-
-                {/* Accent Color */}
-                <div className="flex flex-col gap-[16px]">
-                  <h3 className="text-sm font-medium text-white">Primary Accent Color</h3>
-                  <div className="flex flex-wrap gap-[16px]">
-                    {[
-                      { color: '#6C63FF', name: 'Violet (Default)' },
-                      { color: '#00D2FF', name: 'Cyan' },
-                      { color: '#00D97E', name: 'Emerald' },
-                      { color: '#FF6584', name: 'Rose' }
-                    ].map(accent => (
-                      <button
-                        key={accent.color}
-                        onClick={() => setAccentColor(accent.color)}
-                        title={accent.name}
-                        className={`w-[48px] h-[48px] rounded-full transition-all flex items-center justify-center ${accentColor === accent.color ? 'scale-110 shadow-[0_0_20px_currentColor]' : 'hover:scale-105'
-                          }`}
-                        style={{ backgroundColor: accent.color, color: accent.color }}
-                      >
-                        {accentColor === accent.color && <Check size={20} className="text-white" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="w-full h-[1px] bg-white/[0.06]" />
-
-                {/* Accessibility / Motion */}
-                <div className="flex items-center justify-between gap-[24px]">
-                  <div>
-                    <h3 className="text-sm font-medium text-white mb-[4px]">Reduce UI Motion</h3>
-                    <p className="text-xs text-white/50">Disables background shaders, hover micro-animations, and parallax effects.</p>
-                  </div>
-                  <button
-                    onClick={() => handleToggle('reduceMotion')}
-                    className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.reduceMotion ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
-                  >
+                {/* Right Column: Settings Panel */}
+                <div className="flex-1 w-full rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[24px] min-h-[380px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_3px_3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_-3px_-3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.2),inset_-1px_-1px_1px_-0.5px_rgba(255,255,255,0.2)]">
+                  <AnimatePresence mode="wait">
                     <motion.div
-                      animate={{ x: toggles.reduceMotion ? 20 : 0 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
-                    />
-                  </button>
+                      key={activeAppearanceSubTab}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col gap-[28px]"
+                    >
+                      {/* STYLE SUBTAB */}
+                      {activeAppearanceSubTab === 'Style' && (
+                        <div className="flex flex-col gap-[24px]">
+                          <div>
+                            <h3 className="text-base font-semibold text-white mb-[4px]">Theme Preset Style</h3>
+                            <p className="text-xs text-white/50">Choose the foundation style for the dashboard containers.</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[16px]">
+                            {[
+                              { id: 'liquid-glass', name: 'Liquid Glass', desc: 'Highly refractive, transparent border highlights.', preview: 'border-white/[0.12] bg-white/[0.03] shadow-[inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.2)]' },
+                              { id: 'cyber-obsidian', name: 'Cyber Obsidian', desc: 'Pure dark glass, high contrast metallic lines.', preview: 'border-[#6C63FF]/30 bg-black/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' },
+                              { id: 'minimal-slate', name: 'Minimal Slate', desc: 'Simple dark gray card layout with soft shadows.', preview: 'border-white/[0.06] bg-zinc-900/40 shadow-none' }
+                            ].map(style => (
+                              <button
+                                key={style.id}
+                                onClick={() => {
+                                  setThemeStyle(style.id as any);
+                                  triggerToast(`Theme style set to ${style.name}`);
+                                }}
+                                className={`flex flex-col items-start p-[20px] rounded-[20px] border transition-all text-left h-full ${
+                                  themeStyle === style.id
+                                    ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white shadow-[0_0_20px_rgba(108,99,255,0.15)]'
+                                    : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                                }`}
+                              >
+                                <div className={`w-full h-[40px] rounded-lg mb-[12px] border ${style.preview}`} />
+                                <span className="text-sm font-semibold text-white mb-[4px]">{style.name}</span>
+                                <span className="text-xs opacity-70 leading-normal">{style.desc}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* COLOR SUBTAB */}
+                      {activeAppearanceSubTab === 'Color' && (
+                        <div className="flex flex-col gap-[28px]">
+                          <div className="flex flex-col gap-[16px]">
+                            <div>
+                              <h3 className="text-base font-semibold text-white mb-[4px]">Primary Accent Color</h3>
+                              <p className="text-xs text-white/50">Changes buttons, active links, and border highlights.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-[16px]">
+                              {[
+                                { color: '#6C63FF', name: 'Violet' },
+                                { color: '#00D2FF', name: 'Cyan' },
+                                { color: '#00D97E', name: 'Emerald' },
+                                { color: '#FF6584', name: 'Rose' },
+                                { color: '#FFBC00', name: 'Amber' },
+                                { color: '#EF4444', name: 'Crimson' }
+                              ].map(accent => (
+                                <button
+                                  key={accent.color}
+                                  onClick={() => {
+                                    setAccentColor(accent.color);
+                                    triggerToast(`Accent color set to ${accent.name}`);
+                                  }}
+                                  title={accent.name}
+                                  className={`w-[48px] h-[48px] rounded-full transition-all flex items-center justify-center relative ${
+                                    accentColor === accent.color 
+                                      ? 'scale-110 shadow-[0_0_25px_currentColor]' 
+                                      : 'hover:scale-105 hover:shadow-[0_0_10px_currentColor]'
+                                  }`}
+                                  style={{ backgroundColor: accent.color, color: accent.color }}
+                                >
+                                  {accentColor === accent.color && <Check size={20} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                          <div className="flex flex-col gap-[16px]">
+                            <div>
+                              <h3 className="text-base font-semibold text-white mb-[4px]">Background Shader Speed</h3>
+                              <p className="text-xs text-white/50">Configure animation speed of the interactive WebGL gradient background.</p>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-[12px]">
+                              {[
+                                { id: 'paused', name: 'Paused' },
+                                { id: 'slow', name: 'Slow Motion' },
+                                { id: 'normal', name: 'Normal' },
+                                { id: 'hyper', name: 'Hyper' }
+                              ].map(speed => (
+                                <button
+                                  key={speed.id}
+                                  onClick={() => {
+                                    setShaderSpeed(speed.id as any);
+                                    triggerToast(`Shader background speed set to ${speed.name}`);
+                                  }}
+                                  className={`px-[16px] py-[10px] rounded-full border text-xs font-semibold transition-all ${
+                                    shaderSpeed === speed.id
+                                      ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white'
+                                      : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                                  }`}
+                                >
+                                  {speed.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MOTION SUBTAB */}
+                      {activeAppearanceSubTab === 'Motion' && (
+                        <div className="flex flex-col gap-[28px]">
+                          <div className="flex items-center justify-between gap-[24px]">
+                            <div>
+                              <h3 className="text-sm font-semibold text-white mb-[4px]">Reduce UI Motion</h3>
+                              <p className="text-xs text-white/50">Disables complex 3D background shaders and hover scale animations.</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                handleToggle('reduceMotion');
+                                triggerToast(toggles.reduceMotion ? 'Animations restored' : 'UI motion reduced');
+                              }}
+                              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.reduceMotion ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                            >
+                              <motion.div
+                                animate={{ x: toggles.reduceMotion ? 20 : 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
+                              />
+                            </button>
+                          </div>
+
+                          <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                          <div className="flex items-center justify-between gap-[24px]">
+                            <div>
+                              <h3 className="text-sm font-semibold text-white mb-[4px]">Sidebar Transition Springs</h3>
+                              <p className="text-xs text-white/50">Use spring physics instead of linear animations for sidebar hover expansion.</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                handleToggle('springSidebar');
+                                triggerToast(toggles.springSidebar ? 'Spring transitions active' : 'Linear transitions active');
+                              }}
+                              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.springSidebar ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                            >
+                              <motion.div
+                                animate={{ x: toggles.springSidebar ? 20 : 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
+                              />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* LAYOUT SUBTAB */}
+                      {activeAppearanceSubTab === 'Layout' && (
+                        <div className="flex flex-col gap-[28px]">
+                          <div className="flex flex-col gap-[16px]">
+                            <div>
+                              <h3 className="text-base font-semibold text-white mb-[4px]">Sidebar Placement</h3>
+                              <p className="text-xs text-white/50">Align the navigation sidebar to the left or right of the screen.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-[16px] max-w-[400px]">
+                              {[
+                                { id: 'left', name: 'Left Sidebar' },
+                                { id: 'right', name: 'Right Sidebar' }
+                              ].map(pos => (
+                                <button
+                                  key={pos.id}
+                                  onClick={() => {
+                                    setSidebarPosition(pos.id as any);
+                                    triggerToast(`Sidebar aligned to the ${pos.id}`);
+                                  }}
+                                  className={`px-[16px] py-[12px] rounded-[16px] border text-xs font-semibold transition-all ${
+                                    sidebarPosition === pos.id
+                                      ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white'
+                                      : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                                  }`}
+                                >
+                                  {pos.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="w-full h-[1px] bg-white/[0.06]" />
+
+                          <div className="flex flex-col gap-[16px]">
+                            <div>
+                              <h3 className="text-base font-semibold text-white mb-[4px]">Workspace Layout Padding</h3>
+                              <p className="text-xs text-white/50">Select spacing level for layout containers and blocks.</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-[12px] max-w-[500px]">
+                              {[
+                                { id: 'compact', name: 'Compact', desc: 'Dense data views' },
+                                { id: 'cozy', name: 'Cozy', desc: 'Standard balance' },
+                                { id: 'cinematic', name: 'Cinematic', desc: 'Room to breathe' }
+                              ].map(pad => (
+                                <button
+                                  key={pad.id}
+                                  onClick={() => {
+                                    setLayoutPadding(pad.id as any);
+                                    triggerToast(`Layout padding set to ${pad.name}`);
+                                  }}
+                                  className={`flex flex-col items-center justify-center p-[16px] rounded-[16px] border text-center transition-all ${
+                                    layoutPadding === pad.id
+                                      ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white shadow-[0_0_15px_rgba(108,99,255,0.1)]'
+                                      : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                                  }`}
+                                >
+                                  <span className="text-xs font-semibold">{pad.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* LABS SUBTAB */}
+                      {activeAppearanceSubTab === 'Labs' && (
+                        <div className="flex flex-col gap-[28px]">
+                          <div>
+                            <h3 className="text-base font-semibold text-[#00D2FF] flex items-center gap-[6px]">
+                              <Sparkles size={16} /> Experimental Visual Labs
+                            </h3>
+                            <p className="text-xs text-white/50">Beta feature toggles for high-fidelity animations and premium effects.</p>
+                          </div>
+
+                          <div className="flex flex-col gap-[20px]">
+                            {[
+                              { id: 'mouseGlow', title: 'Mouse-Responsive Glass Glow', desc: 'Simulates organic lighting that follows your mouse cursor across glass panels.' },
+                              { id: 'particles', title: 'Orbital Background Particles', desc: 'Overlay floating stardust node particles behind the liquid glass windows.' },
+                              { id: 'audioFeedback', title: 'Glass Audio Feedback', desc: 'Enables tiny synthesized glass clicks on button clicks and sidebar navigations.' }
+                            ].map(lab => (
+                              <div key={lab.id} className="flex items-center justify-between gap-[24px]">
+                                <div className="max-w-[480px]">
+                                  <h4 className="text-sm font-semibold text-white/90 mb-[2px]">{lab.title}</h4>
+                                  <p className="text-xs text-white/50 leading-relaxed">{lab.desc}</p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    handleToggle(lab.id);
+                                    triggerToast(`Experimental feature ${lab.title} updated`);
+                                  }}
+                                  className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[lab.id] ? 'bg-[#00D2FF]' : 'bg-white/[0.1]'}`}
+                                >
+                                  <motion.div
+                                    animate={{ x: toggles[lab.id] ? 20 : 0 }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
+                                  />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </section>

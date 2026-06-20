@@ -54,13 +54,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           width: isSidebarOpen ? 240 : 64,
           scale: isSidebarOpen ? 1.02 : 1,
           boxShadow: isSidebarOpen 
-            ? "0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)" 
-            : "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)"
+            ? "0 30px 60px rgba(0,0,0,0.65), inset 1px 1px 2px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.3)" 
+            : "0 8px 32px rgba(0,0,0,0.4), inset 1px 1px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(0,0,0,0.2)"
         }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        className="hidden md:flex flex-col ml-[16px] mr-[8px] my-auto h-fit rounded-[32px] backdrop-blur-3xl bg-white/[0.05] border border-white/[0.12] flex-shrink-0 relative z-20 overflow-hidden"
+        className="hidden md:flex flex-col ml-[16px] mr-[8px] my-auto h-fit rounded-[32px] backdrop-blur-3xl bg-white/[0.04] border border-white/[0.15] flex-shrink-0 relative z-20 overflow-hidden"
       >
-        <div className="py-[16px] flex flex-col gap-[8px]">
+        {/* Glass Reflection Shine */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
+        
+        <div className="py-[16px] flex flex-col gap-[8px] relative z-10">
           <nav className="flex flex-col gap-[6px] px-[10px]">
             {navItems.map((item) => {
               const isActive = item.href === '/dashboard' 
@@ -76,7 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <motion.div
                       layoutId="activeNavPill"
                       transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                      className="absolute inset-0 bg-gradient-to-r from-[#6C63FF]/30 to-[#00D2FF]/20 border border-[#6C63FF]/40 shadow-[0_0_20px_rgba(108,99,255,0.2)] rounded-full -z-10"
+                      className="absolute inset-0 bg-gradient-to-r from-[#6C63FF]/25 to-[#00D2FF]/15 border border-white/[0.2] shadow-[0_4px_12px_rgba(108,99,255,0.2),inset_0_1px_0_rgba(255,255,255,0.2)] rounded-full -z-10"
                     />
                   )}
                   <div 
@@ -99,10 +102,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen relative z-10 p-[16px] pl-[16px] md:pl-[8px]">
         
         {/* Floating Pill Topbar */}
-        <header className="relative z-30 h-[56px] rounded-full backdrop-blur-3xl bg-white/[0.05] border border-white/[0.12] px-[20px] flex items-center justify-between gap-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] flex-shrink-0 mb-[16px]">
+        <header className="relative z-30 h-[56px] rounded-full backdrop-blur-3xl bg-white/[0.04] border border-white/[0.15] px-[20px] flex items-center justify-between gap-[16px] shadow-[0_12px_32px_rgba(0,0,0,0.5),inset_1px_1px_1px_rgba(255,255,255,0.15),inset_-1px_-1px_1px_rgba(0,0,0,0.2)] flex-shrink-0 mb-[16px] overflow-hidden">
+          {/* Glass Reflection Shine */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.02] to-white/[0.06] z-0" />
           
           {/* Left: CORTEX Logo & Search */}
-          <div className="flex-1 flex items-center gap-[10px] sm:gap-[12px] min-w-0">
+          <div className="flex-1 flex items-center gap-[10px] sm:gap-[12px] min-w-0 relative z-10">
             {/* Hamburger Mobile Menu Toggle */}
             <button 
               onClick={() => setMobileMenuOpen(true)}
@@ -128,16 +133,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Right: Actions & User Profile */}
-          <div className="flex items-center gap-[10px]">
+          <div className="flex items-center gap-[10px] relative z-10">
             {/* Notification Bell Dropdown */}
-            <div className="relative group/notif">
+            <div className="static sm:relative group/notif">
               <button className="relative w-[36px] h-[36px] rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.1] hover:border-white/[0.2] hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-200">
                 <Bell size={16} />
                 <span className="absolute top-[8px] right-[8px] w-[6px] h-[6px] rounded-full bg-[#FF6584] shadow-[0_0_8px_rgba(255,101,132,0.8)]"></span>
               </button>
               
               {/* Dropdown Panel */}
-              <div className="absolute top-full right-0 mt-[8px] w-[320px] rounded-[20px] backdrop-blur-3xl bg-[#0A0A0F]/90 border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] opacity-0 translate-y-2 pointer-events-none group-hover/notif:opacity-100 group-hover/notif:translate-y-0 group-hover/notif:pointer-events-auto transition-all duration-300 z-50 overflow-hidden flex flex-col">
+              <div className="absolute top-full left-[16px] right-[16px] sm:left-auto sm:right-0 mt-[8px] w-auto sm:w-[320px] rounded-[20px] backdrop-blur-3xl bg-[#0A0A0F]/90 border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.5),inset_3px_3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_-3px_-3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.2),inset_-1px_-1px_1px_-0.5px_rgba(255,255,255,0.2)] opacity-0 translate-y-2 pointer-events-none group-hover/notif:opacity-100 group-hover/notif:translate-y-0 group-hover/notif:pointer-events-auto transition-all duration-300 z-50 overflow-hidden flex flex-col">
                 <div className="px-[16px] py-[12px] border-b border-white/[0.08] flex items-center justify-between">
                   <h3 className="font-semibold text-sm text-white">Notifications</h3>
                   <span className="text-[10px] uppercase tracking-wider text-white/40 bg-white/[0.05] px-[8px] py-[3px] rounded-full">3 New</span>
@@ -206,9 +211,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-[260px] z-50 bg-[#0A0A0F]/95 backdrop-blur-2xl border-r border-white/[0.1] p-5 flex flex-col justify-between md:hidden shadow-[5px_0_30px_rgba(0,0,0,0.8)]"
+              className="fixed top-[16px] left-[16px] bottom-[16px] w-[260px] z-50 rounded-[32px] backdrop-blur-3xl bg-white/[0.05] border border-white/[0.15] p-5 flex flex-col justify-between md:hidden shadow-[0_24px_50px_rgba(0,0,0,0.7),inset_1px_1px_2px_rgba(255,255,255,0.2),inset_-1px_-1px_2px_rgba(0,0,0,0.3),0_0_20px_rgba(255,255,255,0.02)] overflow-hidden"
             >
-              <div className="flex flex-col gap-6">
+              {/* Glass Reflection Shine */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
+              
+              <div className="flex flex-col gap-6 relative z-10">
                 {/* Header inside drawer */}
                 <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                   <div className="flex items-center gap-2">
@@ -236,8 +244,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         className="relative group outline-none"
                       >
                         <div 
-                          className={`flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold transition-all duration-200
-                            ${isActive ? 'bg-gradient-to-r from-[#6C63FF]/30 to-[#00D2FF]/20 border border-[#6C63FF]/40 text-white shadow-[0_0_15px_rgba(108,99,255,0.15)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white/95'}`}
+                          className={`flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold transition-all duration-200 relative z-10
+                            ${isActive ? 'bg-gradient-to-r from-[#6C63FF]/25 to-[#00D2FF]/15 border border-white/[0.2] text-white shadow-[0_4px_12px_rgba(108,99,255,0.2),inset_0_1px_0_rgba(255,255,255,0.2)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white/95'}`}
                         >
                           <item.icon size={16} className="flex-shrink-0" />
                           <span>{item.name}</span>

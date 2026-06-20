@@ -970,49 +970,82 @@ export default function LandingPage() {
         </div>
       </footer>
       {/* Mobile Hamburger Menu Toggle */}
-      <button
-        onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
-        className="fixed top-4 right-4 z-50 p-2.5 rounded-2xl border border-white/10 bg-[#0A0A0F]/60 backdrop-blur-xl md:hidden text-white/80 hover:text-white flex items-center justify-center hover:bg-white/[0.08]"
-      >
-        {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-      </button>
+      <AnimatePresence>
+        {!isMobileMenuOpen && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(true)}
+            className="fixed top-5 right-6 z-50 p-2 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl md:hidden text-white/80 hover:text-white flex items-center justify-center hover:bg-white/[0.08]"
+          >
+            <Menu size={18} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Sidebar Drawer */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-[#0A0A0F]/95 backdrop-blur-2xl flex flex-col justify-center items-center p-8 md:hidden"
-          >
-            <div className="flex flex-col gap-4 w-full max-w-xs">
-              <div className="flex items-center gap-2 justify-center mb-8">
-                <img src="/logo.png" alt="CORTEX Logo" className="w-[32px] h-[32px] object-contain rounded-md" />
-                <span className="text-xl font-bold tracking-tight text-white">CORTEX</span>
-              </div>
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            />
+            {/* Drawer */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-[16px] left-[16px] bottom-[16px] w-[260px] z-50 rounded-[32px] backdrop-blur-3xl bg-white/[0.05] border border-white/[0.15] p-5 flex flex-col justify-between md:hidden shadow-[0_24px_50px_rgba(0,0,0,0.7),inset_1px_1px_2px_rgba(255,255,255,0.2),inset_-1px_-1px_2px_rgba(0,0,0,0.3),0_0_20px_rgba(255,255,255,0.02)] overflow-hidden"
+            >
+              {/* Glass Reflection Shine */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
               
-              {NAV_TABS.map((tab, idx) => {
-                if (tab.type === "separator") {
-                  return <div key={`sep-${idx}`} className="h-px bg-white/10 my-1" />;
-                }
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.title}
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      handleTabChange(idx);
-                    }}
-                    className="flex items-center gap-4 h-11 px-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/70 hover:text-white hover:bg-white/[0.08] transition-all text-xs font-semibold"
+              <div className="flex flex-col gap-6 relative z-10">
+                {/* Header inside drawer */}
+                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
+                    <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-[#6C63FF] to-[#00D2FF]">CORTEX</span>
+                  </div>
+                  <button 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
                   >
-                    <Icon size={16} className="text-violet-400" />
-                    <span>{tab.title}</span>
+                    <X size={18} />
                   </button>
-                );
-              })}
-            </div>
-          </motion.div>
+                </div>
+                {/* Nav Links */}
+                <nav className="flex flex-col gap-2">
+                  {NAV_TABS.map((tab, idx) => {
+                    if (tab.type === "separator") {
+                      return <div key={`sep-${idx}`} className="h-px bg-white/10 my-1" />;
+                    }
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        key={tab.title}
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          handleTabChange(idx);
+                        }}
+                        className="flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold bg-white/[0.03] border border-white/[0.06] text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-[#6C63FF]/25 hover:to-[#00D2FF]/15 hover:border-white/[0.2] transition-all duration-200"
+                      >
+                        <Icon size={16} className="text-violet-400" />
+                        <span>{tab.title}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
     </div>
