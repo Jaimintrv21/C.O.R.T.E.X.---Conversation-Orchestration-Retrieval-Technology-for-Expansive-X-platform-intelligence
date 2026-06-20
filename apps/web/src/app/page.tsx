@@ -9,7 +9,7 @@ import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Features } from "@/components/blocks/features-8";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
-import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard, Cpu, Network, MessageSquare, Terminal } from "lucide-react";
+import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard, Cpu, Network, MessageSquare, Terminal, Menu, X, Target } from "lucide-react";
 
 const NAV_TABS = [
   { title: "Home", icon: Home },
@@ -112,7 +112,7 @@ const ContextPipelineVisualization = () => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [activeTab, setActiveTab] = useState<'code' | 'terminal'>('terminal');
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
-  const consoleEndRef = useRef<HTMLDivElement>(null);
+  const consoleContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize with setup logs
   useEffect(() => {
@@ -124,12 +124,23 @@ const ContextPipelineVisualization = () => {
     ]);
   }, []);
 
-  // Scroll to bottom of terminal whenever logs update
+  // Scroll to bottom of terminal container whenever logs update without scrolling the main window
   useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
     }
   }, [consoleLogs]);
+
+  // Lock body scroll during simulation
+  useEffect(() => {
+    if (isSimulating) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isSimulating]);
 
   const selectStep = (idx: number) => {
     if (isSimulating) return;
@@ -152,6 +163,15 @@ const ContextPipelineVisualization = () => {
 
   const triggerSimulation = async () => {
     if (isSimulating) return;
+
+    // Smoothly scroll the visualizer container to center in view
+    const container = document.getElementById("context-pipeline-visualizer");
+    if (container) {
+      container.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Wait for scroll transition to finish before starting simulation and locking body scroll
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+
     setIsSimulating(true);
     setActiveTab('terminal');
     setConsoleLogs([
@@ -173,12 +193,12 @@ const ContextPipelineVisualization = () => {
       ...prev,
       "\n[SIMULATION COMPLETED] Context retrieval, injection, and inference cycle resolved successfully."
     ]);
-    setActiveStep(null);
+    setActiveStep(4); // Lock on the final step (Ollama GLM-5.2) at the end of the simulation
     setIsSimulating(false);
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch py-12 px-6 md:px-10 rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <div id="context-pipeline-visualizer" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch py-12 px-6 md:px-10 rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       {/* Description Left */}
       <div className="lg:col-span-5 flex flex-col justify-between space-y-8">
         <div>
@@ -243,142 +263,327 @@ const ContextPipelineVisualization = () => {
       {/* Visualizer Right */}
       <div className="lg:col-span-7 flex flex-col rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl bg-black/40">
         
-        {/* Top visual canvas */}
-        <div className="h-[280px] relative bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px] bg-[#07070c] flex items-center justify-center p-6 border-b border-white/[0.06]">
+        {/* Top visual canvas (Desktop View) */}
+        <div className="hidden lg:flex h-[420px] relative bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px] bg-[#07070c] items-center justify-center p-6 border-b border-white/[0.06] overflow-hidden">
           
           {/* Glowing wire paths */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 500 280">
-            {/* Query to Search and Graph */}
-            <path d="M 250 45 L 90 120" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
-            <path d="M 250 45 L 410 120" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
-            {/* Search/Graph to Context Builder */}
-            <path d="M 90 120 L 250 190" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
-            <path d="M 410 120 L 250 190" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
-            {/* Context Builder to Ollama */}
-            <path d="M 250 190 L 250 250" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 600 420">
+            {/* SVG connections with rounded corners (using Q bezier curves) */}
+            
+            {/* User Query -> Vector Match */}
+            <path d="M 300 90 L 300 105 Q 300 110 295 110 L 165 110 Q 160 110 160 115 L 160 135" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+            
+            {/* User Query -> Graph Fact */}
+            <path d="M 300 90 L 300 105 Q 300 110 305 110 L 435 110 Q 440 110 440 115 L 440 135" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+            
+            {/* Vector Match -> Prompt Builder */}
+            <path d="M 160 205 L 160 215 Q 160 220 165 220 L 295 220 Q 300 220 300 225 L 300 240" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+            
+            {/* Graph Fact -> Prompt Builder */}
+            <path d="M 440 205 L 440 215 Q 440 220 435 220 L 305 220 Q 300 220 300 225 L 300 240" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+            
+            {/* Prompt Builder -> Ollama */}
+            <path d="M 300 310 L 300 330" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
 
             {/* Glowing active path overlays */}
             <motion.path
-              d="M 250 45 L 90 120"
+              d="M 300 90 L 300 105 Q 300 110 295 110 L 165 110 Q 160 110 160 115 L 160 135"
               stroke="url(#blue-grad)"
-              strokeWidth="2.5"
+              strokeWidth="2"
               fill="none"
               initial={{ pathLength: 0 }}
-              animate={{ pathLength: activeStep === 1 || isSimulating ? 1 : 0 }}
+              animate={{ pathLength: (activeStep !== null && activeStep >= 1) ? 1 : 0 }}
               transition={{ duration: 0.8 }}
             />
             <motion.path
-              d="M 250 45 L 410 120"
-              stroke="url(#purple-grad)"
-              strokeWidth="2.5"
+              d="M 300 90 L 300 105 Q 300 110 305 110 L 435 110 Q 440 110 440 115 L 440 135"
+              stroke="url(#green-grad)"
+              strokeWidth="2"
               fill="none"
               initial={{ pathLength: 0 }}
-              animate={{ pathLength: activeStep === 2 || isSimulating ? 1 : 0 }}
+              animate={{ pathLength: (activeStep !== null && activeStep >= 2) ? 1 : 0 }}
               transition={{ duration: 0.8 }}
             />
             <motion.path
-              d="M 90 120 L 250 190"
-              stroke="url(#cyan-grad)"
-              strokeWidth="2.5"
+              d="M 160 205 L 160 215 Q 160 220 165 220 L 295 220 Q 300 220 300 225 L 300 240"
+              stroke="url(#orange-grad)"
+              strokeWidth="2"
               fill="none"
               initial={{ pathLength: 0 }}
-              animate={{ pathLength: activeStep === 3 || isSimulating ? 1 : 0 }}
+              animate={{ pathLength: (activeStep !== null && activeStep >= 3) ? 1 : 0 }}
               transition={{ duration: 0.8 }}
             />
             <motion.path
-              d="M 410 120 L 250 190"
-              stroke="url(#cyan-grad)"
-              strokeWidth="2.5"
+              d="M 440 205 L 440 215 Q 440 220 435 220 L 305 220 Q 300 220 300 225 L 300 240"
+              stroke="url(#orange-grad)"
+              strokeWidth="2"
               fill="none"
               initial={{ pathLength: 0 }}
-              animate={{ pathLength: activeStep === 3 || isSimulating ? 1 : 0 }}
+              animate={{ pathLength: (activeStep !== null && activeStep >= 3) ? 1 : 0 }}
               transition={{ duration: 0.8 }}
             />
             <motion.path
-              d="M 250 190 L 250 250"
-              stroke="url(#fuchsia-grad)"
-              strokeWidth="2.5"
+              d="M 300 310 L 300 330"
+              stroke="url(#pink-grad)"
+              strokeWidth="2"
               fill="none"
               initial={{ pathLength: 0 }}
-              animate={{ pathLength: activeStep === 4 || isSimulating ? 1 : 0 }}
+              animate={{ pathLength: (activeStep !== null && activeStep >= 4) ? 1 : 0 }}
               transition={{ duration: 0.8 }}
             />
 
             <defs>
               <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
+              <linearGradient id="green-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+              <linearGradient id="orange-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#6366f1" />
+                <stop offset="100%" stopColor="#f97316" />
               </linearGradient>
-              <linearGradient id="purple-grad" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#a855f7" />
-              </linearGradient>
-              <linearGradient id="cyan-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="100%" stopColor="#06b6d4" />
-              </linearGradient>
-              <linearGradient id="fuchsia-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#06b6d4" />
-                <stop offset="100%" stopColor="#d946ef" />
+              <linearGradient id="pink-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#ec4899" />
               </linearGradient>
             </defs>
+
+            {/* Glowing connection dots */}
+            <circle cx="300" cy="90" r="3.5" fill="#a855f7" style={{ filter: 'drop-shadow(0 0 3px #a855f7)' }} />
+            <circle cx="300" cy="110" r="3.5" fill="#6366f1" style={{ filter: 'drop-shadow(0 0 3px #6366f1)' }} />
+            <circle cx="160" cy="135" r="3.5" fill="#3b82f6" style={{ filter: 'drop-shadow(0 0 3px #3b82f6)' }} />
+            <circle cx="440" cy="135" r="3.5" fill="#10b981" style={{ filter: 'drop-shadow(0 0 3px #10b981)' }} />
+            <circle cx="160" cy="205" r="3.5" fill="#3b82f6" style={{ filter: 'drop-shadow(0 0 3px #3b82f6)' }} />
+            <circle cx="440" cy="205" r="3.5" fill="#10b981" style={{ filter: 'drop-shadow(0 0 3px #10b981)' }} />
+            <circle cx="300" cy="220" r="3.5" fill="#f97316" style={{ filter: 'drop-shadow(0 0 3px #f97316)' }} />
+            <circle cx="300" cy="240" r="3.5" fill="#f97316" style={{ filter: 'drop-shadow(0 0 3px #f97316)' }} />
+            <circle cx="300" cy="310" r="3.5" fill="#f97316" style={{ filter: 'drop-shadow(0 0 3px #f97316)' }} />
+            <circle cx="300" cy="330" r="3.5" fill="#ec4899" style={{ filter: 'drop-shadow(0 0 3px #ec4899)' }} />
           </svg>
 
-          {/* Graphical Nodes */}
+          {/* Cards for desktop */}
           {/* Node 1: User Query */}
           <motion.div
             onClick={() => selectStep(0)}
-            className={`absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full border cursor-pointer transition-all duration-300 ${
-              activeStep === 0 ? "bg-blue-500/10 border-blue-400/80 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-105" : "bg-white/[0.03] border-white/[0.08] hover:border-white/[0.18]"
+            className={`absolute top-[55px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
+              activeStep === 0 
+                ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)] scale-105" 
+                : "bg-[#0c0a1a]/85 border-purple-500/30 hover:border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
             }`}
           >
-            <MessageSquare size={14} className={activeStep === 0 ? "text-blue-400 animate-pulse" : "text-white/60"} />
-            <span className="text-[10px] font-bold text-white tracking-wide">User Query</span>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
+              activeStep === 0 ? "bg-purple-500/20 text-purple-400 border-purple-400" : "bg-purple-500/10 text-purple-400/70 border-purple-500/20"
+            }`}>
+              <MessageSquare size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">User Query</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">User inputs a question or request</span>
+            </div>
           </motion.div>
 
-          {/* Node 2: Vector Search */}
+          {/* Node 2: Vector Match */}
           <motion.div
             onClick={() => selectStep(1)}
-            className={`absolute top-28 left-4 flex items-center gap-2.5 px-4 py-2.5 rounded-full border cursor-pointer transition-all duration-300 ${
-              activeStep === 1 ? "bg-indigo-500/10 border-indigo-400/80 shadow-[0_0_20px_rgba(99,102,241,0.35)] scale-105" : "bg-white/[0.03] border-white/[0.08] hover:border-white/[0.18]"
+            className={`absolute top-[170px] left-[26.6%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
+              activeStep === 1 
+                ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-105" 
+                : "bg-[#080b18]/85 border-blue-500/30 hover:border-blue-400/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
             }`}
           >
-            <Search size={14} className={activeStep === 1 ? "text-indigo-400 animate-pulse" : "text-white/60"} />
-            <span className="text-[10px] font-bold text-white tracking-wide">Vector Match</span>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
+              activeStep === 1 ? "bg-blue-500/20 text-blue-400 border-blue-400" : "bg-blue-500/10 text-blue-400/70 border-blue-500/20"
+            }`}>
+              <Search size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Vector Match</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Find relevant context using vector similarity</span>
+            </div>
           </motion.div>
 
-          {/* Node 3: Knowledge Graph */}
+          {/* Node 3: Graph Fact */}
           <motion.div
             onClick={() => selectStep(2)}
-            className={`absolute top-28 right-4 flex items-center gap-2.5 px-4 py-2.5 rounded-full border cursor-pointer transition-all duration-300 ${
-              activeStep === 2 ? "bg-purple-500/10 border-purple-400/80 shadow-[0_0_20px_rgba(168,85,247,0.35)] scale-105" : "bg-white/[0.03] border-white/[0.08] hover:border-white/[0.18]"
+            className={`absolute top-[170px] left-[73.3%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
+              activeStep === 2 
+                ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)] scale-105" 
+                : "bg-[#08130f]/85 border-green-500/30 hover:border-green-400/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
             }`}
           >
-            <Network size={14} className={activeStep === 2 ? "text-purple-400 animate-pulse" : "text-white/60"} />
-            <span className="text-[10px] font-bold text-white tracking-wide">Graph Fact</span>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
+              activeStep === 2 ? "bg-green-500/20 text-green-400 border-green-400" : "bg-green-500/10 text-green-400/70 border-green-500/20"
+            }`}>
+              <Network size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Graph Fact</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Retrieve structured facts from knowledge graph</span>
+            </div>
           </motion.div>
 
           {/* Node 4: Prompt Builder */}
           <motion.div
             onClick={() => selectStep(3)}
-            className={`absolute bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full border cursor-pointer transition-all duration-300 ${
-              activeStep === 3 ? "bg-cyan-500/10 border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.35)] scale-105" : "bg-white/[0.03] border-white/[0.08] hover:border-white/[0.18]"
+            className={`absolute top-[275px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
+              activeStep === 3 
+                ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)] scale-105" 
+                : "bg-[#160e0a]/85 border-orange-500/30 hover:border-orange-400/50 shadow-[0_0_15px_rgba(249,115,22,0.15)]"
             }`}
           >
-            <Terminal size={14} className={activeStep === 3 ? "text-cyan-400 animate-pulse" : "text-white/60"} />
-            <span className="text-[10px] font-bold text-white tracking-wide">Prompt Builder</span>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
+              activeStep === 3 ? "bg-orange-500/20 text-orange-400 border-orange-400" : "bg-orange-500/10 text-orange-400/70 border-orange-500/20"
+            }`}>
+              <Terminal size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Prompt Builder</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Combine context and facts into optimized prompt</span>
+            </div>
           </motion.div>
 
-          {/* Node 5: Ollama */}
+          {/* Node 5: Ollama GLM-5.2 */}
           <motion.div
             onClick={() => selectStep(4)}
-            className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full border cursor-pointer transition-all duration-300 ${
-              activeStep === 4 ? "bg-fuchsia-500/10 border-fuchsia-400/80 shadow-[0_0_20px_rgba(217,70,239,0.35)] scale-105" : "bg-white/[0.03] border-white/[0.08] hover:border-white/[0.18]"
+            className={`absolute top-[365px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
+              activeStep === 4 
+                ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)] scale-105" 
+                : "bg-[#150a14]/85 border-pink-500/30 hover:border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.15)]"
             }`}
           >
-            <Cpu size={14} className={activeStep === 4 ? "text-fuchsia-400 animate-pulse" : "text-white/60"} />
-            <span className="text-[10px] font-bold text-white tracking-wide">Ollama GLM-5.2</span>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
+              activeStep === 4 ? "bg-pink-500/20 text-pink-400 border-pink-400" : "bg-pink-500/10 text-pink-400/70 border-pink-500/20"
+            }`}>
+              <Cpu size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Ollama GLM-5.2</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Generate accurate, context-aware response</span>
+            </div>
           </motion.div>
+        </div>
+
+        {/* Top visual canvas (Mobile stacked list: lg:hidden) */}
+        <div className="flex lg:hidden flex-col items-center gap-6 p-6 bg-[#07070c] border-b border-white/[0.06] w-full">
+          
+          {/* Card 1: User Query */}
+          <div
+            onClick={() => selectStep(0)}
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
+              activeStep === 0 
+                ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)]" 
+                : "bg-[#0c0a1a]/85 border-purple-500/30 hover:border-purple-400/50"
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
+              activeStep === 0 ? "bg-purple-500/20 text-purple-400 border-purple-400" : "bg-purple-500/10 text-purple-400/70 border-purple-500/20"
+            }`}>
+              <MessageSquare size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">User Query</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">User inputs a question or request</span>
+            </div>
+          </div>
+
+          <div className="w-[1.5px] h-6 bg-white/[0.1] relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-[#8b5cf6] to-[#3b82f6] opacity-70 animate-pulse" />
+          </div>
+
+          {/* Card 2: Vector Match */}
+          <div
+            onClick={() => selectStep(1)}
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
+              activeStep === 1 
+                ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)]" 
+                : "bg-[#080b18]/85 border-blue-500/30 hover:border-blue-400/50"
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
+              activeStep === 1 ? "bg-blue-500/20 text-blue-400 border-blue-400" : "bg-blue-500/10 text-blue-400/70 border-blue-500/20"
+            }`}>
+              <Search size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Vector Match</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Find relevant context using vector similarity</span>
+            </div>
+          </div>
+
+          <div className="w-[1.5px] h-6 bg-white/[0.1] relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-[#3b82f6] to-[#10b981] opacity-70 animate-pulse" />
+          </div>
+
+          {/* Card 3: Graph Fact */}
+          <div
+            onClick={() => selectStep(2)}
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
+              activeStep === 2 
+                ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]" 
+                : "bg-[#08130f]/85 border-green-500/30 hover:border-green-400/50"
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
+              activeStep === 2 ? "bg-green-500/20 text-green-400 border-green-400" : "bg-green-500/10 text-green-400/70 border-green-500/20"
+            }`}>
+              <Network size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Graph Fact</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Retrieve structured facts from knowledge graph</span>
+            </div>
+          </div>
+
+          <div className="w-[1.5px] h-6 bg-white/[0.1] relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-[#10b981] to-[#f97316] opacity-70 animate-pulse" />
+          </div>
+
+          {/* Card 4: Prompt Builder */}
+          <div
+            onClick={() => selectStep(3)}
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
+              activeStep === 3 
+                ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)]" 
+                : "bg-[#160e0a]/85 border-orange-500/30 hover:border-orange-400/50"
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
+              activeStep === 3 ? "bg-orange-500/20 text-orange-400 border-orange-400" : "bg-orange-500/10 text-orange-400/70 border-orange-500/20"
+            }`}>
+              <Terminal size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Prompt Builder</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Combine context and facts into optimized prompt</span>
+            </div>
+          </div>
+
+          <div className="w-[1.5px] h-6 bg-white/[0.1] relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-[#f97316] to-[#ec4899] opacity-70 animate-pulse" />
+          </div>
+
+          {/* Card 5: Ollama GLM-5.2 */}
+          <div
+            onClick={() => selectStep(4)}
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
+              activeStep === 4 
+                ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)]" 
+                : "bg-[#150a14]/85 border-pink-500/30 hover:border-pink-400/50"
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
+              activeStep === 4 ? "bg-pink-500/20 text-pink-400 border-pink-400" : "bg-pink-500/10 text-pink-400/70 border-pink-500/20"
+            }`}>
+              <Cpu size={16} />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[10px] font-bold text-white tracking-wide block">Ollama GLM-5.2</span>
+              <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Generate accurate, context-aware response</span>
+            </div>
+          </div>
         </div>
 
         {/* Lower IDE terminal console */}
@@ -413,7 +618,7 @@ const ContextPipelineVisualization = () => {
           </div>
 
           {/* Content container */}
-          <div className="flex-1 p-4 font-mono text-[11px] overflow-y-auto custom-scrollbar select-text leading-relaxed">
+          <div ref={consoleContainerRef} className="flex-1 p-4 font-mono text-[11px] overflow-y-auto custom-scrollbar select-text leading-relaxed">
             {activeTab === 'code' ? (
               <pre className="text-white/70">
                 {PYTHON_CODE_SNIPPET.split('\n').map((line, i) => {
@@ -452,11 +657,54 @@ const ContextPipelineVisualization = () => {
                     </div>
                   );
                 })}
-                <div ref={consoleEndRef} />
               </div>
             )}
           </div>
         </div>
+
+        {/* Features dashboard bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-t border-white/[0.06] bg-black/50">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 flex-shrink-0">
+              <Zap size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold text-white/90 truncate">Smart Retrieval</div>
+              <div className="text-[8px] text-white/45 truncate">Vector + Graph power</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+              <Target size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold text-white/90 truncate">Better Accuracy</div>
+              <div className="text-[8px] text-white/45 truncate">Relevant context + facts</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 flex-shrink-0">
+              <Shield size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold text-white/90 truncate">Reliable Output</div>
+              <div className="text-[8px] text-white/45 truncate">Optimized prompting</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <Sparkles size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold text-white/90 truncate">Local & Private</div>
+              <div className="text-[8px] text-white/45 truncate">Powered by Ollama</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -464,6 +712,7 @@ const ContextPipelineVisualization = () => {
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleTabChange = (index: number | null) => {
     if (index === null) return;
@@ -485,7 +734,7 @@ export default function LandingPage() {
       <WebGLShader />
 
       {/* ExpandableTabs Header */}
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden md:block">
         <ExpandableTabs tabs={NAV_TABS as any} activeColor="text-violet-400" onChange={handleTabChange} />
       </header>
 
@@ -544,7 +793,7 @@ export default function LandingPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">Your AI history is fragmented</h2>
             <p className="text-base text-white/30 mt-4 max-w-lg mx-auto leading-relaxed">ChatGPT, Claude, Gemini, Perplexity, Grok — all siloed. Key insights are buried, queries are repeated, and there&apos;s zero governance.</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4">
             {PROBLEMS.map((p, i) => (
               <div key={i} className="group p-5 rounded-2xl border border-white/[0.1] bg-white/[0.04] backdrop-blur-md hover:bg-white/[0.08] hover:border-white/[0.2] hover:shadow-lg hover:shadow-violet-500/[0.05] transition-all duration-300">
                 <div className={`w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${p.color}`}>
@@ -720,6 +969,52 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      {/* Mobile Hamburger Menu Toggle */}
+      <button
+        onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+        className="fixed top-4 right-4 z-50 p-2.5 rounded-2xl border border-white/10 bg-[#0A0A0F]/60 backdrop-blur-xl md:hidden text-white/80 hover:text-white flex items-center justify-center hover:bg-white/[0.08]"
+      >
+        {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 z-40 bg-[#0A0A0F]/95 backdrop-blur-2xl flex flex-col justify-center items-center p-8 md:hidden"
+          >
+            <div className="flex flex-col gap-4 w-full max-w-xs">
+              <div className="flex items-center gap-2 justify-center mb-8">
+                <img src="/logo.png" alt="CORTEX Logo" className="w-[32px] h-[32px] object-contain rounded-md" />
+                <span className="text-xl font-bold tracking-tight text-white">CORTEX</span>
+              </div>
+              
+              {NAV_TABS.map((tab, idx) => {
+                if (tab.type === "separator") {
+                  return <div key={`sep-${idx}`} className="h-px bg-white/10 my-1" />;
+                }
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.title}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleTabChange(idx);
+                    }}
+                    className="flex items-center gap-4 h-11 px-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/70 hover:text-white hover:bg-white/[0.08] transition-all text-xs font-semibold"
+                  >
+                    <Icon size={16} className="text-violet-400" />
+                    <span>{tab.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

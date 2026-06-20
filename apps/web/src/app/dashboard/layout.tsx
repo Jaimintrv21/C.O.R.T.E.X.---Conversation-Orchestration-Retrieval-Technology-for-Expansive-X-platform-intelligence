@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageSquare, 
   Search, 
@@ -16,7 +16,9 @@ import {
   ChevronRight,
   User,
   Bot,
-  LayoutDashboard
+  LayoutDashboard,
+  Menu,
+  X
 } from 'lucide-react';
 import { WebGLShader } from '@/components/ui/web-gl-shader';
 
@@ -34,6 +36,7 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   return (
@@ -55,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             : "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)"
         }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        className="flex flex-col ml-[16px] mr-[8px] my-auto h-fit rounded-[32px] backdrop-blur-3xl bg-white/[0.05] border border-white/[0.12] flex-shrink-0 relative z-20 overflow-hidden"
+        className="hidden md:flex flex-col ml-[16px] mr-[8px] my-auto h-fit rounded-[32px] backdrop-blur-3xl bg-white/[0.05] border border-white/[0.12] flex-shrink-0 relative z-20 overflow-hidden"
       >
         <div className="py-[16px] flex flex-col gap-[8px]">
           <nav className="flex flex-col gap-[6px] px-[10px]">
@@ -93,26 +96,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen relative z-10 p-[16px] pl-[8px]">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen relative z-10 p-[16px] pl-[16px] md:pl-[8px]">
         
         {/* Floating Pill Topbar */}
         <header className="relative z-30 h-[56px] rounded-full backdrop-blur-3xl bg-white/[0.05] border border-white/[0.12] px-[20px] flex items-center justify-between gap-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] flex-shrink-0 mb-[16px]">
           
           {/* Left: CORTEX Logo & Search */}
-          <div className="flex-1 flex items-center gap-[12px]">
-            <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => router.push('/dashboard')}>
+          <div className="flex-1 flex items-center gap-[10px] sm:gap-[12px] min-w-0">
+            {/* Hamburger Mobile Menu Toggle */}
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-white/80 hover:text-white flex items-center justify-center hover:bg-white/[0.1] flex-shrink-0"
+            >
+              <Menu size={16} />
+            </button>
+
+            <div className="flex items-center gap-2 cursor-pointer select-none flex-shrink-0" onClick={() => router.push('/dashboard')}>
               <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
-              <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-[#6C63FF] to-[#00D2FF]">CORTEX</span>
+              <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] hidden xs:block">CORTEX</span>
             </div>
             
-            <div className="flex items-center gap-[10px] h-[36px] px-[14px] rounded-full bg-white/[0.05] border border-white/[0.1] text-white/40 transition-all duration-300 ease-out focus-within:w-[380px] focus-within:bg-white/[0.1] focus-within:border-[#6C63FF]/50 focus-within:shadow-[0_0_0_3px_rgba(108,99,255,0.15)] w-[220px]">
-              <Search size={14} />
+            <div className="flex items-center gap-[10px] h-[36px] px-[14px] rounded-full bg-white/[0.05] border border-white/[0.1] text-white/40 transition-all duration-300 ease-out sm:focus-within:w-[380px] focus-within:bg-white/[0.1] focus-within:border-[#6C63FF]/50 focus-within:shadow-[0_0_0_3px_rgba(108,99,255,0.15)] w-full max-w-[120px] xs:max-w-[160px] sm:max-w-[220px]">
+              <Search size={14} className="flex-shrink-0" />
               <input 
                 type="text" 
-                placeholder="Search conversations, models..." 
-                className="bg-transparent border-none outline-none w-full text-sm text-white placeholder:text-white/30"
+                placeholder="Search..." 
+                className="bg-transparent border-none outline-none w-full text-xs sm:text-sm text-white placeholder:text-white/30"
               />
-              <div className="text-[10px] border border-white/[0.15] px-[5px] py-[1px] rounded-full opacity-70 flex-shrink-0">⌘K</div>
+              <div className="text-[10px] border border-white/[0.15] px-[5px] py-[1px] rounded-full opacity-70 flex-shrink-0 hidden sm:block">⌘K</div>
             </div>
           </div>
 
@@ -176,6 +187,70 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
+
+      {/* Drawer Mobile Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            />
+            {/* Drawer */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-[260px] z-50 bg-[#0A0A0F]/95 backdrop-blur-2xl border-r border-white/[0.1] p-5 flex flex-col justify-between md:hidden shadow-[5px_0_30px_rgba(0,0,0,0.8)]"
+            >
+              <div className="flex flex-col gap-6">
+                {/* Header inside drawer */}
+                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
+                    <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-[#6C63FF] to-[#00D2FF]">CORTEX</span>
+                  </div>
+                  <button 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                {/* Nav Links */}
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => {
+                    const isActive = item.href === '/dashboard' 
+                      ? pathname === '/dashboard' 
+                      : (pathname === item.href || pathname?.startsWith(item.href + '/'));
+                    return (
+                      <Link 
+                        key={item.name} 
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="relative group outline-none"
+                      >
+                        <div 
+                          className={`flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold transition-all duration-200
+                            ${isActive ? 'bg-gradient-to-r from-[#6C63FF]/30 to-[#00D2FF]/20 border border-[#6C63FF]/40 text-white shadow-[0_0_15px_rgba(108,99,255,0.15)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white/95'}`}
+                        >
+                          <item.icon size={16} className="flex-shrink-0" />
+                          <span>{item.name}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

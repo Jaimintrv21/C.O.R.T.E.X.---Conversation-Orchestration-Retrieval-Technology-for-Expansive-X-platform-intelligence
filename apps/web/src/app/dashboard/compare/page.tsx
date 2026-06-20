@@ -58,12 +58,12 @@ export default function ComparePage() {
 
   return (
     <div className="flex flex-col gap-[24px]">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white px-[8px]">Compare Conversations</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-xl md:text-2xl font-bold text-white px-[8px]">Compare Conversations</h1>
         <button
           onClick={runCompare}
           disabled={selected.length < 2}
-          className="flex items-center gap-[8px] px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-white/[0.1] text-sm text-white/80 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all duration-200 disabled:opacity-40"
+          className="flex items-center justify-center gap-[8px] px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-white/[0.1] text-sm text-white/80 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all duration-200 disabled:opacity-40 w-full sm:w-auto"
         >
           <GitCompare size={16} /> Compare selected
         </button>

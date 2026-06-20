@@ -338,26 +338,28 @@ export default function AiChatPage() {
               <button
                 type="button"
                 onClick={() => setUseKnowledge(true)}
-                className={`flex items-center gap-[6px] px-[12px] md:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-[6px] px-[8px] sm:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
                   useKnowledge
                     ? 'bg-[#8B5CF6]/20 text-white border border-[#8B5CF6]/30 shadow-[0_0_12px_rgba(139,92,246,0.2)]'
                     : 'text-white/40 hover:text-white/75'
                 }`}
               >
                 <Sparkles size={11} className={useKnowledge ? "text-[#8B5CF6] animate-pulse" : "text-white/40"} />
-                Knowledge Base
+                <span className="hidden sm:inline">Knowledge Base</span>
+                <span className="sm:hidden">KB</span>
               </button>
               <button
                 type="button"
                 onClick={() => setUseKnowledge(false)}
-                className={`flex items-center gap-[6px] px-[12px] md:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-[6px] px-[8px] sm:px-[14px] py-[6px] rounded-full text-[10px] md:text-xs font-semibold tracking-wide transition-all ${
                   !useKnowledge
                     ? 'bg-white/[0.12] text-white border border-white/[0.14]'
                     : 'text-white/40 hover:text-white/75'
                 }`}
               >
                 <Bot size={11} className={!useKnowledge ? "text-cyan-400" : "text-white/40"} />
-                Direct Chat
+                <span className="hidden sm:inline">Direct Chat</span>
+                <span className="sm:hidden">Direct</span>
               </button>
             </div>
           </div>

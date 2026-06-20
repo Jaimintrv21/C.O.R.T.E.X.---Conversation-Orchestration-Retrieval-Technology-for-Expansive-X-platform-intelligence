@@ -15,19 +15,21 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex flex-col gap-[32px] max-w-[1000px] mx-auto w-full pb-[40px]">
-      <div className="flex items-center justify-between px-[8px]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[20px] px-[8px]">
         <div>
           <h1 className="text-2xl font-bold text-white mb-[4px]">Notifications</h1>
           <p className="text-sm text-white/50">Manage your alerts, system updates, and workspace activity.</p>
         </div>
-        <div className="flex gap-[12px]">
-          <button className="px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white/70 hover:text-white hover:bg-white/[0.08] transition-all flex items-center gap-[6px]">
+        <div className="flex gap-[12px] w-full sm:w-auto">
+          <button className="flex-1 sm:flex-initial justify-center px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white/70 hover:text-white hover:bg-white/[0.08] transition-all flex items-center gap-[6px]">
             <Check size={14} />
-            Mark all as read
+            <span className="hidden xs:inline">Mark all as read</span>
+            <span className="xs:hidden">Read All</span>
           </button>
-          <button className="px-[16px] py-[8px] rounded-full bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-white transition-all flex items-center gap-[6px]">
+          <button className="flex-1 sm:flex-initial justify-center px-[16px] py-[8px] rounded-full bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400 hover:bg-red-500/20 hover:text-white transition-all flex items-center gap-[6px]">
             <Trash2 size={14} />
-            Clear all
+            <span className="hidden xs:inline">Clear all</span>
+            <span className="xs:hidden">Clear All</span>
           </button>
         </div>
       </div>

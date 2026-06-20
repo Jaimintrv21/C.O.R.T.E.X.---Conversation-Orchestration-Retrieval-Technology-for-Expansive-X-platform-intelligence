@@ -429,24 +429,24 @@ export default function ConversationsPage() {
             exit="hidden"
             className="fixed bottom-[24px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-[16px] px-[24px] py-[14px] rounded-full backdrop-blur-2xl bg-[#1A1A24]/90 border border-white/[0.15] shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
           >
-            <div className="text-sm font-medium text-white px-[8px]">{selectedIds.size} selected</div>
+            <div className="text-xs sm:text-sm font-medium text-white px-[4px] sm:px-[8px]">{selectedIds.size} <span className="hidden xs:inline">selected</span></div>
             <div className="w-[1px] h-[20px] bg-white/10" />
-            <div className="flex items-center gap-[8px]">
-              <button className="flex items-center gap-[8px] px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-transparent hover:bg-white/[0.1] hover:border-white/[0.15] text-sm text-white/80 transition-all duration-200">
-                <Tag size={16} /> Tag
+            <div className="flex items-center gap-[4px] sm:gap-[8px]">
+              <button className="flex items-center gap-[6px] sm:gap-[8px] px-[12px] sm:px-[16px] py-[6px] sm:py-[8px] rounded-full bg-white/[0.05] border border-transparent hover:bg-white/[0.1] hover:border-white/[0.15] text-xs sm:text-sm text-white/80 transition-all duration-200" title="Tag">
+                <Tag size={14} className="sm:size-4" /> <span className="hidden sm:inline">Tag</span>
               </button>
-              <button className="flex items-center gap-[8px] px-[16px] py-[8px] rounded-full bg-white/[0.05] border border-transparent hover:bg-white/[0.1] hover:border-white/[0.15] text-sm text-white/80 transition-all duration-200">
-                <DownloadCloud size={16} /> Export
+              <button className="flex items-center gap-[6px] sm:gap-[8px] px-[12px] sm:px-[16px] py-[6px] sm:py-[8px] rounded-full bg-white/[0.05] border border-transparent hover:bg-white/[0.1] hover:border-white/[0.15] text-xs sm:text-sm text-white/80 transition-all duration-200" title="Export">
+                <DownloadCloud size={14} className="sm:size-4" /> <span className="hidden sm:inline">Export</span>
               </button>
-              <button className="flex items-center gap-[8px] px-[16px] py-[8px] rounded-full bg-[#FF6584]/10 border border-transparent hover:bg-[#FF6584]/20 hover:border-[#FF6584]/30 text-sm text-[#FF6584] transition-all duration-200">
-                <Trash2 size={16} /> Delete
+              <button className="flex items-center gap-[6px] sm:gap-[8px] px-[12px] sm:px-[16px] py-[6px] sm:py-[8px] rounded-full bg-[#FF6584]/10 border border-transparent hover:bg-[#FF6584]/20 hover:border-[#FF6584]/30 text-xs sm:text-sm text-[#FF6584] transition-all duration-200" title="Delete">
+                <Trash2 size={14} className="sm:size-4" /> <span className="hidden sm:inline">Delete</span>
               </button>
             </div>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="ml-[8px] w-[28px] h-[28px] rounded-full flex items-center justify-center hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+              className="ml-[4px] sm:ml-[8px] w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] rounded-full flex items-center justify-center hover:bg-white/10 text-white/50 hover:text-white transition-colors"
             >
-              <X size={16} />
+              <X size={14} className="sm:size-4" />
             </button>
           </motion.div>
         )}
