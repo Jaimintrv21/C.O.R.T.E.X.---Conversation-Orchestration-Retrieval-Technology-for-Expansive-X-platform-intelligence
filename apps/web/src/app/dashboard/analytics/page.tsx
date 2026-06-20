@@ -16,7 +16,7 @@ import {
   PieChart,
   Pie,
 } from 'recharts';
-import { analytics as analyticsApi } from '@/lib/api';
+import { analytics as analyticsApi, TimelinePoint, TopicCount, ProviderBreakdown } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApi';
 import { staggerList, listItem } from '@/lib/motion';
 import { Database, MessageSquare, Zap, AlertCircle, RefreshCcw } from 'lucide-react';
@@ -60,7 +60,7 @@ export default function AnalyticsPage() {
 
   const activityData = useMemo(() => {
     if (!timeline) return [];
-    return (timeline as any[]).map((row) => ({
+    return timeline.map((row: TimelinePoint) => ({
       date: new Date(row.date).toLocaleDateString([], { weekday: 'short' }),
       conversations: row.conversations,
       messages: row.messages,
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
 
   const topicData = useMemo(() => {
     if (!topics) return [];
-    return (topics as any[]).slice(0, 4).map((topic, index) => ({
+    return topics.slice(0, 4).map((topic: TopicCount, index: number) => ({
       name: topic.topic,
       value: topic.count,
       color: ['#6C63FF', '#00D2FF', '#FF6584', '#00D97E'][index % 4],
@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
 
   const providerData = useMemo(() => {
     if (!providers) return [];
-    return (providers as any[]).map((p) => ({
+    return providers.map((p: ProviderBreakdown) => ({
       name: p.provider.substring(0, 4),
       value: p.conversations,
     }));

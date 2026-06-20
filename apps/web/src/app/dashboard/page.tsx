@@ -14,7 +14,7 @@ import {
   AlertCircle,
   RefreshCcw,
 } from 'lucide-react';
-import { analytics, jobs } from '@/lib/api';
+import { analytics, jobs, OverviewMetrics, ProviderBreakdown, JobResponse } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApi';
 import { cardHover, staggerList, listItem } from '@/lib/motion';
 import Link from 'next/link';
@@ -24,14 +24,16 @@ export default function DashboardOverviewPage() {
   const { data: providers, isLoading: isProvidersLoading } = useApiQuery(analytics.providers);
   const { data: jobsList, isLoading: isJobsLoading } = useApiQuery(jobs.list);
 
-  const mockOverview = {
+  const mockOverview: OverviewMetrics = {
     total_conversations: 0,
     total_messages: 0,
+    total_tokens: 0,
     providers_used: 0,
-    avg_messages_per_conversation: 0
+    avg_messages_per_conversation: 0,
+    active_days: 0,
   };
-  const mockProviders: any[] = [];
-  const mockJobs: any[] = [];
+  const mockProviders: ProviderBreakdown[] = [];
+  const mockJobs: JobResponse[] = [];
 
   const displayOverview = overview || mockOverview;
   const displayProviders = (providers && providers.length > 0) ? providers : mockProviders;
@@ -44,7 +46,7 @@ export default function DashboardOverviewPage() {
     { label: 'Avg Search Time', value: `${Math.max(1, Math.round(displayOverview.avg_messages_per_conversation * 10))}ms`, icon: Zap, trend: 'Derived', trendUp: true },
   ];
 
-  const quickHealth = displayProviders.slice(0, 5).map((provider: any) => ({
+  const quickHealth = displayProviders.slice(0, 5).map((provider: ProviderBreakdown) => ({
     name: provider.provider,
     status: provider.conversations > 0 ? 'synced' : 'syncing',
     syncTime: `${provider.conversations} convos`,
@@ -142,7 +144,7 @@ export default function DashboardOverviewPage() {
               </div>
             ) : activities.length > 0 ? (
               <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[12px]">
-                {activities.map((act: any) => (
+                {activities.map((act: JobResponse) => (
                   <motion.div
                     key={act.id}
                     variants={listItem}

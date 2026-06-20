@@ -101,7 +101,7 @@ class CompareRequest(BaseModel):
 class ChatMessageRequest(BaseModel):
     content: str = Field(min_length=1, max_length=20000)
     provider_slug: str | None = None
-    provider: Literal["local", "openai", "anthropic", "gemini", "grok"] = "local"
+    provider: Literal["local", "openai", "anthropic", "gemini", "grok", "ollama"] = "local"
     model: str | None = None
     local_only: bool | None = None
 

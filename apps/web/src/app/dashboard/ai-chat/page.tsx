@@ -44,6 +44,7 @@ type MessageRow = {
 const providerChoices = [
   { slug: 'chatgpt', label: 'ChatGPT', accent: '#00D97E' },
   { slug: 'claude', label: 'Claude', accent: '#D97757' },
+  { slug: 'glm-5.2:cloud', label: 'GLM Agent', accent: '#8B5CF6' },
 ] as const;
 
 const providerLabel = (slug?: string | null, name?: string | null) => {
@@ -71,9 +72,9 @@ export default function AiChatPage() {
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [activeId, setActiveId] = useState<string>('');
-  const [composerProvider, setComposerProvider] = useState<'chatgpt' | 'claude'>('chatgpt');
+  const [composerProvider, setComposerProvider] = useState<'chatgpt' | 'claude' | 'glm-5.2:cloud'>('chatgpt');
   const [searchQuery, setSearchQuery] = useState('');
-  const [providerFilter, setProviderFilter] = useState<'all' | 'chatgpt' | 'claude'>('all');
+  const [providerFilter, setProviderFilter] = useState<'all' | 'chatgpt' | 'claude' | 'glm-5.2:cloud'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [inputText, setInputText] = useState('');
@@ -126,6 +127,8 @@ export default function AiChatPage() {
       const active = conversations.find((item) => item.id === activeId);
       if (active?.provider_slug === 'claude' || active?.provider_name === 'Claude') {
         setComposerProvider('claude');
+      } else if (active?.provider_slug === 'glm-5.2:cloud' || active?.provider_name === 'GLM Agent') {
+        setComposerProvider('glm-5.2:cloud');
       } else {
         setComposerProvider('chatgpt');
       }
@@ -200,7 +203,7 @@ export default function AiChatPage() {
 
   const handleSelectConversation = (conversation: ConversationRow) => {
     setActiveId(conversation.id);
-    setComposerProvider((conversation.provider_slug as 'chatgpt' | 'claude' | undefined) ?? 'chatgpt');
+    setComposerProvider((conversation.provider_slug as 'chatgpt' | 'claude' | 'glm-5.2:cloud' | undefined) ?? 'chatgpt');
     setIsSidebarOpen(false); // Auto-close sidebar on mobile after selection
   };
 
@@ -517,7 +520,7 @@ export default function AiChatPage() {
 
           <div className="flex flex-col gap-[10px] pb-[12px] border-b border-white/[0.08] flex-shrink-0">
             <div className="flex gap-[4px] flex-wrap">
-              {(['all', 'chatgpt', 'claude'] as const).map((provider) => (
+              {(['all', 'chatgpt', 'claude', 'glm-5.2:cloud'] as const).map((provider) => (
                 <button
                   key={provider}
                   onClick={() => setProviderFilter(provider)}

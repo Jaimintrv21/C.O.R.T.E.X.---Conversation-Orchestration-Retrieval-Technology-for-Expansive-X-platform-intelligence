@@ -153,6 +153,158 @@ async def _generate_chat_reply(*, provider_slug: str | None, conversation: dict,
     )
 
 
+async def _get_ollama_chat_response(
+    *,
+    user_id: str,
+    messages: list[dict],
+    model: str,
+) -> str:
+    # 1. Retrieve query (last message content)
+    user_query = ""
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            user_query = msg.get("content") or ""
+            break
+            
+    # 2. Retrieve search results from knowledge base
+    context_chunks = []
+    if user_query:
+        try:
+            from app.routers.search import _run_semantic_search
+            hits = await _run_semantic_search(query=user_query, user_id=user_id, limit=5)
+            for hit in hits:
+                context_chunks.append(f"Source (Conversation: {hit.title}): {hit.snippet}")
+        except Exception:
+            pass
+            
+    # 3. Retrieve knowledge nodes from Firestore knowledge graph
+    try:
+        from app.firestore import FirestoreStore
+        store = FirestoreStore()
+        nodes = store.list_knowledge_nodes(user_id=user_id, limit=10)
+        if nodes:
+            node_context = "Knowledge Graph Nodes:\n" + "\n".join(
+                [f"- {node.get('label') or node.get('name')}: {node.get('description') or ''}" 
+                 for node in nodes if node.get('description')]
+            )
+            context_chunks.append(node_context)
+    except Exception:
+        pass
+        
+    context_text = "\n\n".join(context_chunks)
+    
+    # 4. Formulate the system prompt with knowledge context
+    system_prompt = (
+        "You are an AI assistant with access to the user's personal knowledge base.\n"
+        "Here is the relevant context from the user's knowledge base:\n"
+        "---------------------\n"
+        f"{context_text}\n"
+        "---------------------\n"
+        "Use this context to answer the user's question. If the context is not relevant, answer using your general knowledge."
+    )
+    
+    # 5. Format messages list for Ollama SDK
+    messages_for_ollama = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        role = msg.get("role")
+        content = msg.get("content")
+        if role in {"user", "assistant"}:
+            messages_for_ollama.append({"role": role, "content": content})
+            
+    # 6. Call Ollama Client
+    from ollama import AsyncClient
+    from app.config import get_settings
+    settings = get_settings()
+    client = AsyncClient(host=settings.ollama_base_url)
+    try:
+        response = await client.chat(
+            model=model,
+            messages=messages_for_ollama,
+            stream=False,
+        )
+        return response.message.content or ""
+    except Exception as exc:
+        return f"Error calling Ollama model {model}: {str(exc)}"
+
+
+async def _stream_ollama_chat(
+    *,
+    user_id: str,
+    messages: list[dict],
+    model: str,
+) -> typing.AsyncIterator[str]:
+    import typing
+    # 1. Retrieve query (last message content)
+    user_query = ""
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            user_query = msg.get("content") or ""
+            break
+            
+    # 2. Retrieve search results from knowledge base
+    context_chunks = []
+    if user_query:
+        try:
+            from app.routers.search import _run_semantic_search
+            hits = await _run_semantic_search(query=user_query, user_id=user_id, limit=5)
+            for hit in hits:
+                context_chunks.append(f"Source (Conversation: {hit.title}): {hit.snippet}")
+        except Exception:
+            pass
+            
+    # 3. Retrieve knowledge nodes from Firestore knowledge graph
+    try:
+        from app.firestore import FirestoreStore
+        store = FirestoreStore()
+        nodes = store.list_knowledge_nodes(user_id=user_id, limit=10)
+        if nodes:
+            node_context = "Knowledge Graph Nodes:\n" + "\n".join(
+                [f"- {node.get('label') or node.get('name')}: {node.get('description') or ''}" 
+                 for node in nodes if node.get('description')]
+            )
+            context_chunks.append(node_context)
+    except Exception:
+        pass
+        
+    context_text = "\n\n".join(context_chunks)
+    
+    # 4. Formulate the system prompt with knowledge context
+    system_prompt = (
+        "You are an AI assistant with access to the user's personal knowledge base.\n"
+        "Here is the relevant context from the user's knowledge base:\n"
+        "---------------------\n"
+        f"{context_text}\n"
+        "---------------------\n"
+        "Use this context to answer the user's question. If the context is not relevant, answer using your general knowledge."
+    )
+    
+    # 5. Format messages list for Ollama SDK
+    messages_for_ollama = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        role = msg.get("role")
+        content = msg.get("content")
+        if role in {"user", "assistant"}:
+            messages_for_ollama.append({"role": role, "content": content})
+            
+    # 6. Call Ollama Client and stream results
+    from ollama import AsyncClient
+    from app.config import get_settings
+    settings = get_settings()
+    client = AsyncClient(host=settings.ollama_base_url)
+    try:
+        response_stream = await client.chat(
+            model=model,
+            messages=messages_for_ollama,
+            stream=True,
+        )
+        async for chunk in response_stream:
+            delta = chunk.message.content or ""
+            if delta:
+                yield delta
+    except Exception as exc:
+        yield f"Error calling Ollama model {model}: {str(exc)}"
+
+
 def _resolve_chat_provider(body: ChatMessageRequest, conversation: dict) -> str:
     if body.provider != "local":
         return body.provider
@@ -307,13 +459,20 @@ async def send_message(
 
     assistant_text: str | None = None
     external_error: ExternalChatError | None = None
-    if body.provider == "local":
+    if body.provider == "local" and provider_slug != "glm-5.2:cloud" and body.model != "glm-5.2:cloud":
         assistant_text = await _generate_chat_reply(
             provider_slug=provider_slug,
             conversation=conversation,
             content=body.content,
             model=body.model,
             local_only=body.local_only,
+        )
+    elif body.provider == "ollama" or provider_slug == "glm-5.2:cloud" or body.model == "glm-5.2:cloud":
+        resolved_model = body.model or provider_slug or "glm-5.2:cloud"
+        assistant_text = await _get_ollama_chat_response(
+            user_id=user["id"],
+            messages=store.list_messages(str(conversation_id)),
+            model=resolved_model,
         )
     else:
         try:
@@ -443,7 +602,7 @@ async def stream_message(
         async def produce() -> None:
             nonlocal provider_error
             try:
-                if body.provider == "local":
+                if body.provider == "local" and provider_slug != "glm-5.2:cloud" and body.model != "glm-5.2:cloud":
                     assistant_text = await _generate_chat_reply(
                         provider_slug=provider_slug,
                         conversation=conversation,
@@ -452,6 +611,14 @@ async def stream_message(
                         local_only=body.local_only,
                     )
                     await queue.put(("chunk", assistant_text))
+                elif body.provider == "ollama" or provider_slug == "glm-5.2:cloud" or body.model == "glm-5.2:cloud":
+                    resolved_model = body.model or provider_slug or "glm-5.2:cloud"
+                    async for chunk in _stream_ollama_chat(
+                        user_id=user["id"],
+                        messages=store.list_messages(str(conversation_id)),
+                        model=resolved_model,
+                    ):
+                        await queue.put(("chunk", chunk))
                 else:
                     api_key = await service.get_decrypted_api_key(user["id"], provider_slug)
                     async for chunk in service.stream_completion(

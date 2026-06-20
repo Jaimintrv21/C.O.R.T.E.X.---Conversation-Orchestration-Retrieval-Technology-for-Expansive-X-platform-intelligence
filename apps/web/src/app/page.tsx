@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { WebGLShader } from "@/components/ui/web-gl-shader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Features } from "@/components/blocks/features-8";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
-import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard } from "lucide-react";
+import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard, Cpu, Network, MessageSquare, Terminal } from "lucide-react";
 
 const NAV_TABS = [
   { title: "Home", icon: Home },
@@ -25,9 +27,9 @@ const TIMELINE_DATA = [
   { id: 1, title: "Import", date: "Step 1", content: "Upload exports from ChatGPT, Claude, Gemini, Grok, Perplexity. Auto-detect format with versioned parsers and normalize into canonical schema.", category: "Core", icon: Upload, relatedIds: [2], status: "completed" as const, energy: 100 },
   { id: 2, title: "Search", date: "Step 2", content: "Hybrid search: PostgreSQL full-text + pgvector semantic embeddings + Meilisearch BM25 reranking.", category: "Core", icon: Search, relatedIds: [1, 3], status: "completed" as const, energy: 95 },
   { id: 3, title: "Analyze", date: "Step 3", content: "Token usage, topic clusters via BERTopic, provider breakdown, activity heatmaps, and scheduled snapshot aggregation.", category: "Core", icon: BarChart3, relatedIds: [2, 4], status: "completed" as const, energy: 85 },
-  { id: 4, title: "Knowledge", date: "Step 4", content: "spaCy NER + custom rules extract entities into a navigable knowledge graph.", category: "AI", icon: Brain, relatedIds: [3, 5], status: "in-progress" as const, energy: 70 },
-  { id: 5, title: "Generate", date: "Step 5", content: "AI artifact engine creates wikis, reports, summaries from your conversation library.", category: "AI", icon: Sparkles, relatedIds: [4, 6], status: "in-progress" as const, energy: 55 },
-  { id: 6, title: "Secure", date: "Step 6", content: "Self-hosted with AES-256 encryption, PII detection, tamper-evident audit logs, zero external API calls.", category: "Security", icon: Shield, relatedIds: [5], status: "pending" as const, energy: 40 },
+  { id: 4, title: "Knowledge", date: "Step 4", content: "spaCy NER + custom rules extract entities and populate local Firestore knowledge graph nodes.", category: "AI", icon: Brain, relatedIds: [3, 5], status: "completed" as const, energy: 75 },
+  { id: 5, title: "Local GLM", date: "Step 5", content: "Query glm-5.2:cloud via local Ollama. Automatically retrieves and injects vector matches and knowledge nodes into the context.", category: "AI", icon: Cpu, relatedIds: [4, 6], status: "completed" as const, energy: 90 },
+  { id: 6, title: "Secure", date: "Step 6", content: "Self-hosted with AES-256 encryption, PII detection, tamper-evident audit logs, zero external API leaks.", category: "Security", icon: Shield, relatedIds: [5], status: "completed" as const, energy: 95 },
 ];
 
 const PROBLEMS = [
@@ -38,6 +40,228 @@ const PROBLEMS = [
   { icon: Users, color: "text-violet-400", problem: "No Memory", desc: "Teams can't share AI learnings — duplicated effort across org" },
   { icon: AlertTriangle, color: "text-pink-400", problem: "Privacy Risk", desc: "Chats processed by third-party cloud with no governance" },
 ];
+
+const ContextPipelineVisualization = () => {
+  const [activeStep, setActiveStep] = useState<number | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  const steps = [
+    { title: "1. User Query Entry", desc: "User drafts a message. CORTEX catches it and initiates the retrieval pipeline.", icon: MessageSquare, color: "text-blue-400" },
+    { title: "2. Vector Similarity Search", desc: "Performs in-memory cosine similarity search over vector embeddings of past messages to find contextually relevant history.", icon: Search, color: "text-indigo-400" },
+    { title: "3. Knowledge Graph Retrieval", desc: "Queries Firestore collections for entities and metadata nodes related to the conversation topics.", icon: Network, color: "text-purple-400" },
+    { title: "4. System Prompt Synthesis", desc: "Combines the query, vector search results, and knowledge graph facts into an enriched system message context.", icon: Terminal, color: "text-cyan-400" },
+    { title: "5. Local Ollama Chat Stream", desc: "Calls the local Ollama API using `glm-5.2:cloud` and streams tokens back to the web console.", icon: Cpu, color: "text-fuchsia-400" }
+  ];
+
+  const triggerSimulation = async () => {
+    if (isSimulating) return;
+    setIsSimulating(true);
+    for (let i = 0; i < steps.length; i++) {
+      setActiveStep(i);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+    setActiveStep(null);
+    setIsSimulating(false);
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center py-12 px-6 md:px-10 rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl">
+      {/* Description Left */}
+      <div className="lg:col-span-5 space-y-6">
+        <div>
+          <span className="text-[10px] font-mono text-violet-400 uppercase tracking-widest">Local Orchestration</span>
+          <h3 className="text-3xl font-extrabold text-white mt-1">Direct Knowledge Injection</h3>
+          <p className="text-white/40 text-sm leading-relaxed mt-3">
+            CORTEX connects your local Ollama daemon directly to your indexed conversation history and knowledge nodes. Every message query is automatically enriched with the exact context it needs to provide accurate, relevant answers.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {steps.map((s, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveStep(idx)}
+              className={`w-full text-left p-3.5 rounded-xl border transition-all duration-300 flex gap-3.5 items-start ${
+                activeStep === idx
+                  ? "bg-white/[0.06] border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.1)]"
+                  : "bg-transparent border-transparent hover:bg-white/[0.02]"
+              }`}
+            >
+              <div className={`mt-0.5 shrink-0 ${s.color}`}>
+                <s.icon size={16} />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-white/95">{s.title}</h4>
+                <p className="text-[11px] text-white/40 leading-relaxed mt-0.5">{s.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={triggerSimulation}
+          disabled={isSimulating}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-[0_0_20px_rgba(109,40,217,0.3)] disabled:opacity-50"
+        >
+          {isSimulating ? "Simulating Flow..." : "Simulate Context Flow"}
+        </button>
+      </div>
+
+      {/* Visualizer Right */}
+      <div className="lg:col-span-7 h-[360px] relative border border-white/[0.06] bg-black/35 rounded-2xl overflow-hidden flex items-center justify-center p-6">
+        {/* Animated paths/connections */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 500 360">
+          {/* Query to Search and Graph */}
+          <motion.path
+            d="M 250 50 L 120 150"
+            stroke="url(#grad1)"
+            strokeWidth="2"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: activeStep === 1 || isSimulating ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+          />
+          <motion.path
+            d="M 250 50 L 380 150"
+            stroke="url(#grad2)"
+            strokeWidth="2"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: activeStep === 2 || isSimulating ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+          />
+          {/* Search/Graph to Context Builder */}
+          <motion.path
+            d="M 120 150 L 250 240"
+            stroke="url(#grad3)"
+            strokeWidth="2"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: activeStep === 3 || isSimulating ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+          />
+          <motion.path
+            d="M 380 150 L 250 240"
+            stroke="url(#grad4)"
+            strokeWidth="2"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: activeStep === 3 || isSimulating ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+          />
+          {/* Context Builder to Ollama */}
+          <motion.path
+            d="M 250 240 L 250 320"
+            stroke="url(#grad5)"
+            strokeWidth="2"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: activeStep === 4 || isSimulating ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+          />
+
+          <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#6366f1" />
+            </linearGradient>
+            <linearGradient id="grad2" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+            <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#6366f1" />
+              <stop offset="100%" stopColor="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="grad4" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#a855f7" />
+              <stop offset="100%" stopColor="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="grad5" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#06b6d4" />
+              <stop offset="100%" stopColor="#d946ef" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* Nodes */}
+        {/* Node 1: User Query */}
+        <motion.div
+          className={`absolute top-6 left-1/2 -translate-x-1/2 flex flex-col items-center p-3 rounded-xl border transition-all ${
+            activeStep === 0 ? "bg-blue-500/10 border-blue-400/80 shadow-[0_0_15px_rgba(59,130,246,0.3)] scale-105" : "bg-white/[0.02] border-white/[0.08]"
+          }`}
+          style={{ width: "130px" }}
+        >
+          <MessageSquare size={18} className={activeStep === 0 ? "text-blue-400 animate-pulse" : "text-white/50"} />
+          <span className="text-[10px] font-semibold text-white/90 mt-1">1. User Query</span>
+          <span className="text-[8px] text-white/40">"How to deploy?"</span>
+        </motion.div>
+
+        {/* Node 2: Vector Search */}
+        <motion.div
+          className={`absolute top-28 left-4 flex flex-col items-center p-3 rounded-xl border transition-all ${
+            activeStep === 1 ? "bg-indigo-500/10 border-indigo-400/80 shadow-[0_0_15px_rgba(99,102,241,0.3)] scale-105" : "bg-white/[0.02] border-white/[0.08]"
+          }`}
+          style={{ width: "140px" }}
+        >
+          <Search size={18} className={activeStep === 1 ? "text-indigo-400 animate-pulse" : "text-white/50"} />
+          <span className="text-[10px] font-semibold text-white/90 mt-1">2. Vector Search</span>
+          <span className="text-[8px] text-white/40">In-Memory Cosine Sim</span>
+        </motion.div>
+
+        {/* Node 3: Knowledge Graph */}
+        <motion.div
+          className={`absolute top-28 right-4 flex flex-col items-center p-3 rounded-xl border transition-all ${
+            activeStep === 2 ? "bg-purple-500/10 border-purple-400/80 shadow-[0_0_15px_rgba(168,85,247,0.3)] scale-105" : "bg-white/[0.02] border-white/[0.08]"
+          }`}
+          style={{ width: "140px" }}
+        >
+          <Network size={18} className={activeStep === 2 ? "text-purple-400 animate-pulse" : "text-white/50"} />
+          <span className="text-[10px] font-semibold text-white/90 mt-1">3. Firestore Nodes</span>
+          <span className="text-[8px] text-white/40">Entities & Facts API</span>
+        </motion.div>
+
+        {/* Node 4: Prompt Builder */}
+        <motion.div
+          className={`absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center p-3 rounded-xl border transition-all ${
+            activeStep === 3 ? "bg-cyan-500/10 border-cyan-400/80 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105" : "bg-white/[0.02] border-white/[0.08]"
+          }`}
+          style={{ width: "150px" }}
+        >
+          <Terminal size={18} className={activeStep === 3 ? "text-cyan-400 animate-pulse" : "text-white/50"} />
+          <span className="text-[10px] font-semibold text-white/90 mt-1">4. Context Synthesis</span>
+          <span className="text-[8px] text-white/40">System Prompt Injection</span>
+        </motion.div>
+
+        {/* Node 5: Ollama */}
+        <motion.div
+          className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center p-3 rounded-xl border transition-all ${
+            activeStep === 4 ? "bg-fuchsia-500/10 border-fuchsia-400/80 shadow-[0_0_15px_rgba(217,70,239,0.3)] scale-105" : "bg-white/[0.02] border-white/[0.08]"
+          }`}
+          style={{ width: "150px" }}
+        >
+          <Cpu size={18} className={activeStep === 4 ? "text-fuchsia-400 animate-pulse" : "text-white/50"} />
+          <span className="text-[10px] font-semibold text-white/90 mt-1">5. Ollama GLM-5.2</span>
+          <span className="text-[8px] text-white/40">Streaming Tokens</span>
+        </motion.div>
+
+        {/* Live response bubble simulation */}
+        <AnimatePresence>
+          {activeStep === 4 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute bottom-16 right-6 p-2 bg-fuchsia-500/20 border border-fuchsia-400/35 rounded-lg max-w-[120px] shadow-lg text-[9px] text-fuchsia-100"
+            >
+              "data: chunk: deployment guide..."
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
 
 export default function LandingPage() {
   const router = useRouter();
@@ -168,6 +392,13 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ─── LOCAL CONTEXT PIPELINE ──────────────── */}
+      <section id="pipeline-flow" className="relative z-10 px-6 md:px-12 py-16">
+        <div className="max-w-6xl mx-auto">
+          <ContextPipelineVisualization />
         </div>
       </section>
 
