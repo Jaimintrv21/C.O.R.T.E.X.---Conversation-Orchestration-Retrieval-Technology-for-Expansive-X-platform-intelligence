@@ -145,7 +145,7 @@ const ContextPipelineVisualization = () => {
   const steps = [
     { title: "User Query Entry", desc: "User drafts a message. CORTEX intercepts and starts the context retrieval pipeline.", icon: MessageSquare, color: "text-blue-400", glow: "shadow-[0_0_15px_rgba(59,130,246,0.2)]", badge: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
     { title: "Vector Search", desc: "Runs cosine similarity search over database embeddings to locate historical references.", icon: Search, color: "text-indigo-400", glow: "shadow-[0_0_15px_rgba(99,102,241,0.2)]", badge: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
-    { title: "Firestore Graph", desc: "Queries Firestore collection collections for related tags and entity nodes.", icon: Network, color: "text-purple-400", glow: "shadow-[0_0_15px_rgba(168,85,247,0.2)]", badge: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+    { title: "Firestore Graph", desc: "Queries Firestore collections for related tags and entity nodes.", icon: Network, color: "text-purple-400", glow: "shadow-[0_0_15px_rgba(168,85,247,0.2)]", badge: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
     { title: "Prompt Synthesis", desc: "Combines query, database search results, and knowledge facts into one unified context.", icon: Terminal, color: "text-cyan-400", glow: "shadow-[0_0_15px_rgba(6,182,212,0.2)]", badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
     { title: "Local GLM Stream", desc: "Pipes enriched system prompt into local Ollama via glm-5.2:cloud and streams response.", icon: Cpu, color: "text-fuchsia-400", glow: "shadow-[0_0_15px_rgba(217,70,239,0.2)]", badge: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20" }
   ];
@@ -249,13 +249,13 @@ const ContextPipelineVisualization = () => {
           {/* Glowing wire paths */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 500 280">
             {/* Query to Search and Graph */}
-            <path d="M 250 45 L 90 120" stroke="rgba(255,255,255,0.03)" strokeWidth="2" fill="none" />
-            <path d="M 250 45 L 410 120" stroke="rgba(255,255,255,0.03)" strokeWidth="2" fill="none" />
+            <path d="M 250 45 L 90 120" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
+            <path d="M 250 45 L 410 120" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
             {/* Search/Graph to Context Builder */}
-            <path d="M 90 120 L 250 190" stroke="rgba(255,255,255,0.03)" strokeWidth="2" fill="none" />
-            <path d="M 410 120 L 250 190" stroke="rgba(255,255,255,0.03)" strokeWidth="2" fill="none" />
+            <path d="M 90 120 L 250 190" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
+            <path d="M 410 120 L 250 190" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
             {/* Context Builder to Ollama */}
-            <path d="M 250 190 L 250 250" stroke="rgba(255,255,255,0.03)" strokeWidth="2" fill="none" />
+            <path d="M 250 190 L 250 250" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" />
 
             {/* Glowing active path overlays */}
             <motion.path
@@ -382,7 +382,7 @@ const ContextPipelineVisualization = () => {
         </div>
 
         {/* Lower IDE terminal console */}
-        <div className="flex flex-col bg-[#050508] h-[220px]">
+        <div className="flex flex-col bg-[#050508] flex-grow flex-1 min-h-[220px]">
           {/* Tab bar header */}
           <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.06] text-xs">
             <div className="flex items-center gap-2.5">
