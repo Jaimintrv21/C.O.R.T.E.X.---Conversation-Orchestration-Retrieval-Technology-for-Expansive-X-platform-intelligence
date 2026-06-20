@@ -25,10 +25,10 @@ export default function DashboardOverviewPage() {
   const { data: jobsList, isLoading: isJobsLoading } = useApiQuery(jobs.list);
 
   const stats = [
-    { label: 'Total Conversations', value: overview ? overview.total_conversations.toLocaleString() : '0', icon: MessageSquare, trend: 'Live', trendUp: true },
-    { label: 'Messages Indexed', value: overview ? overview.total_messages.toLocaleString() : '0', icon: Database, trend: 'Live', trendUp: true },
-    { label: 'Active Providers', value: overview ? `${overview.providers_used}` : '0', icon: Cpu, trend: 'Live', trendUp: true },
-    { label: 'Avg Search Time', value: overview ? `${Math.max(1, Math.round(overview.avg_messages_per_conversation * 10))}ms` : '0ms', icon: Zap, trend: 'Derived', trendUp: true },
+    { label: 'Total Conversations', value: overview ? overview.total_conversations.toLocaleString() : '...', icon: MessageSquare, trend: 'Live', trendUp: true },
+    { label: 'Messages Indexed', value: overview ? overview.total_messages.toLocaleString() : '...', icon: Database, trend: 'Live', trendUp: true },
+    { label: 'Active Providers', value: overview ? `${overview.providers_used}` : '...', icon: Cpu, trend: 'Live', trendUp: true },
+    { label: 'Avg Search Time', value: overview ? `${Math.max(1, Math.round(overview.avg_messages_per_conversation * 10))}ms` : '...', icon: Zap, trend: 'Derived', trendUp: true },
   ];
 
   const quickHealth = (providers || []).slice(0, 5).map((provider: any) => ({
@@ -70,7 +70,7 @@ export default function DashboardOverviewPage() {
                 <div className="text-[11px] px-[8px] py-[2px] rounded-full border bg-red-500/10 border-red-500/20 text-red-400">Offline</div>
               </div>
               <div>
-                <div className="text-[28px] md:text-[32px] font-bold text-white/50 tracking-tight leading-none mb-[8px]">0</div>
+                <div className="text-[28px] md:text-[32px] font-bold text-white/50 tracking-tight leading-none mb-[8px]">...</div>
                 <div className="text-[12px] md:text-[13px] text-white/45">{stat.label}</div>
               </div>
             </div>
@@ -110,19 +110,19 @@ export default function DashboardOverviewPage() {
             <div className="flex flex-wrap items-center gap-[10px]">
               <button className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[16px] py-[12px] rounded-[16px] bg-white/[0.05] border border-white/[0.1] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap">
                 <DownloadCloud size={16} />
-                Import
+                Import conversations
               </button>
               <Link href="/dashboard/compare" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[16px] py-[12px] rounded-[16px] bg-white/[0.05] border border-white/[0.1] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap">
                 <GitCompare size={16} />
-                Compare
+                New comparison
               </Link>
               <Link href="/dashboard/artifacts" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[16px] py-[12px] rounded-[16px] bg-white/[0.05] border border-white/[0.1] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap">
                 <Boxes size={16} />
-                Artifacts
+                Generate artifact
               </Link>
               <Link href="/dashboard/knowledge" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[16px] py-[12px] rounded-[16px] bg-white/[0.05] border border-white/[0.1] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap">
                 <Network size={16} />
-                Graph
+                View knowledge graph
               </Link>
             </div>
           </div>
@@ -165,13 +165,7 @@ export default function DashboardOverviewPage() {
                 ))}
               </motion.div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-[32px] text-center gap-[12px] bg-white/[0.01] border border-dashed border-white/[0.08] rounded-[16px]">
-                <Database className="text-white/20" size={32} />
-                <div>
-                  <h3 className="text-sm font-semibold text-white/80">No recent activity</h3>
-                  <p className="text-xs text-white/40 mt-[2px]">Import your first conversation to get started.</p>
-                </div>
-              </div>
+              <p className="text-sm text-white/40 pt-[16px]">No recent jobs yet.</p>
             )}
           </div>
         </div>
@@ -206,10 +200,7 @@ export default function DashboardOverviewPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-[24px] text-center gap-[8px]">
-                <Cpu className="text-white/20" size={24} />
-                <p className="text-xs text-white/40">No providers synced yet.</p>
-              </div>
+              <p className="text-sm text-white/40 pt-[8px]">No providers synced yet.</p>
             )}
           </div>
         </div>

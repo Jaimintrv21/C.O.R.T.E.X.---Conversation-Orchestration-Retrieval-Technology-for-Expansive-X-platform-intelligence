@@ -321,8 +321,9 @@ class TestDuplicateDetectionThreshold:
 class TestSearchBackendFactory:
     def test_default_is_memory(self):
         from app.services.vector_search_service import get_search_backend, InMemoryCosineBackend
+        from unittest.mock import MagicMock
 
-        backend = get_search_backend("memory")
+        backend = get_search_backend("memory", store=MagicMock())
         assert isinstance(backend, InMemoryCosineBackend)
 
     def test_qdrant_backend_creation(self):

@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from app.models.provider import ProviderAccount
 
 
 @dataclass
@@ -60,7 +59,7 @@ class BaseProvider(ABC):
     def parse(self, raw: bytes, version: str = "latest") -> list[CanonicalConversation]:
         """Parse raw export bytes into canonical conversations."""
 
-    async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
+    async def sync(self, account: dict) -> AsyncIterator[CanonicalConversation]:
         """Incremental API sync for connected provider accounts.
 
         Most consumer chat platforms do not expose a public conversation-history API.

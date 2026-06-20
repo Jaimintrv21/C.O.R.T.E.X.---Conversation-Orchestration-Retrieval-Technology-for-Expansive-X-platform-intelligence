@@ -45,8 +45,6 @@ services:
       timeout: 5s
       retries: 10
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
       search:
@@ -74,8 +72,6 @@ services:
       C.O.R.T.E.X._OLLAMA_BASE_URL: http://ollama:11434
     command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4 -Q default,embeddings,analytics,artifacts
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
       search:

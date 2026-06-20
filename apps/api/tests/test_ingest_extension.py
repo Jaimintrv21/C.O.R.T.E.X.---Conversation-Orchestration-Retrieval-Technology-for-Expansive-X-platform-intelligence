@@ -98,6 +98,9 @@ class FakeStore:
         conversation["preview"] = messages[0]["content"][:240] if messages else None
         return conversation
 
+    def _provider_name(self, provider_slug: str) -> str:
+        return provider_slug.title()
+
 
 def _extension_payload(messages: list[dict], *, external_id: str = "conv-1"):
     return {
@@ -127,7 +130,13 @@ def fake_env(monkeypatch):
     async def noop(*args, **kwargs):
         return None
 
-    monkeypatch.setattr("app.dependencies.verify_extension_token", lambda token: token_payload)
+    def mock_verify_extension_token(token: str):
+        if token.startswith("eyJ"):
+            from app.auth0.extension_tokens import ExtensionTokenError
+            raise ExtensionTokenError("Not an extension token")
+        return token_payload
+
+    monkeypatch.setattr("app.dependencies.verify_extension_token", mock_verify_extension_token)
     monkeypatch.setattr("app.dependencies.FirestoreStore", lambda: fake_store)
     monkeypatch.setattr("app.routers.ingest.FirestoreStore", lambda: fake_store)
     monkeypatch.setattr("app.services.import_service.FirestoreStore", lambda: fake_store)

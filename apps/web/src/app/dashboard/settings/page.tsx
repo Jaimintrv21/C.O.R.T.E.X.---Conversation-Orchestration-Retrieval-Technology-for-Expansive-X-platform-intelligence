@@ -101,7 +101,8 @@ export default function SettingsPage() {
       <div className="flex flex-col gap-[16px] md:gap-[24px] px-[8px]">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         
-        <div className="flex gap-[4px] p-[4px] rounded-full bg-white/[0.04] border border-white/[0.08] w-full overflow-x-auto custom-scrollbar">
+        <div className="w-full overflow-x-auto custom-scrollbar pb-2 -mb-2">
+          <div className="inline-flex gap-[4px] p-[4px] rounded-full bg-white/[0.04] border border-white/[0.08] w-fit min-w-max">
           {tabs.map(tab => {
             const isActive = activeTab === tab;
             return (
@@ -121,6 +122,7 @@ export default function SettingsPage() {
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -252,6 +254,11 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+              <div className="flex justify-end pt-[8px]">
+                <a href="/dashboard/notifications" className="px-[20px] py-[10px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-semibold text-white transition-all text-center hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/20 hover:border-[#6C63FF]/30">
+                  View All Notifications Page →
+                </a>
               </div>
             </section>
           )}

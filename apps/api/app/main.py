@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.database import init_db, close_db
+from app.firestore import get_firestore_client
 from app.logging_config import configure_logging
 from app.middleware.logging import LoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -26,11 +26,10 @@ configure_logging()
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     # Startup
-    if settings.environment == "development":
-        await init_db()
+    get_firestore_client()
     yield
     # Shutdown
-    await close_db()
+    pass
 
 
 app = FastAPI(

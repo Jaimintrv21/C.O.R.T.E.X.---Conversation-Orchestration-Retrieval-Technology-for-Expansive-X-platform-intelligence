@@ -25,11 +25,10 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     allowed_origins: list[str] = ["http://localhost:3000"]
 
-    database_url: str = "postgresql+asyncpg://cortex:cortex@localhost:5432/cortex"
-    database_pool_size: int = 20
-    database_max_overflow: int = 10
-    database_echo: bool = False
-    database_backend: str = "firebase"
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_username: str = "neo4j"
+    neo4j_password: str = "password"
+    neo4j_database: str = "neo4j"
 
     firebase_project_id: str | None = None
     firebase_storage_bucket: str | None = None

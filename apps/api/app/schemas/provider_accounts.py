@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 ConnectionType = Literal["extension", "api_key", "file_watch"]
 
 
-class ProviderAccountConnectRequest(BaseModel):
+class dictConnectRequest(BaseModel):
     provider_slug: str = Field(min_length=1, max_length=80)
     connection_type: ConnectionType
     api_key: str | None = None
@@ -18,7 +18,7 @@ class ProviderAccountConnectRequest(BaseModel):
     monthly_cap_usd: float | None = Field(default=None, ge=0)
 
 
-class ProviderAccountResponse(BaseModel):
+class dictResponse(BaseModel):
     id: str
     user_id: str
     provider_slug: str
@@ -37,7 +37,7 @@ class ProviderAccountResponse(BaseModel):
         from_attributes = True
 
 
-class ProviderAccountSummaryResponse(BaseModel):
+class dictSummaryResponse(BaseModel):
     provider_slug: str
     connection_type: ConnectionType
     display_name: str | None = None
@@ -51,7 +51,7 @@ class ProviderAccountSummaryResponse(BaseModel):
         from_attributes = True
 
 
-class ProviderAccountConnectResponse(ProviderAccountResponse):
+class dictConnectResponse(dictResponse):
     extension_token: str | None = None
 
 

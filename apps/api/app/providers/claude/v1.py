@@ -4,7 +4,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime
 
-from app.models.provider import ProviderAccount
 from app.providers.base import BaseProvider, CanonicalConversation, CanonicalMessage
 
 
@@ -36,7 +35,7 @@ class ClaudeV1Parser(BaseProvider):
                 conversations.append(conv)
         return conversations
 
-    async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
+    async def sync(self, account: dict) -> AsyncIterator[CanonicalConversation]:
         if False:
             yield CanonicalConversation(external_id="")
         raise self._live_sync_not_supported()

@@ -12,12 +12,11 @@ from datetime import datetime
 from typing import Any
 
 from app.firestore import FirestoreStore
-from app.models.provider import ProviderAccount
 from app.providers.base import BaseProvider, CanonicalConversation
 from app.providers.registry import normalize_extension_conversations
 
 
-def _get_value(account: ProviderAccount | dict[str, Any], key: str) -> Any:
+def _get_value(account: dict | dict[str, Any], key: str) -> Any:
     if isinstance(account, dict):
         return account.get(key)
     return getattr(account, key, None)
@@ -34,7 +33,7 @@ class ClaudeApiLogSyncProvider(BaseProvider):
     def parse(self, raw: bytes, version: str = "latest") -> list[CanonicalConversation]:
         return []
 
-    async def sync(self, account: ProviderAccount) -> AsyncIterator[CanonicalConversation]:
+    async def sync(self, account: dict) -> AsyncIterator[CanonicalConversation]:
         store = FirestoreStore()
         user_id = str(_get_value(account, "user_id") or "")
         provider_account_id = str(_get_value(account, "id") or "")

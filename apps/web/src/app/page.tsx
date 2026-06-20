@@ -15,7 +15,7 @@ const NAV_TABS = [
   { title: "Pricing", icon: CreditCard },
   { type: "separator" as const },
   { title: "Pipeline", icon: Brain },
-  { title: "Docs", icon: BookOpen },
+  { title: "DOCX", icon: BookOpen },
   { type: "separator" as const },
   { title: "Sign In", icon: LogIn },
   { title: "Get Started", icon: UserPlus },
@@ -49,7 +49,7 @@ export default function LandingPage() {
       1: () => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }),
       2: () => router.push("/pricing"),
       4: () => document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" }),
-      5: () => router.push("/docs"),
+      5: () => router.push("/docx"),
       7: () => router.push("/login"),
       8: () => router.push("/register"),
     };
