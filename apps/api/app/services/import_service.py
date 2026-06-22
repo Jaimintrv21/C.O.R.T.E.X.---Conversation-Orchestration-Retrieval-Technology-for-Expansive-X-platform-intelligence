@@ -125,6 +125,8 @@ class ImportPipelineService:
 
         if newly_added_message_ids:
             embed_batch.delay(message_ids=newly_added_message_ids)
+            from app.workers.tasks.knowledge_tasks import extract_knowledge
+            extract_knowledge.delay(message_ids=newly_added_message_ids)
 
         return {
             "imported": imported,

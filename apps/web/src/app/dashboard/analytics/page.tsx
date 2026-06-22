@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
   AreaChart,
@@ -20,6 +21,7 @@ import { analytics as analyticsApi, TimelinePoint, TopicCount, ProviderBreakdown
 import { useApiQuery } from '@/hooks/useApi';
 import { staggerList, listItem } from '@/lib/motion';
 import { Database, MessageSquare, Zap, AlertCircle, RefreshCcw } from 'lucide-react';
+import { useAppearance } from '@/hooks/useAppearance';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -80,8 +82,9 @@ const fallbackOverview: OverviewMetrics = {
   active_days: 7
 };
 
-export default function AnalyticsPage() {
+function AnalyticsPage() {
   const [activeDateRange, setActiveDateRange] = useState('7D');
+  const { accentColor } = useAppearance();
 
   const { data: timeline, isLoading: isTimelineLoading, error: timelineError } = useApiQuery(analyticsApi.timeline);
   const { data: topics, isLoading: isTopicsLoading } = useApiQuery(analyticsApi.topics);
@@ -109,9 +112,9 @@ export default function AnalyticsPage() {
     return displayTopics.slice(0, 4).map((topic: TopicCount, index: number) => ({
       name: topic.topic,
       value: topic.count,
-      color: ['#6C63FF', '#00D2FF', '#FF6584', '#00D97E'][index % 4],
+      color: [accentColor, '#00D2FF', '#FF6584', '#00D97E'][index % 4],
     }));
-  }, [displayTopics]);
+  }, [displayTopics, accentColor]);
 
   const providerData = useMemo(() => {
     return displayProviders.map((p: ProviderBreakdown) => ({
@@ -138,7 +141,7 @@ export default function AnalyticsPage() {
                   <motion.div
                     layoutId="analyticsDatePill"
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    className="absolute inset-0 bg-[#6C63FF]/20 border border-[#6C63FF]/30 rounded-full -z-10 shadow-[0_0_15px_rgba(108,99,255,0.15)]"
+                    className="absolute inset-0 bg-primary/20 border border-primary/30 rounded-full -z-10 shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)]"
                   />
                 )}
                 {range}
@@ -151,7 +154,7 @@ export default function AnalyticsPage() {
       {/* Summary Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-[16px]">
         {[
-          { label: 'Total Conversations', value: displayOverview.total_conversations, icon: MessageSquare, color: '#6C63FF' },
+          { label: 'Total Conversations', value: displayOverview.total_conversations, icon: MessageSquare, color: accentColor },
           { label: 'Messages Processed', value: displayOverview.total_messages, icon: Database, color: '#00D2FF' },
           { label: 'Tokens Embedded', value: displayOverview.total_tokens, icon: Zap, color: '#00D97E' },
         ].map((stat, i) => (
@@ -203,15 +206,15 @@ export default function AnalyticsPage() {
                   <AreaChart data={activityData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorC" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6C63FF" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#6C63FF" stopOpacity={0} />
+                        <stop offset="5%" stopColor={accentColor} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={accentColor} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false} axisLine={false} />
                     <YAxis stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
-                    <Area type="monotone" dataKey="messages" stackId="1" stroke="#6C63FF" fill="url(#colorC)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="messages" stackId="1" stroke={accentColor} fill="url(#colorC)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -264,7 +267,7 @@ export default function AnalyticsPage() {
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {providerData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#6C63FF', '#00D2FF', '#00D97E', '#FF6584'][index % 4]} />
+                        <Cell key={`cell-${index}`} fill={[accentColor, '#00D2FF', '#00D97E', '#FF6584'][index % 4]} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -280,3 +283,9 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+const DynamicAnalyticsPage = dynamic(() => Promise.resolve(AnalyticsPage), {
+  ssr: false,
+});
+
+export default DynamicAnalyticsPage;

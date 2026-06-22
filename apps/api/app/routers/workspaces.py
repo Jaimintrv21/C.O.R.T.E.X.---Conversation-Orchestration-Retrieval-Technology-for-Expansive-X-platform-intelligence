@@ -36,6 +36,20 @@ async def create_workspace(body: WorkspaceCreate, request: Request, user: dict =
     return ApiResponse(data=WorkspaceResponse.model_validate(workspace))
 
 
+def _check_workspace_admin(store: FirestoreStore, workspace: dict, user_id: str) -> bool:
+    if workspace.get("owner_id") == user_id:
+        return True
+    docs = list(
+        store._col("workspace_members")
+        .where("workspace_id", "==", workspace["id"])
+        .where("user_id", "==", user_id)
+        .limit(1)
+        .stream()
+    )
+    if docs and docs[0].to_dict().get("role") in {"owner", "admin"}:
+        return True
+    return False
+
 @router.patch("/{workspace_id}", response_model=ApiResponse[WorkspaceResponse])
 async def update_workspace(
     workspace_id: uuid.UUID,
@@ -45,8 +59,10 @@ async def update_workspace(
 ):
     store = FirestoreStore()
     workspace = store.get_workspace(str(workspace_id))
-    if not workspace or workspace["owner_id"] != user["id"]:
-        raise HTTPException(status_code=404, detail="Workspace not found or not owner")
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if not _check_workspace_admin(store, workspace, user["id"]):
+        raise HTTPException(status_code=403, detail="Requires owner or admin role")
 
     updated = store.update_workspace(str(workspace_id), body.model_dump(exclude_unset=True))
     await emit_audit_log(user["id"], "workspace.updated", "workspace", str(workspace_id), request)
@@ -62,8 +78,10 @@ async def add_member(
 ):
     store = FirestoreStore()
     workspace = store.get_workspace(str(workspace_id))
-    if not workspace or workspace["owner_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Only workspace owner can add members")
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if not _check_workspace_admin(store, workspace, user["id"]):
+        raise HTTPException(status_code=403, detail="Requires owner or admin role to add members")
 
     store.add_workspace_member(
         workspace_id=str(workspace_id),
@@ -84,8 +102,12 @@ async def remove_member(
 ):
     store = FirestoreStore()
     workspace = store.get_workspace(str(workspace_id))
-    if not workspace or workspace["owner_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Only workspace owner can remove members")
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    
+    # A user can remove themselves, or an admin/owner can remove others.
+    if str(member_user_id) != user["id"] and not _check_workspace_admin(store, workspace, user["id"]):
+        raise HTTPException(status_code=403, detail="Requires owner or admin role to remove others")
 
     if not store.remove_workspace_member(str(workspace_id), str(member_user_id)):
         raise HTTPException(status_code=404, detail="Member not found")

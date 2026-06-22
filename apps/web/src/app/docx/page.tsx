@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { ArrowLeft, BookOpen, FileText, Code, Cpu, Database, Network } from "lucide-react";
 import { WebGLShader } from "@/components/ui/web-gl-shader";
+import { useAppearance } from "@/hooks/useAppearance";
 
 export default function DocsPage() {
+  const { accentColor } = useAppearance();
   const githubUrl = "https://github.com/Jaimintrv21/C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence";
   const sections = [
     { title: "Getting Started", icon: BookOpen, desc: "Installation, environment setup, and architecture overview.", link: githubUrl },
@@ -28,7 +30,7 @@ export default function DocsPage() {
         </Link>
 
         <div className="mb-16 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center justify-center p-4 rounded-3xl bg-[#6C63FF]/10 border border-[#6C63FF]/20 text-[#6C63FF] mb-6 shadow-[0_0_30px_rgba(108,99,255,0.15)]">
+          <div className="inline-flex items-center justify-center p-4 rounded-3xl bg-primary/10 border border-primary/20 text-primary mb-6 shadow-[0_0_30px_rgba(var(--accent-rgb),0.15)]">
             <BookOpen size={48} strokeWidth={1.5} />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">C.O.R.T.E.X. Documentation</h1>

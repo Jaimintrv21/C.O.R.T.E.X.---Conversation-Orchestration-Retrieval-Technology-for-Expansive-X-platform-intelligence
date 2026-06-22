@@ -5,14 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize, X, Network, AlertCircle, RefreshCcw } from 'lucide-react';
 import { knowledge } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApi';
-
-const nodeTypes = [
-  { label: 'Concept', color: '#6C63FF' },
-  { label: 'Person', color: '#00D2FF' },
-  { label: 'Tool', color: '#FF6584' },
-  { label: 'Decision', color: '#00D97E' },
-  { label: 'Insight', color: '#FFBC00' },
-];
+import { useAppearance } from '@/hooks/useAppearance';
 
 const fallbackNodes = [
   { id: '1', name: 'NEXUS Platform', type: 'Concept', weight: 2.2, description: 'Core system platform architecture coordinating inter-process messaging.' },
@@ -32,7 +25,16 @@ const fallbackEdges = [
 ];
 
 export default function KnowledgeGraphPage() {
-  const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set(nodeTypes.map(n => n.label)));
+  const { accentColor } = useAppearance();
+  const nodeTypes = useMemo(() => [
+    { label: 'Concept', color: accentColor },
+    { label: 'Person', color: '#00D2FF' },
+    { label: 'Tool', color: '#FF6584' },
+    { label: 'Decision', color: '#00D97E' },
+    { label: 'Insight', color: '#FFBC00' },
+  ], [accentColor]);
+
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set(['Concept', 'Person', 'Tool', 'Decision', 'Insight']));
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
 
   const { data: nodesData, isLoading: isNodesLoading, error: nodesError, refetch: refetchNodes } = useApiQuery(knowledge.nodes);
@@ -83,7 +85,7 @@ export default function KnowledgeGraphPage() {
         
         {isLoading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="w-[64px] h-[64px] rounded-full border-[4px] border-[#6C63FF]/30 border-t-[#6C63FF] animate-spin mb-4" />
+            <div className="w-[64px] h-[64px] rounded-full border-[4px] border-primary/30 border-t-primary animate-spin mb-4" />
             <p className="text-sm text-white/50 animate-pulse">Computing graph geometry...</p>
           </div>
         ) : nodes.length === 0 ? (

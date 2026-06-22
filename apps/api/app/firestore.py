@@ -147,157 +147,116 @@ class FirestoreStore:
         return payload
 
     def get_or_create_user_from_auth0(self, sub: str, claims: dict[str, Any]) -> dict[str, Any]:
-        existing = self.get_user(sub)
-        now = utcnow()
-        role_claim = claims.get("https://cortex.app/roles", "user")
-        if isinstance(role_claim, list):
-            role = str(role_claim[0]) if role_claim else "user"
-        else:
-            role = str(role_claim or "user")
+        user_ref = self._col("users").document(sub)
+        
+        @firestore.transactional
+        def _txn_get_or_create(transaction: firestore.Transaction) -> dict[str, Any]:
+            snapshot = user_ref.get(transaction=transaction)
+            now = utcnow()
+            role_claim = claims.get("https://cortex.app/roles", "user")
+            if isinstance(role_claim, list):
+                role = str(role_claim[0]) if role_claim else "user"
+            else:
+                role = str(role_claim or "user")
 
-        email = str(claims.get("email") or claims.get("preferred_username") or f"{sub}@auth0.local")
-        display_name = claims.get("name") or claims.get("nickname") or email.split("@")[0]
-        avatar_url = claims.get("picture")
-        workspace_id = claims.get("https://cortex.app/workspace_id")
+            email = str(claims.get("email") or claims.get("preferred_username") or f"{sub}@auth0.local")
+            display_name = claims.get("name") or claims.get("nickname") or email.split("@")[0]
+            avatar_url = claims.get("picture")
+            workspace_id = claims.get("https://cortex.app/workspace_id")
+            
+            existing = snapshot.to_dict() if snapshot.exists else None
+            
+            patch = {
+                "email": email.lower(),
+                "display_name": display_name,
+                "avatar_url": avatar_url,
+                "role": role,
+                "is_active": True,
+                "is_verified": bool(claims.get("email_verified", True)),
+                "preferences": (existing or {}).get("preferences", {}),
+                "storage_quota": (existing or {}).get("storage_quota", 5_368_709_120),
+                "storage_used": (existing or {}).get("storage_used", 0),
+                "encryption_mode": (existing or {}).get("encryption_mode", "envelope"),
+                "auth0_subject": sub,
+                "auth0_connection": claims.get("gty") or claims.get("org_id") or claims.get("iss"),
+                "auth0_claims": {
+                    "iss": claims.get("iss"),
+                    "aud": claims.get("aud"),
+                    "azp": claims.get("azp"),
+                    "scope": claims.get("scope"),
+                    "roles": claims.get("https://cortex.app/roles"),
+                    "workspace_id": workspace_id,
+                },
+                "primary_workspace_id": workspace_id,
+                "last_login_at": now,
+                "deleted_at": None,
+            }
 
-        patch = {
-            "email": email.lower(),
-            "display_name": display_name,
-            "avatar_url": avatar_url,
-            "role": role,
-            "is_active": True,
-            "is_verified": bool(claims.get("email_verified", True)),
-            "preferences": (existing or {}).get("preferences", {}),
-            "storage_quota": (existing or {}).get("storage_quota", 5_368_709_120),
-            "storage_used": (existing or {}).get("storage_used", 0),
-            "encryption_mode": (existing or {}).get("encryption_mode", "envelope"),
-            "auth0_subject": sub,
-            "auth0_connection": claims.get("gty") or claims.get("org_id") or claims.get("iss"),
-            "auth0_claims": {
-                "iss": claims.get("iss"),
-                "aud": claims.get("aud"),
-                "azp": claims.get("azp"),
-                "scope": claims.get("scope"),
-                "roles": claims.get("https://cortex.app/roles"),
-                "workspace_id": workspace_id,
-            },
-            "primary_workspace_id": workspace_id,
-            "last_login_at": now,
-            "deleted_at": None,
-        }
+            if existing:
+                patch.pop("storage_quota", None)
+                patch.pop("storage_used", None)
+                patch.pop("encryption_mode", None)
+                patch["updated_at"] = now
+                transaction.set(user_ref, patch, merge=True)
+                return {**existing, **patch, "id": sub}
 
-        if existing:
-            patch.pop("storage_quota", None)
-            patch.pop("storage_used", None)
-            patch.pop("encryption_mode", None)
-            self.update_user(sub, patch)
-            updated = self.get_user(sub)
-            return updated or {**existing, **patch, "id": sub}
-
-        dek = secrets.token_bytes(32)
-        wrapped_dek, dek_iv = encrypt_field(dek)
-        created = self.create_user(
-            user_id=sub,
-            email=email,
-            username=(
-                str(claims.get("nickname") or claims.get("preferred_username") or email.split("@")[0] or sub.replace("|", "_"))
-            ),
-            display_name=str(display_name),
-            avatar_url=avatar_url,
-            role=role,
-            is_verified=bool(claims.get("email_verified", True)),
-            preferences={},
-            encryption_mode="envelope",
-            auth0_subject=sub,
-            auth0_connection=claims.get("gty") or claims.get("org_id") or claims.get("iss"),
-            auth0_claims=patch["auth0_claims"],
-            primary_workspace_id=workspace_id,
-        )
-        self.update_user(
-            sub,
-            {
+            dek = secrets.token_bytes(32)
+            wrapped_dek, dek_iv = encrypt_field(dek)
+            
+            full_payload = {
+                **patch,
+                "username": str(claims.get("nickname") or claims.get("preferred_username") or email.split("@")[0] or sub.replace("|", "_")),
                 "encrypted_dek": wrapped_dek,
                 "dek_iv": dek_iv,
-                "last_login_at": now,
-            },
-        )
-        created.update({"encrypted_dek": wrapped_dek, "dek_iv": dek_iv, "last_login_at": now})
-        return created
+                "created_at": now,
+                "updated_at": now,
+            }
+            transaction.set(user_ref, full_payload)
+            full_payload["id"] = sub
+            return full_payload
+
+        transaction = self.db.transaction()
+        return _txn_get_or_create(transaction)
 
     def update_user(self, user_id: str, patch: dict[str, Any]) -> None:
         patch["updated_at"] = utcnow()
         self._col("users").document(user_id).set(patch, merge=True)
 
-    def create_session(
+    def record_login_history(
         self,
         *,
         user_id: str,
-        token_hash: str,
-        ip_address: str | None,
-        user_agent: str | None,
-        expires_at: datetime,
-        auth0_session_id: str | None = None,
-        auth0_jti: str | None = None,
-        last_seen_at: datetime | None = None,
-    ) -> dict[str, Any]:
-        session_id = make_uuid()
-        payload = {
-            "user_id": user_id,
-            "token_hash": token_hash,
-            "ip_address": ip_address,
-            "user_agent": user_agent,
-            "expires_at": expires_at,
-            "revoked_at": None,
-            "auth0_session_id": auth0_session_id,
-            "auth0_jti": auth0_jti,
-            "last_seen_at": last_seen_at or utcnow(),
-            "created_at": utcnow(),
-        }
-        self._col("sessions").document(session_id).set(payload)
-        payload["id"] = session_id
-        return payload
-
-    def upsert_auth0_session(
-        self,
         session_key: str,
-        *,
-        user_id: str,
         ip_address: str | None,
         user_agent: str | None,
         expires_at: datetime,
-        auth0_jti: str | None = None,
-        last_seen_at: datetime | None = None,
     ) -> dict[str, Any]:
+        ref = self._col("users").document(user_id).collection("login_history").document(session_key)
         payload = {
-            "user_id": user_id,
-            "token_hash": session_key,
+            "session_key": session_key,
             "ip_address": ip_address,
             "user_agent": user_agent,
             "expires_at": expires_at,
+            "last_seen_at": utcnow(),
             "revoked_at": None,
-            "auth0_session_id": session_key,
-            "auth0_jti": auth0_jti,
-            "last_seen_at": last_seen_at or utcnow(),
-            "created_at": utcnow(),
         }
-        self._col("sessions").document(session_key).set(payload, merge=True)
-        payload["id"] = session_key
-        return payload
+        ref.set(payload, merge=True)
+        doc = ref.get()
+        return _with_id(doc) if doc.exists else payload
 
-    def list_sessions(self, user_id: str, limit: int = 50) -> list[dict[str, Any]]:
-        docs = list(self._col("sessions").where("user_id", "==", user_id).stream())
+    def list_login_history(self, user_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        docs = list(self._col("users").document(user_id).collection("login_history").stream())
         items = [_with_id(doc) for doc in docs]
-        items.sort(key=lambda item: item.get("last_seen_at") or item.get("created_at"), reverse=True)
+        items.sort(key=lambda item: item.get("last_seen_at") or datetime.min.replace(tzinfo=UTC), reverse=True)
         return items[:limit]
 
-    def get_session(self, session_id: str) -> dict[str, Any] | None:
-        doc = self._col("sessions").document(session_id).get()
-        return _with_id(doc) if doc.exists else None
-
-    def revoke_session(self, session_id: str) -> dict[str, Any] | None:
-        patch = {"revoked_at": utcnow(), "updated_at": utcnow()}
-        self._col("sessions").document(session_id).set(patch, merge=True)
-        return self.get_session(session_id)
+    def revoke_login_session(self, user_id: str, session_id: str) -> dict[str, Any] | None:
+        ref = self._col("users").document(user_id).collection("login_history").document(session_id)
+        if not ref.get().exists:
+            return None
+        patch = {"revoked_at": utcnow()}
+        ref.set(patch, merge=True)
+        return _with_id(ref.get())
 
     def create_provider_account(
         self,
@@ -818,6 +777,8 @@ class FirestoreStore:
             "title": title,
             "summary": summary,
             "status": status,
+            "session_status": "active",
+            "knowledge_extraction_status": "pending",
             "import_source": import_source,
             "message_count": 0,
             "token_count": 0,
@@ -880,6 +841,7 @@ class FirestoreStore:
         content: str,
         content_type: str,
         model: str | None,
+        provider_slug: str | None = None,
         token_count: int,
         attachments: dict | list | None,
         tool_calls: dict | list | None,
@@ -896,6 +858,7 @@ class FirestoreStore:
             "content": content,
             "content_type": content_type,
             "model": model,
+            "provider_slug": provider_slug,
             "token_count": token_count,
             "attachments": attachments,
             "tool_calls": tool_calls,

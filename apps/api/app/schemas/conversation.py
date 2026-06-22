@@ -13,6 +13,7 @@ class MessageResponse(BaseModel):
     content: str
     content_type: str
     model: str | None
+    provider_slug: str | None = None
     token_count: int
     attachments: dict | None
     tool_calls: dict | None
@@ -36,6 +37,8 @@ class ConversationResponse(BaseModel):
     title: str | None
     summary: str | None
     status: str
+    session_status: str | None = "active"
+    knowledge_extraction_status: str | None = "pending"
     import_source: str | None
     message_count: int
     token_count: int
@@ -104,7 +107,7 @@ class ChatMessageRequest(BaseModel):
     provider: Literal["local", "openai", "anthropic", "gemini", "grok", "ollama"] = "local"
     model: str | None = None
     local_only: bool | None = None
-    use_knowledge: bool | None = None
+    use_knowledge_base: bool | None = None
 
 
 class ChatStreamDeltaResponse(BaseModel):

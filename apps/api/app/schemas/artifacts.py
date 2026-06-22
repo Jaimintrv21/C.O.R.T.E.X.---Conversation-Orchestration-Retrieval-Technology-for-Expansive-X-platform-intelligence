@@ -38,6 +38,17 @@ class ArtifactResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class SourcePickerItem(BaseModel):
+    id: str
+    title: str
+    message_count: int
+    last_message_at: datetime | None
+    preview: str | None
+
+class SourcePickerGroup(BaseModel):
+    provider_slug: str
+    conversations: list[SourcePickerItem]
+
 
 # ── Jobs ─────────────────────────────────────────────────────────────────
 

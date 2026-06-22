@@ -539,7 +539,7 @@ export default function AiChatPage() {
                 value={inputText}
                 onChange={(event) => setInputText(event.target.value)}
                 placeholder={`Message ${activeLabel}...`}
-                className="w-full h-[40px] md:h-[42px] pl-[16px] pr-[16px] rounded-full bg-white/[0.04] border border-white/[0.08] outline-none text-[13px] text-white placeholder:text-white/30 focus:bg-white/[0.07] focus:border-[#6C63FF]/50 transition-all duration-300"
+                className="w-full h-[40px] md:h-[42px] pl-[16px] pr-[16px] rounded-full bg-white/[0.04] border border-white/[0.08] outline-none text-[13px] text-white placeholder:text-white/30 focus:bg-white/[0.07] focus:border-primary/50 transition-all duration-300"
               />
             </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppearance } from '@/hooks/useAppearance';
 import {
   Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User,
   CreditCard, Box, Check, UserPlus, Trash2, X, Palette, Moon, Sun,
@@ -66,6 +67,34 @@ export default function SettingsPage() {
       window.history.pushState(null, '', currentUrl.toString());
     }
   };
+  const {
+    themeStyle, setThemeStyle,
+    accentColor, setAccentColor,
+    shaderSpeed, setShaderSpeed,
+    reduceMotion, setReduceMotion,
+    springSidebar, setSpringSidebar,
+    sidebarPosition, setSidebarPosition,
+    layoutPadding, setLayoutPadding,
+    mouseGlow, setMouseGlow,
+    particles, setParticles,
+    audioFeedback, setAudioFeedback,
+    secondaryColor
+  } = useAppearance();
+
+  // Dynamic accent color helpers for inline styles
+  const ac = accentColor; // shorthand
+  const acBg15 = { backgroundColor: `${ac}26` }; // 15% opacity
+  const acBorder30 = { borderColor: `${ac}4D` }; // 30% opacity
+  const acBorder40 = { borderColor: `${ac}66` }; // 40% opacity
+  const acGlow = { boxShadow: `0 0 20px ${ac}26` };
+  const acGlowSm = { boxShadow: `0 0 15px ${ac}1A` };
+  const acGradient = { background: `linear-gradient(to right, ${ac}, ${secondaryColor})` };
+  const acText = { color: ac };
+  const acToggleOn = { backgroundColor: ac };
+  const acBg20 = { backgroundColor: `${ac}33` }; // 20% opacity
+  const acBorder20 = { borderColor: `${ac}33` }; // 20% opacity
+  const acBg10 = { backgroundColor: `${ac}1A` }; // 10% opacity
+
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     sync: true,
     localModel: false,
@@ -73,22 +102,12 @@ export default function SettingsPage() {
     ollamaActive: false,
     emailDigest: true,
     pushNotifs: false,
-    browserAlerts: true,
-    reduceMotion: false,
-    springSidebar: true,
-    mouseGlow: true,
-    particles: false,
-    audioFeedback: false
+    browserAlerts: true
   });
 
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3');
-  const [accentColor, setAccentColor] = useState('#6C63FF');
   const [activeAppearanceSubTab, setActiveAppearanceSubTab] = useState<'Style' | 'Color' | 'Motion' | 'Layout' | 'Labs'>('Style');
-  const [themeStyle, setThemeStyle] = useState<'liquid-glass' | 'cyber-obsidian' | 'minimal-slate'>('liquid-glass');
-  const [shaderSpeed, setShaderSpeed] = useState<'paused' | 'slow' | 'normal' | 'hyper'>('normal');
-  const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>('left');
-  const [layoutPadding, setLayoutPadding] = useState<'compact' | 'cozy' | 'cinematic'>('cozy');
 
   // Workspace Management States
   const [workspaceName, setWorkspaceName] = useState('Personal Workspace');
@@ -108,6 +127,83 @@ export default function SettingsPage() {
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Integrations states
+  const [providerList, setProviderList] = useState([
+    { id: 'openai', name: 'OpenAI (ChatGPT)', status: 'connected', color: '#00D97E', apiKey: '••••••••••••••••', model: 'gpt-4o', endpoint: '' },
+    { id: 'anthropic', name: 'Anthropic (Claude)', status: 'disconnected', color: '#D97757', apiKey: '', model: 'claude-3-5-sonnet', endpoint: '' },
+    { id: 'google', name: 'Google (Gemini)', status: 'disconnected', color: '#4A90E2', apiKey: '', model: 'gemini-1.5-pro', endpoint: '' },
+    { id: 'perplexity', name: 'Perplexity API', status: 'error', color: '#FFBC00', apiKey: '', model: 'llama-3-sonar-large', endpoint: '' },
+  ]);
+  const [connectingProviderId, setConnectingProviderId] = useState<string | null>(null);
+  const [provApiKey, setProvApiKey] = useState('');
+  const [provModel, setProvModel] = useState('');
+  const [provEndpoint, setProvEndpoint] = useState('');
+  const [provShowAdvanced, setProvShowAdvanced] = useState(false);
+
+  const handleToggleProvider = (providerId: string) => {
+    const provider = providerList.find(p => p.id === providerId);
+    if (!provider) return;
+
+    if (provider.status === 'connected') {
+      setProviderList(prev => prev.map(p => p.id === providerId ? { ...p, status: 'disconnected', apiKey: '', model: '' } : p));
+      triggerToast(`${provider.name} disconnected successfully.`);
+    } else {
+      setConnectingProviderId(providerId);
+      setProvApiKey('');
+      setProvModel(provider.model || getDefaultModelForProvider(providerId));
+      setProvEndpoint(provider.endpoint || '');
+      setProvShowAdvanced(false);
+    }
+  };
+
+  const handleSaveConnection = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!provApiKey.trim()) {
+      triggerToast('Please provide a valid API Key.');
+      return;
+    }
+
+    setProviderList(prev => prev.map(p => p.id === connectingProviderId ? { 
+      ...p, 
+      status: 'connected', 
+      apiKey: provApiKey, 
+      model: provModel,
+      endpoint: provEndpoint 
+    } : p));
+
+    const provider = providerList.find(p => p.id === connectingProviderId);
+    triggerToast(`${provider?.name || 'Provider'} connected successfully!`);
+    setConnectingProviderId(null);
+  };
+
+  const getDefaultModelForProvider = (id: string) => {
+    if (id === 'openai') return 'gpt-4o';
+    if (id === 'anthropic') return 'claude-3-5-sonnet';
+    if (id === 'google') return 'gemini-1.5-pro';
+    return 'llama-3-sonar-large';
+  };
+
+  const getModelsForProvider = (id: string) => {
+    if (id === 'openai') return [
+      { value: 'gpt-4o', label: 'GPT-4o (Flagship Multimodal)' },
+      { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+      { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Fast)' }
+    ];
+    if (id === 'anthropic') return [
+      { value: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet (Recommended)' },
+      { value: 'claude-3-opus', label: 'Claude 3 Opus (Intelligent)' },
+      { value: 'claude-3-haiku', label: 'Claude 3 Haiku (Fast)' }
+    ];
+    if (id === 'google') return [
+      { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Large context)' },
+      { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Vibrant speed)' }
+    ];
+    return [
+      { value: 'llama-3-sonar-large', label: 'Sonar Large Online (Search-enabled)' },
+      { value: 'llama-3-sonar-small', label: 'Sonar Small Online (Fast search)' }
+    ];
   };
 
   const handleUpdateWorkspaceName = () => {
@@ -145,12 +241,23 @@ export default function SettingsPage() {
   };
 
   const handleToggle = (key: string) => {
-    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+    if (key === 'reduceMotion') setReduceMotion(!reduceMotion);
+    else if (key === 'springSidebar') setSpringSidebar(!springSidebar);
+    else if (key === 'mouseGlow') setMouseGlow(!mouseGlow);
+    else if (key === 'particles') setParticles(!particles);
+    else if (key === 'audioFeedback') setAudioFeedback(!audioFeedback);
+    else {
+      setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+    }
   };
 
   // Bug Report Form State
   const [bugTitle, setBugTitle] = useState('');
   const [bugDescription, setBugDescription] = useState('');
+  const [reportMethod, setReportMethod] = useState<'normal' | 'github'>('normal');
+  const [githubUser, setGithubUser] = useState('');
+  const [bugCategory, setBugCategory] = useState<'bug' | 'feature' | 'docs' | 'optimization' | 'styling' | 'security'>('bug');
+  const [bugDifficulty, setBugDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [isSubmittingBug, setIsSubmittingBug] = useState(false);
 
   const handleReportBug = async (e: React.FormEvent) => {
@@ -159,19 +266,65 @@ export default function SettingsPage() {
       triggerToast('Please provide both title and description');
       return;
     }
+    if (reportMethod === 'github' && !githubUser.trim()) {
+      triggerToast('Please provide your GitHub Username');
+      return;
+    }
     
     setIsSubmittingBug(true);
     try {
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+      const screenRes = typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'Unknown';
+      const viewportRes = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'Unknown';
+      const currentUrl = typeof window !== 'undefined' ? window.location.href : 'Unknown';
+
+      const formattedDescription = `### 📂 Issue Categorization
+| Property | Value |
+| :--- | :--- |
+| **Category** | \`${bugCategory.toUpperCase()}\` |
+| **Suggested Difficulty** | \`${bugDifficulty.toUpperCase()}\` |
+
+### User Description
+${bugDescription}
+
+---
+
+### 🛠️ Diagnostic Environment Details
+| Property | Value |
+| :--- | :--- |
+| **URL / Route** | \`${currentUrl}\` |
+| **User Agent** | \`${userAgent}\` |
+| **Screen Resolution** | \`${screenRes}\` |
+| **Viewport Size** | \`${viewportRes}\` |
+| **Active Theme** | \`${themeStyle}\` |
+| **Accent Color** | \`${accentColor}\` |
+| **Layout Padding** | \`${layoutPadding}\` |
+| **Shader Speed** | \`${shaderSpeed}\` |
+| **Mouse Glow** | \`${mouseGlow ? 'Enabled' : 'Disabled'}\` |
+| **Particles Overlay** | \`${particles ? 'Enabled' : 'Disabled'}\` |
+| **Audio Feedback** | \`${audioFeedback ? 'Enabled' : 'Disabled'}\` |
+| **Report Method** | \`${reportMethod === 'github' ? 'GitHub Issue' : 'Standard Feed'}\` |
+| **GitHub Reporter** | \`${reportMethod === 'github' ? `@${githubUser}` : 'N/A'}\` |
+| **Reported At** | \`${new Date().toUTCString()}\` |
+`;
+
       const res = await fetch('/api/bug-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: bugTitle, description: bugDescription })
+        body: JSON.stringify({ 
+          title: bugTitle, 
+          description: formattedDescription,
+          githubUser: reportMethod === 'github' ? githubUser : undefined,
+          category: bugCategory,
+          difficulty: bugDifficulty
+        })
       });
       const data = await res.json();
       if (res.ok) {
-        triggerToast('Bug reported successfully! Issue created.');
+        triggerToast(reportMethod === 'github' ? 'GitHub issue created successfully!' : 'Bug reported successfully!');
         setBugTitle('');
         setBugDescription('');
+        setGithubUser('');
       } else {
         triggerToast(`Failed to report bug: ${data.error || 'Unknown error'}`);
       }
@@ -245,9 +398,10 @@ export default function SettingsPage() {
                       <button
                         key={subTab.id}
                         onClick={() => setActiveAppearanceSubTab(subTab.id as any)}
+                        style={isActive ? {...acBg15, ...acBorder30, ...acGlowSm} : undefined}
                         className={`flex flex-col items-start px-[18px] py-[10px] rounded-[18px] transition-all text-left w-full min-w-[120px] md:min-w-0 ${
                           isActive
-                            ? 'bg-[#6C63FF]/15 border border-[#6C63FF]/30 text-white shadow-[0_0_15px_rgba(108,99,255,0.1)]'
+                            ? 'text-white border'
                             : 'border border-transparent text-white/50 hover:bg-white/[0.04] hover:text-white/80'
                         }`}
                       >
@@ -276,11 +430,10 @@ export default function SettingsPage() {
                             <h3 className="text-base font-semibold text-white mb-[4px]">Theme Preset Style</h3>
                             <p className="text-xs text-white/50">Choose the foundation style for the dashboard containers.</p>
                           </div>
-                          
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-[16px]">
                             {[
                               { id: 'liquid-glass', name: 'Liquid Glass', desc: 'Highly refractive, transparent border highlights.', preview: 'border-white/[0.12] bg-white/[0.03] shadow-[inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.2)]' },
-                              { id: 'cyber-obsidian', name: 'Cyber Obsidian', desc: 'Pure dark glass, high contrast metallic lines.', preview: 'border-[#6C63FF]/30 bg-black/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' },
+                              { id: 'retro-hologram', name: 'Retro Hologram', desc: 'Diffraction spectrum borders, light-refracting scanlines, and custom holographic depth.', preview: 'border-[#00f2fe] bg-[#06060c] shadow-[0_0_15px_rgba(0,255,255,0.2),inset_0_0_10px_rgba(255,0,255,0.1)]' },
                               { id: 'minimal-slate', name: 'Minimal Slate', desc: 'Simple dark gray card layout with soft shadows.', preview: 'border-white/[0.06] bg-zinc-900/40 shadow-none' }
                             ].map(style => (
                               <button
@@ -289,9 +442,10 @@ export default function SettingsPage() {
                                   setThemeStyle(style.id as any);
                                   triggerToast(`Theme style set to ${style.name}`);
                                 }}
+                                style={themeStyle === style.id ? {...acBg15, ...acBorder40, ...acGlow} : undefined}
                                 className={`flex flex-col items-start p-[20px] rounded-[20px] border transition-all text-left h-full ${
                                   themeStyle === style.id
-                                    ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white shadow-[0_0_20px_rgba(108,99,255,0.15)]'
+                                    ? 'text-white border'
                                     : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
                                 }`}
                               >
@@ -348,8 +502,9 @@ export default function SettingsPage() {
                               <h3 className="text-base font-semibold text-white mb-[4px]">Background Shader Speed</h3>
                               <p className="text-xs text-white/50">Configure animation speed of the interactive WebGL gradient background.</p>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-[12px]">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-[12px]">
                               {[
+                                { id: 'disabled', name: 'Disabled' },
                                 { id: 'paused', name: 'Paused' },
                                 { id: 'slow', name: 'Slow Motion' },
                                 { id: 'normal', name: 'Normal' },
@@ -361,9 +516,10 @@ export default function SettingsPage() {
                                     setShaderSpeed(speed.id as any);
                                     triggerToast(`Shader background speed set to ${speed.name}`);
                                   }}
+                                  style={shaderSpeed === speed.id ? {...acBg15, ...acBorder40} : undefined}
                                   className={`px-[16px] py-[10px] rounded-full border text-xs font-semibold transition-all ${
                                     shaderSpeed === speed.id
-                                      ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white'
+                                      ? 'text-white border'
                                       : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
                                   }`}
                                 >
@@ -386,12 +542,13 @@ export default function SettingsPage() {
                             <button
                               onClick={() => {
                                 handleToggle('reduceMotion');
-                                triggerToast(toggles.reduceMotion ? 'Animations restored' : 'UI motion reduced');
+                                triggerToast(reduceMotion ? 'Animations restored' : 'UI motion reduced');
                               }}
-                              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.reduceMotion ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                              style={reduceMotion ? acToggleOn : undefined}
+                              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${reduceMotion ? '' : 'bg-white/[0.1]'}`}
                             >
                               <motion.div
-                                animate={{ x: toggles.reduceMotion ? 20 : 0 }}
+                                animate={{ x: reduceMotion ? 20 : 0 }}
                                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
                               />
@@ -408,12 +565,13 @@ export default function SettingsPage() {
                             <button
                               onClick={() => {
                                 handleToggle('springSidebar');
-                                triggerToast(toggles.springSidebar ? 'Spring transitions active' : 'Linear transitions active');
+                                triggerToast(springSidebar ? 'Linear transitions active' : 'Spring transitions active');
                               }}
-                              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles.springSidebar ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                              style={springSidebar ? acToggleOn : undefined}
+                              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${springSidebar ? '' : 'bg-white/[0.1]'}`}
                             >
                               <motion.div
-                                animate={{ x: toggles.springSidebar ? 20 : 0 }}
+                                animate={{ x: springSidebar ? 20 : 0 }}
                                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
                               />
@@ -426,24 +584,26 @@ export default function SettingsPage() {
                       {activeAppearanceSubTab === 'Layout' && (
                         <div className="flex flex-col gap-[28px]">
                           <div className="flex flex-col gap-[16px]">
-                            <div>
+                             <div>
                               <h3 className="text-base font-semibold text-white mb-[4px]">Sidebar Placement</h3>
-                              <p className="text-xs text-white/50">Align the navigation sidebar to the left or right of the screen.</p>
+                              <p className="text-xs text-white/50">Align the navigation sidebar to the left, right, or hide it completely (accessible via top hamburger menu).</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-[16px] max-w-[400px]">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] max-w-[500px]">
                               {[
                                 { id: 'left', name: 'Left Sidebar' },
-                                { id: 'right', name: 'Right Sidebar' }
+                                { id: 'right', name: 'Right Sidebar' },
+                                { id: 'none', name: 'No Sidebar (Hidden)' }
                               ].map(pos => (
                                 <button
                                   key={pos.id}
                                   onClick={() => {
                                     setSidebarPosition(pos.id as any);
-                                    triggerToast(`Sidebar aligned to the ${pos.id}`);
+                                    triggerToast(pos.id === 'none' ? 'Sidebar hidden' : `Sidebar aligned to the ${pos.id}`);
                                   }}
-                                  className={`px-[16px] py-[12px] rounded-[16px] border text-xs font-semibold transition-all ${
+                                  style={sidebarPosition === pos.id ? {...acBg15, ...acBorder40} : undefined}
+                                  className={`px-[12px] py-[12px] rounded-[16px] border text-xs font-semibold transition-all ${
                                     sidebarPosition === pos.id
-                                      ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white'
+                                      ? 'text-white border'
                                       : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
                                   }`}
                                 >
@@ -472,9 +632,10 @@ export default function SettingsPage() {
                                     setLayoutPadding(pad.id as any);
                                     triggerToast(`Layout padding set to ${pad.name}`);
                                   }}
+                                  style={layoutPadding === pad.id ? {...acBg15, ...acBorder40} : undefined}
                                   className={`flex flex-col items-center justify-center p-[16px] rounded-[16px] border text-center transition-all ${
                                     layoutPadding === pad.id
-                                      ? 'bg-[#6C63FF]/15 border-[#6C63FF]/40 text-white shadow-[0_0_15px_rgba(108,99,255,0.1)]'
+                                      ? 'text-white border'
                                       : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
                                   }`}
                                 >
@@ -501,27 +662,31 @@ export default function SettingsPage() {
                               { id: 'mouseGlow', title: 'Mouse-Responsive Glass Glow', desc: 'Simulates organic lighting that follows your mouse cursor across glass panels.' },
                               { id: 'particles', title: 'Orbital Background Particles', desc: 'Overlay floating stardust node particles behind the liquid glass windows.' },
                               { id: 'audioFeedback', title: 'Glass Audio Feedback', desc: 'Enables tiny synthesized glass clicks on button clicks and sidebar navigations.' }
-                            ].map(lab => (
-                              <div key={lab.id} className="flex items-center justify-between gap-[24px]">
-                                <div className="max-w-[480px]">
-                                  <h4 className="text-sm font-semibold text-white/90 mb-[2px]">{lab.title}</h4>
-                                  <p className="text-xs text-white/50 leading-relaxed">{lab.desc}</p>
+                            ].map(lab => {
+                              const isActive = lab.id === 'mouseGlow' ? mouseGlow : lab.id === 'particles' ? particles : audioFeedback;
+                              return (
+                                <div key={lab.id} className="flex items-center justify-between gap-[24px]">
+                                  <div className="max-w-[480px]">
+                                    <h4 className="text-sm font-semibold text-white/90 mb-[2px]">{lab.title}</h4>
+                                    <p className="text-xs text-white/50 leading-relaxed">{lab.desc}</p>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      handleToggle(lab.id);
+                                      triggerToast(`Experimental feature ${lab.title} updated`);
+                                    }}
+                                    style={isActive ? acToggleOn : undefined}
+                                    className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${isActive ? '' : 'bg-white/[0.1]'}`}
+                                  >
+                                    <motion.div
+                                      animate={{ x: isActive ? 20 : 0 }}
+                                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                      className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
+                                    />
+                                  </button>
                                 </div>
-                                <button
-                                  onClick={() => {
-                                    handleToggle(lab.id);
-                                    triggerToast(`Experimental feature ${lab.title} updated`);
-                                  }}
-                                  className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[lab.id] ? 'bg-[#00D2FF]' : 'bg-white/[0.1]'}`}
-                                >
-                                  <motion.div
-                                    animate={{ x: toggles[lab.id] ? 20 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                    className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-md"
-                                  />
-                                </button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -558,7 +723,8 @@ export default function SettingsPage() {
 
                     <button
                       onClick={() => handleToggle(item.key)}
-                      className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                      style={toggles[item.key] ? acToggleOn : undefined}
+                      className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? '' : 'bg-white/[0.1]'}`}
                     >
                       <motion.div
                         animate={{ x: toggles[item.key] ? 20 : 0 }}
@@ -570,7 +736,7 @@ export default function SettingsPage() {
                 ))}
               </div>
               <div className="flex justify-end pt-[8px]">
-                <a href="/dashboard/notifications" className="px-[20px] py-[10px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-semibold text-white transition-all text-center hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/20 hover:border-[#6C63FF]/30">
+                <a href="/dashboard/notifications" className="px-[20px] py-[10px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-semibold text-white transition-all text-center hover:bg-gradient-to-r hover:from-primary/20 hover:to-[var(--accent-secondary)]/20 hover:border-primary/30">
                   View All Notifications Page →
                 </a>
               </div>
@@ -642,33 +808,125 @@ export default function SettingsPage() {
                 </div>
 
                 <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[16px]">
-                  {providers.map(provider => (
+                  {providerList.map(provider => (
                     <motion.div
                       key={provider.id}
                       variants={listItem}
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-[16px] md:p-[20px] rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors duration-200 gap-[16px]"
+                      className="flex flex-col p-[16px] md:p-[20px] rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors duration-200 gap-[16px]"
                     >
-                      <div className="flex items-center gap-[16px]">
-                        <div className="w-[40px] h-[40px] md:w-[48px] md:h-[48px] rounded-full flex items-center justify-center border border-white/[0.1] flex-shrink-0" style={{ backgroundColor: `${provider.color}15` }}>
-                          <Cpu size={20} className="md:w-[24px] md:h-[24px]" color={provider.color} />
-                        </div>
-                        <div>
-                          <h3 className="text-sm md:text-base font-medium text-white/90 mb-[2px]">{provider.name}</h3>
-                          <div className="flex items-center gap-[6px]">
-                            <div className={`w-[6px] h-[6px] rounded-full ${provider.status === 'connected' ? 'bg-[#00D97E]' : provider.status === 'error' ? 'bg-[#FFBC00]' : 'bg-white/20'}`} />
-                            <span className="text-[10px] md:text-xs text-white/50 capitalize">{provider.status}</span>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-[16px]">
+                        <div className="flex items-center gap-[16px]">
+                          <div className="w-[40px] h-[40px] md:w-[48px] md:h-[48px] rounded-full flex items-center justify-center border border-white/[0.1] flex-shrink-0" style={{ backgroundColor: `${provider.color}15` }}>
+                            <Cpu size={20} className="md:w-[24px] md:h-[24px]" color={provider.color} />
+                          </div>
+                          <div>
+                            <h3 className="text-sm md:text-base font-medium text-white/90 mb-[2px]">{provider.name}</h3>
+                            <div className="flex items-center gap-[6px]">
+                              <div className={`w-[6px] h-[6px] rounded-full ${provider.status === 'connected' ? 'bg-[#00D97E]' : provider.status === 'error' ? 'bg-[#FFBC00]' : 'bg-white/20'}`} />
+                              <span className="text-[10px] md:text-xs text-white/50 capitalize">
+                                {provider.status === 'connected' && provider.model ? `connected (${provider.model})` : provider.status}
+                              </span>
+                            </div>
                           </div>
                         </div>
+
+                        <button
+                          onClick={() => handleToggleProvider(provider.id)}
+                          className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${provider.status === 'connected'
+                              ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
+                              : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                            }`}
+                        >
+                          {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
+                        </button>
                       </div>
 
-                      <button
-                        className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${provider.status === 'connected'
-                            ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
-                            : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                          }`}
-                      >
-                        {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
-                      </button>
+                      {connectingProviderId === provider.id && (
+                        <motion.form
+                          onSubmit={handleSaveConnection}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="w-full flex flex-col gap-[12px] pt-[16px] border-t border-white/[0.06] overflow-hidden"
+                        >
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
+                            <div className="flex flex-col gap-[8px]">
+                              <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">API Key</label>
+                              <input 
+                                type="password"
+                                placeholder={provider.id === 'anthropic' ? 'sk-ant-api03-...' : 'sk-...'}
+                                value={provApiKey}
+                                onChange={(e) => setProvApiKey(e.target.value)}
+                                required
+                                className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-[8px]">
+                              <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Default Model</label>
+                              <select
+                                value={provModel}
+                                onChange={(e) => setProvModel(e.target.value)}
+                                className="bg-[#0A0A0F] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs text-white focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+                              >
+                                {getModelsForProvider(provider.id).map(m => (
+                                  <option key={m.value} value={m.value} className="bg-[#0A0A0F]">{m.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-[8px]">
+                            <div className="flex items-center justify-between">
+                              <button 
+                                type="button" 
+                                onClick={() => setProvShowAdvanced(!provShowAdvanced)}
+                                className="text-[11px] text-white/40 hover:text-white/60 transition-colors"
+                              >
+                                {provShowAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
+                              </button>
+                            </div>
+
+                            {provShowAdvanced && (
+                              <div className="flex flex-col gap-[8px] mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Custom API Endpoint (Optional)</label>
+                                <input 
+                                  type="text"
+                                  placeholder={
+                                    provider.id === 'openai' 
+                                      ? "e.g. https://api.openai.com/v1"
+                                      : provider.id === 'anthropic'
+                                      ? "e.g. https://api.anthropic.com/v1"
+                                      : provider.id === 'google'
+                                      ? "e.g. https://generativelanguage.googleapis.com"
+                                      : "e.g. https://api.perplexity.ai"
+                                  }
+                                  value={provEndpoint}
+                                  onChange={(e) => setProvEndpoint(e.target.value)}
+                                  className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end gap-[12px] mt-4 border-t border-white/[0.04] pt-[12px]">
+                            <button 
+                              type="button" 
+                              onClick={() => setConnectingProviderId(null)}
+                              className="px-[20px] py-[8px] rounded-full border border-white/[0.1] text-xs text-white/60 hover:bg-white/[0.05] transition-all"
+                            >
+                              Cancel
+                            </button>
+                            <button 
+                              type="submit"
+                              style={acGradient}
+                              className="px-[24px] py-[8px] rounded-full text-xs font-semibold text-white hover:opacity-90 transition-all"
+                            >
+                              Save & Connect
+                            </button>
+                          </div>
+                        </motion.form>
+                      )}
                     </motion.div>
                   ))}
                 </motion.div>
@@ -767,14 +1025,15 @@ export default function SettingsPage() {
 
                     <button
                       onClick={() => handleToggle(item.key)}
-                      className={`relative w-[40px] h-[22px] md:w-[44px] md:h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? 'bg-[#6C63FF]' : 'bg-white/[0.1]'}`}
+                      style={toggles[item.key] ? acToggleOn : undefined}
+                      className={`relative w-[40px] h-[22px] md:w-[44px] md:h-[24px] rounded-full transition-colors duration-200 flex-shrink-0 border border-white/[0.05] ${toggles[item.key] ? '' : 'bg-white/[0.1]'}`}
                     >
                       <motion.div
                         animate={{ x: toggles[item.key] ? (typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 20) : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-[2px] left-[2px] w-[16px] h-[16px] md:w-[18px] md:h-[18px] rounded-full bg-white shadow-md flex items-center justify-center"
                       >
-                        {toggles[item.key] && <div className="w-[4px] h-[4px] rounded-full bg-[#6C63FF] opacity-50" />}
+                        {toggles[item.key] && <div className="w-[4px] h-[4px] rounded-full opacity-50" />}
                       </motion.div>
                     </button>
                   </div>
@@ -792,7 +1051,7 @@ export default function SettingsPage() {
 
               <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[32px]">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-[24px] text-center sm:text-left">
-                  <div className="w-[80px] h-[80px] rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D2FF] flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
+                  <div style={acGradient} className="w-[80px] h-[80px] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
                     <User size={32} className="text-white" />
                     <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                       <span className="text-xs font-medium text-white">Edit</span>
@@ -813,22 +1072,22 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-[20px] md:gap-[24px] max-w-[500px] w-full">
                   <div className="flex flex-col gap-[8px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Full Name</label>
-                    <input type="text" defaultValue="John Doe" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                    <input type="text" defaultValue="John Doe" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
                   </div>
                   <div className="flex flex-col gap-[8px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Email Address</label>
-                    <input type="email" defaultValue="john@cortex.ai" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                    <input type="email" defaultValue="john@cortex.ai" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
                   </div>
                   <div className="flex flex-col gap-[8px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Timezone</label>
-                    <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all appearance-none cursor-pointer">
+                    <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all appearance-none cursor-pointer">
                       <option className="bg-[#0A0A0F]">Pacific Time (US & Canada)</option>
                       <option className="bg-[#0A0A0F]">Eastern Time (US & Canada)</option>
                       <option className="bg-[#0A0A0F]">UTC</option>
                     </select>
                   </div>
 
-                  <button className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-white text-sm font-medium hover:shadow-[0_0_20px_rgba(108,99,255,0.4)] transition-all">
+                  <button style={acGradient} className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full text-white text-sm font-medium hover:opacity-90 transition-all">
                     Save Changes
                   </button>
                 </div>
@@ -840,14 +1099,14 @@ export default function SettingsPage() {
                   <h3 className="text-sm md:text-base font-medium text-white">Security</h3>
                   <div className="flex flex-col gap-[8px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Current Password</label>
-                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
                   </div>
                   <div className="flex flex-col gap-[8px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">New Password</label>
-                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" />
+                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
                   </div>
 
-                  <button className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full border border-[#00D2FF]/40 text-[#00D2FF] bg-[#00D2FF]/10 text-sm font-medium hover:bg-[#00D2FF]/20 transition-all">
+                  <button style={acBg10} className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full border border-white/[0.1] text-white text-sm font-medium hover:border-white/[0.2] transition-all">
                     Change Password
                   </button>
                 </div>
@@ -874,14 +1133,15 @@ export default function SettingsPage() {
                         type="text"
                         value={tempWorkspaceName}
                         onChange={(e) => setTempWorkspaceName(e.target.value)}
-                        className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all"
+                        className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
                       />
                       <button
                         onClick={handleUpdateWorkspaceName}
                         disabled={tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()}
+                        style={tempWorkspaceName !== workspaceName && tempWorkspaceName.trim() ? {...acBg20, ...acBorder40, ...acText} : undefined}
                         className={`w-full sm:w-auto px-[24px] py-[10px] rounded-full text-xs md:text-sm font-medium transition-all ${tempWorkspaceName === workspaceName || !tempWorkspaceName.trim()
                             ? 'bg-white/[0.02] text-white/20 border border-white/[0.05] cursor-not-allowed'
-                            : 'bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] hover:bg-[#6C63FF]/30'
+                            : 'border text-white hover:opacity-90'
                           }`}
                       >
                         Update
@@ -926,15 +1186,15 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[16px]">
                         <div className="flex flex-col gap-[8px]">
                           <label className="text-[10px] md:text-[11px] text-white/40 pl-[8px]">Full Name</label>
-                          <input type="text" placeholder="Sarah Connor" value={inviteName} onChange={(e) => setInviteName(e.target.value)} required className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all" />
+                          <input type="text" placeholder="Sarah Connor" value={inviteName} onChange={(e) => setInviteName(e.target.value)} required className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-primary/50 transition-all" />
                         </div>
                         <div className="flex flex-col gap-[8px]">
                           <label className="text-[10px] md:text-[11px] text-white/40 pl-[8px]">Email Address</label>
-                          <input type="email" placeholder="sarah@cortex.ai" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all" />
+                          <input type="email" placeholder="sarah@cortex.ai" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-primary/50 transition-all" />
                         </div>
                         <div className="flex flex-col gap-[8px]">
                           <label className="text-[10px] md:text-[11px] text-white/40 pl-[8px]">Workspace Role</label>
-                          <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="bg-[#0A0A0F] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-[#6C63FF]/50 transition-all cursor-pointer">
+                          <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="bg-[#0A0A0F] border border-white/[0.08] rounded-full px-[16px] py-[8px] text-xs text-white focus:outline-none focus:border-primary/50 transition-all cursor-pointer">
                             <option value="Editor">Editor (Can edit and manage)</option>
                             <option value="Viewer">Viewer (Read-only access)</option>
                           </select>
@@ -943,7 +1203,7 @@ export default function SettingsPage() {
 
                       <div className="flex flex-col sm:flex-row justify-end gap-[12px] mt-[8px]">
                         <button type="button" onClick={() => setIsInviteOpen(false)} className="w-full sm:w-auto px-[16px] py-[8px] rounded-full border border-white/[0.1] text-xs text-white/60 hover:bg-white/[0.05] transition-all">Cancel</button>
-                        <button type="submit" className="w-full sm:w-auto px-[20px] py-[8px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs font-semibold text-white hover:shadow-[0_0_15px_rgba(108,99,255,0.3)] transition-all">Send Invitation</button>
+                        <button type="submit" style={acGradient} className="w-full sm:w-auto px-[20px] py-[8px] rounded-full text-xs font-semibold text-white hover:opacity-90 transition-all">Send Invitation</button>
                       </div>
                     </motion.form>
                   )}
@@ -952,7 +1212,7 @@ export default function SettingsPage() {
                     {teamMembers.map((member) => (
                       <div key={member.id} className="p-[12px] md:p-[16px] border-b last:border-0 border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/[0.02] transition-colors gap-[12px]">
                         <div className="flex items-center gap-[12px]">
-                          <div className={`w-[28px] h-[28px] md:w-[32px] md:h-[32px] rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0 ${member.role === 'Owner' ? 'from-[#6C63FF] to-[#00D2FF]' : 'from-white/10 to-white/5'
+                          <div className={`w-[28px] h-[28px] md:w-[32px] md:h-[32px] rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm flex-shrink-0 ${member.role === 'Owner' ? 'from-primary to-primary/60' : 'from-white/10 to-white/5'
                             }`}>
                             <User size={14} className="text-white" />
                           </div>
@@ -964,7 +1224,7 @@ export default function SettingsPage() {
 
                         <div className="flex gap-[12px] items-center self-start sm:self-auto pl-[40px] sm:pl-0">
                           {member.role === 'Owner' ? (
-                            <span className="text-[11px] md:text-xs font-medium text-[#6C63FF] bg-[#6C63FF]/10 border border-[#6C63FF]/20 px-[10px] py-[4px] rounded-full">Owner</span>
+                            <span className="text-[11px] md:text-xs font-medium bg-white/[0.08] border border-white/[0.15] px-[10px] py-[4px] rounded-full">Owner</span>
                           ) : (
                             <>
                               <select
@@ -996,27 +1256,36 @@ export default function SettingsPage() {
                 <p className="text-[11px] md:text-sm text-white/50">Manage your subscription tier, billing cycle, and workspace quotas.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] md:gap-[24px]">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] md:gap-[24px]">
                 {/* Free Tier */}
-                <div className="rounded-[24px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-[24px] md:p-[32px] flex flex-col justify-between gap-[24px] md:gap-[28px] transition-all relative overflow-hidden group">
-                  <div className="flex flex-col gap-[16px] md:gap-[20px]">
+                <div className="rounded-[32px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group">
+                  <div className="flex flex-col gap-6">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-[4px]">Free Tier</h3>
-                        <p className="text-[11px] md:text-xs text-white/40">Ideal for individual exploration.</p>
+                        <h3 className="text-xl font-bold text-white mb-1">Free</h3>
+                        <p className="text-xs text-white/45">Self-Hosted</p>
                       </div>
-                      <span className="text-[10px] md:text-xs font-semibold text-[#00D97E] bg-[#00D97E]/10 border border-[#00D97E]/20 px-[8px] md:px-[10px] py-[3px] rounded-full">Current</span>
+                      <span className="text-[10px] md:text-xs font-semibold text-[#00D97E] bg-[#00D97E]/10 border border-[#00D97E]/20 px-3 py-1 rounded-full flex-shrink-0">
+                        Current
+                      </span>
                     </div>
 
-                    <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[16px] md:pb-[20px]">
-                      <span className="text-3xl md:text-4xl font-extrabold text-white">$0</span>
-                      <span className="text-[11px] md:text-xs text-white/40">/ month</span>
+                    <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
+                      <span className="text-5xl font-extrabold text-white">$0</span>
+                      <span className="text-xs text-white/40">/ month</span>
                     </div>
 
-                    <ul className="flex flex-col gap-[10px] md:gap-[12px] text-[11px] md:text-xs text-white/70">
-                      {['Access to all core features', 'Integrate local Ollama models', 'Standard syncing', 'Basic knowledge graph', 'Export generated artifacts'].map((feature, i) => (
-                        <li key={i} className="flex items-start gap-[8px]">
-                          <Check className="text-[#00D97E] flex-shrink-0 mt-[2px]" size={12} />
+                    <ul className="flex flex-col gap-3 text-xs text-white/70">
+                      {[
+                        "Unlimited conversations",
+                        "Local AI via Ollama",
+                        "Hybrid search (full-text + semantic)",
+                        "JSON & Markdown export",
+                        "Single user workspace",
+                        "PII redaction & offline security",
+                      ].map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2.5">
+                          <Check className="text-[#00D97E] flex-shrink-0 mt-0.5" size={14} />
                           <span>{feature}</span>
                         </li>
                       ))}
@@ -1029,36 +1298,96 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Pro Tier */}
-                <div className="rounded-[24px] backdrop-blur-xl bg-[#6C63FF]/[0.02] border border-[#6C63FF]/20 hover:border-[#6C63FF]/40 p-[24px] md:p-[32px] flex flex-col justify-between gap-[24px] md:gap-[28px] transition-all relative overflow-hidden group shadow-[0_0_30px_rgba(108,99,255,0.05)]">
-                  <div className="absolute -top-[50px] -right-[50px] w-[120px] h-[120px] rounded-full bg-[#6C63FF]/10 blur-[40px] pointer-events-none group-hover:bg-[#6C63FF]/20 transition-all duration-300" />
+                <div 
+                  style={{ backgroundColor: `${accentColor}05`, borderColor: `${accentColor}33` }} 
+                  className="rounded-[32px] backdrop-blur-xl border p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group shadow-[0_0_30px_rgba(var(--accent-rgb),0.1)]"
+                >
+                  <div className="flex flex-col gap-6">
+                    <div 
+                      style={{ position: 'absolute', top: -60, right: -60, backgroundColor: `${accentColor}1a`, width: 150, height: 150 }} 
+                      className="rounded-full blur-[50px] pointer-events-none group-hover:opacity-100 transition-all duration-500" 
+                    />
 
-                  <div className="flex flex-col gap-[16px] md:gap-[20px]">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-[4px]">Pro Tier</h3>
-                        <p className="text-[11px] md:text-xs text-white/40">For team syncs and priority models.</p>
+                        <h3 className="text-xl font-bold text-white mb-1">Pro</h3>
+                        <p className="text-xs text-white/45">Self-hosted Pro</p>
                       </div>
-                      <span className="text-[10px] md:text-xs font-semibold text-[#6C63FF] bg-[#6C63FF]/15 border border-[#6C63FF]/30 px-[8px] md:px-[10px] py-[3px] rounded-full shadow-[0_0_12px_rgba(108,99,255,0.2)]">Recommended</span>
+                      <span 
+                        style={{ color: accentColor, backgroundColor: `${accentColor}1a`, borderColor: `${accentColor}30`, boxShadow: `0 0 12px ${accentColor}33` }} 
+                        className="text-[10px] md:text-xs font-semibold border px-3 py-1 rounded-full flex-shrink-0"
+                      >
+                        Most Popular
+                      </span>
                     </div>
 
-                    <div className="flex items-baseline gap-[4px] border-b border-white/[0.06] pb-[16px] md:pb-[20px]">
-                      <span className="text-3xl md:text-4xl font-extrabold text-white">$20</span>
-                      <span className="text-[11px] md:text-xs text-white/40">/ month</span>
+                    <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
+                      <span className="text-5xl font-extrabold text-white">$20</span>
+                      <span className="text-xs text-white/40">/ month</span>
                     </div>
 
-                    <ul className="flex flex-col gap-[10px] md:gap-[12px] text-[11px] md:text-xs text-white/70">
-                      {['Everything in Free tier', '+Workspace access & collab', 'Access premium AI models first', 'Unlimited history backup', 'Priority synthesis rendering'].map((feature, i) => (
-                        <li key={i} className="flex items-start gap-[8px]">
-                          <Check className="text-[#6C63FF] flex-shrink-0 mt-[2px]" size={12} />
-                          <span className={i > 0 && i < 3 ? 'text-white font-medium' : ''}>{feature}</span>
+                    <ul className="flex flex-col gap-3 text-xs text-white/70">
+                      {[
+                        "Everything in Free +",
+                        "Semantic search with embeddings",
+                        "Artifact generation engine",
+                        "Full analytics & heatmaps",
+                        "Multi-user workspace (up to 5)",
+                        "Priority support",
+                      ].map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2.5">
+                          <Check style={{ color: accentColor }} className="flex-shrink-0 mt-0.5" size={14} />
+                          <span className={i === 0 ? '' : 'text-white font-medium'}>{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  <button className="w-full py-[10px] md:py-[11px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-xs text-white font-bold hover:shadow-[0_0_20px_rgba(108,99,255,0.35)] transition-all mt-[12px] relative z-10">
+                  <button style={acGradient} className="w-full py-[10px] md:py-[11px] rounded-full text-xs text-white font-bold hover:opacity-90 transition-all mt-[12px] relative z-10 shadow-lg">
                     Upgrade to Pro
                   </button>
+                </div>
+
+                {/* Enterprise Tier */}
+                <div className="rounded-[32px] backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:border-[#00D2FF]/30 p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group">
+                  <div className="flex flex-col gap-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-1">Enterprise</h3>
+                        <p className="text-xs text-white/45">Custom Deployment</p>
+                      </div>
+                      <span className="text-[10px] md:text-xs font-semibold text-[#00D2FF] bg-[#00D2FF]/10 border border-[#00D2FF]/20 px-3 py-1 rounded-full flex-shrink-0">
+                        Contact Us
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
+                      <span className="text-5xl font-extrabold text-white">Custom</span>
+                    </div>
+
+                    <ul className="flex flex-col gap-3 text-xs text-white/70">
+                      {[
+                        "Everything in Pro +",
+                        "SSO / SAML integration",
+                        "PII redaction pipeline",
+                        "Tamper-evident audit logs",
+                        "Unlimited users & workspaces",
+                        "SLA & dedicated support",
+                      ].map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2.5">
+                          <Check className="text-[#00D2FF] flex-shrink-0 mt-0.5" size={14} />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <a 
+                    href="mailto:sales@cortex.ai"
+                    className="w-full py-[10px] md:py-[11px] rounded-full bg-white text-black font-semibold text-center hover:bg-white/90 transition-all mt-[12px] block relative z-10"
+                  >
+                    Contact Sales
+                  </a>
                 </div>
               </div>
             </section>
@@ -1071,13 +1400,81 @@ export default function SettingsPage() {
                 <p className="text-[11px] md:text-sm text-white/50">Report issues, submit feedback, or get help with C.O.R.T.E.X.</p>
               </div>
 
-              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[24px]">
+              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[28px]">
                 <div className="flex flex-col gap-[16px]">
-                  <h3 className="text-sm md:text-base font-medium text-white">Report a Bug</h3>
-                  <p className="text-[11px] md:text-xs text-white/50">Describe the issue you encountered. This will automatically create a new issue in our GitHub repository.</p>
+                  <h3 className="text-sm md:text-base font-medium text-white">Report a Problem</h3>
+                  <p className="text-[11px] md:text-xs text-white/50">Select your preferred reporting channel. Creating a GitHub issue puts the bug directly onto our public tracking board.</p>
+                </div>
+
+                {/* Tab selector for report method */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px] max-w-[500px]">
+                  {[
+                    { id: 'normal', name: 'Option 1: Standard Feedback', desc: 'Direct message to internal support logs' },
+                    { id: 'github', name: 'Option 2: Create GitHub Issue', desc: 'Creates a public issue in GitHub repo' }
+                  ].map(method => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setReportMethod(method.id as any)}
+                      style={reportMethod === method.id ? {...acBg15, ...acBorder40} : undefined}
+                      className={`flex flex-col items-start p-[16px] rounded-[20px] border text-left transition-all ${
+                        reportMethod === method.id
+                          ? 'text-white border'
+                          : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                      }`}
+                    >
+                      <span className="text-xs font-semibold text-white mb-[4px]">{method.name}</span>
+                      <span className="text-[10px] text-white/40 leading-normal">{method.desc}</span>
+                    </button>
+                  ))}
                 </div>
 
                 <form onSubmit={handleReportBug} className="flex flex-col gap-[20px] max-w-[600px] w-full">
+                  {reportMethod === 'github' && (
+                    <div className="flex flex-col gap-[8px] animate-in fade-in slide-in-from-top-2 duration-200">
+                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">GitHub Username / ID</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Jaimintrv21" 
+                        value={githubUser}
+                        onChange={(e) => setGithubUser(e.target.value)}
+                        required
+                        className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" 
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
+                    <div className="flex flex-col gap-[8px]">
+                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Category</label>
+                      <select 
+                        value={bugCategory} 
+                        onChange={(e: any) => setBugCategory(e.target.value)}
+                        className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all cursor-pointer"
+                      >
+                        <option value="bug" className="bg-[#0A0A0F]">🐛 Bug / Defect</option>
+                        <option value="feature" className="bg-[#0A0A0F]">✨ Feature Request</option>
+                        <option value="docs" className="bg-[#0A0A0F]">📚 Documentation</option>
+                        <option value="optimization" className="bg-[#0A0A0F]">⚡ Optimization / Performance</option>
+                        <option value="styling" className="bg-[#0A0A0F]">🎨 Styling / Design</option>
+                        <option value="security" className="bg-[#0A0A0F]">🔒 Security Vulnerability</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-[8px]">
+                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Estimated Difficulty to Fix</label>
+                      <select 
+                        value={bugDifficulty} 
+                        onChange={(e: any) => setBugDifficulty(e.target.value)}
+                        className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all cursor-pointer"
+                      >
+                        <option value="easy" className="bg-[#0A0A0F]">🟢 Easy (Quick fix, minor change)</option>
+                        <option value="medium" className="bg-[#0A0A0F]">🟡 Medium (Requires code changes & validation)</option>
+                        <option value="hard" className="bg-[#0A0A0F]">🔴 Hard / Complex (Requires deep architecture change)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="flex flex-col gap-[8px]">
                     <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Title</label>
                     <input 
@@ -1086,7 +1483,7 @@ export default function SettingsPage() {
                       value={bugTitle}
                       onChange={(e) => setBugTitle(e.target.value)}
                       required
-                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all" 
+                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" 
                     />
                   </div>
                   
@@ -1098,7 +1495,7 @@ export default function SettingsPage() {
                       value={bugDescription}
                       onChange={(e) => setBugDescription(e.target.value)}
                       required
-                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[16px] text-xs md:text-sm text-white focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.05] transition-all resize-y" 
+                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[16px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all resize-y" 
                     />
                   </div>
 
@@ -1108,8 +1505,9 @@ export default function SettingsPage() {
                     className={`w-full sm:w-fit px-[24px] py-[12px] md:py-[10px] rounded-full text-sm font-medium transition-all flex items-center justify-center gap-[8px] ${
                       isSubmittingBug 
                         ? 'bg-white/[0.05] text-white/30 cursor-not-allowed border border-white/[0.1]' 
-                        : 'bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-white hover:shadow-[0_0_20px_rgba(108,99,255,0.4)]'
+                        : 'text-white hover:opacity-90'
                     }`}
+                    style={!isSubmittingBug ? acGradient : undefined}
                   >
                     {isSubmittingBug ? (
                       <>
@@ -1117,7 +1515,7 @@ export default function SettingsPage() {
                         Submitting...
                       </>
                     ) : (
-                      'Submit Bug Report'
+                      reportMethod === 'github' ? 'Create GitHub Issue' : 'Submit Feedback'
                     )}
                   </button>
                 </form>
@@ -1128,11 +1526,11 @@ export default function SettingsPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Glass-morphic Toast Notification Alert */}
+      {/* Glass-morphic Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 rounded-2xl backdrop-blur-3xl bg-black/80 border border-white/[0.1] px-5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="w-2 h-2 rounded-full bg-[#00D97E] animate-ping" />
-          <span className="text-[11px] md:text-xs font-medium text-white/90">{toastMessage}</span>
+        <div className="fixed bottom-5 right-5 z-50 max-w-[280px] rounded-full backdrop-blur-xl bg-black/80 border border-white/[0.12] px-4 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)] flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-300">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#00D97E] animate-pulse flex-shrink-0" />
+          <span className="text-[11px] font-medium text-white/90 whitespace-nowrap">{toastMessage}</span>
         </div>
       )}
     </div>

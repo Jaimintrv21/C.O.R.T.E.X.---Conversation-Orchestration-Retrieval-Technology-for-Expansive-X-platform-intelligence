@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { conversations as conversationsApi } from '@/lib/api';
 import { staggerList, listItem, slideUpBar } from '@/lib/motion';
+import { useAppearance } from '@/hooks/useAppearance';
 
 type Conversation = {
   id: string;
@@ -50,8 +51,7 @@ const providerColors: Record<string, string> = {
   perplexity: '#FFBC00',
 };
 
-const getProviderColor = (slug?: string | null) =>
-  providerColors[(slug || '').toLowerCase()] || '#6C63FF';
+// Fallback handled inside component with accentColor
 
 const formatTime = (value?: string | null) => {
   if (!value) return '';
@@ -70,6 +70,9 @@ const formatRelativeTime = (value?: string | null) => {
 };
 
 export default function ConversationsPage() {
+  const { accentColor } = useAppearance();
+  const getProviderColor = (slug?: string | null) =>
+    providerColors[(slug || '').toLowerCase()] || accentColor;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,7 +176,7 @@ export default function ConversationsPage() {
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-[10px] h-[40px] px-[16px] rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40 focus-within:bg-white/[0.08] focus-within:border-[#6C63FF]/50 focus-within:shadow-[0_0_0_3px_rgba(108,99,255,0.15)] transition-all duration-300">
+          <div className="flex items-center gap-[10px] h-[40px] px-[16px] rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40 focus-within:bg-white/[0.08] focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)] transition-all duration-300">
             <Search size={16} />
             <input
               type="text"
@@ -265,7 +268,7 @@ export default function ConversationsPage() {
                     onClick={() => setActiveConvId(conv.id)}
                     className={`rounded-[16px] p-[14px] border transition-all duration-200 ease-out cursor-pointer flex items-center gap-[12px] group ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#6C63FF]/[0.08] to-[#00D2FF]/[0.04] border-[#6C63FF]/35 shadow-[0_0_15px_rgba(108,99,255,0.08)]'
+                        ? 'bg-gradient-to-r from-primary/[0.08] to-[var(--accent-secondary)]/[0.04] border-primary/35 shadow-[0_0_15px_rgba(var(--accent-rgb),0.08)]'
                         : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12]'
                     }`}
                   >
@@ -369,7 +372,7 @@ export default function ConversationsPage() {
                       <div
                         className={`w-[28px] h-[28px] rounded-full flex-shrink-0 flex items-center justify-center border ${
                           msg.role === 'user'
-                            ? 'bg-gradient-to-br from-[#6C63FF]/20 to-[#00D2FF]/20 border-[#6C63FF]/30'
+                            ? 'bg-gradient-to-br from-primary/20 to-[var(--accent-secondary)]/20 border-primary/30'
                             : 'bg-white/[0.04] border-white/[0.08]'
                         }`}
                       >
@@ -383,7 +386,7 @@ export default function ConversationsPage() {
                       <div
                         className={`px-[16px] py-[10px] text-[13px] leading-relaxed ${
                           msg.role === 'user'
-                            ? 'bg-gradient-to-br from-[#6C63FF]/15 to-[#00D2FF]/10 border border-[#6C63FF]/20 rounded-[20px_20px_4px_20px] text-white/95'
+                            ? 'bg-gradient-to-br from-primary/15 to-[var(--accent-secondary)]/10 border border-primary/20 rounded-[20px_20px_4px_20px] text-white/95'
                             : 'bg-white/[0.03] border border-white/[0.06] rounded-[20px_20px_20px_4px] text-white/90'
                         }`}
                       >

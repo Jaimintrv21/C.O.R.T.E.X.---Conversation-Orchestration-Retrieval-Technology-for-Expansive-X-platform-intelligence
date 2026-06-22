@@ -26,6 +26,12 @@
     --input: 240 5.9% 90%;
     --ring: 245 58% 51%;
     --radius: 0.75rem;
+    --accent-color: #6C63FF;
+    --accent-secondary: #00D2FF;
+    --accent-rgb: 108, 99, 255;
+    --accent-secondary-rgb: 0, 210, 255;
+    --mouse-x: 50%;
+    --mouse-y: 50%;
   }
 
   .dark {
@@ -48,54 +54,278 @@
     --border: 240 5% 18%;
     --input: 240 5% 18%;
     --ring: 245 58% 69%;
+    --accent-color: #6C63FF;
+    --accent-secondary: #00D2FF;
+    --accent-rgb: 108, 99, 255;
+    --accent-secondary-rgb: 0, 210, 255;
+    --mouse-x: 50%;
+    --mouse-y: 50%;
   }
 }
 
 @layer base {
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground font-sans antialiased; }
-  html { scroll-behavior: smooth; }
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* ── Scrollbar ────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
 
 /* ── Glass surface utility ────────────────────── */
 .glass {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* ── Animations ───────────────────────────────── */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes slide-in-left {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(108,99,255,0.2); }
-  50%      { box-shadow: 0 0 40px rgba(108,99,255,0.4); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-fade-in  { animation: fade-in 0.5s ease-out both; }
-.animate-slide-in { animation: slide-in-left 0.4s ease-out both; }
-.animate-glow     { animation: glow-pulse 3s ease-in-out infinite; }
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(108, 99, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(108, 99, 255, 0.4);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+
+.animate-slide-in {
+  animation: slide-in-left 0.4s ease-out both;
+}
+
+.animate-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
 
 /* ── Selection ────────────────────────────────── */
 ::selection {
   background: rgba(108, 99, 255, 0.3);
   color: white;
+}
+
+/* ── Theme Presets Override Rules ──────────────── */
+/* retro-hologram: Diffraction spectrum borders, light-refracting scanlines, and custom holographic depth */
+.theme-retro-hologram [class*="backdrop-blur"],
+.theme-retro-hologram .glass {
+  background: linear-gradient(135deg, rgba(8, 8, 18, 0.90) 0%, rgba(14, 8, 26, 0.90) 100%) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.12), 0 0 4px rgba(255, 0, 255, 0.25), inset 0 0 15px rgba(255, 255, 255, 0.03), 0 16px 45px rgba(0, 0, 0, 0.85) !important;
+  position: relative !important;
+  background-clip: padding-box !important;
+}
+.theme-retro-hologram [class*="backdrop-blur"]::before,
+.theme-retro-hologram .glass::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 255, 255, 0.06) 50%
+  ) !important;
+  background-size: 100% 4px !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  border-radius: inherit !important;
+  opacity: 0.6 !important;
+}
+.theme-retro-hologram [class*="backdrop-blur"]::after,
+.theme-retro-hologram .glass::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(to right, #00f2fe, #f093fb, #f5576c, #00f2fe) !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+  opacity: 0.8 !important;
+}
+
+/* minimal-slate: Simple dark gray card layout with soft shadows */
+.theme-minimal-slate [class*="backdrop-blur"],
+.theme-minimal-slate .glass {
+  background-color: rgba(24, 24, 27, 0.75) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* liquid-glass: Highly refractive, transparent border highlights */
+.theme-liquid-glass [class*="backdrop-blur"],
+.theme-liquid-glass .glass {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 1.5px 1.5px 1.5px -0.5px rgba(255, 255, 255, 0.22), 
+              inset -1.5px -1.5px 1.5px -0.5px rgba(0, 0, 0, 0.15),
+              0 16px 36px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* ── Dynamic Accent Classes ────────────────────── */
+.bg-accent-gradient {
+  background: linear-gradient(135deg, rgb(var(--accent-rgb) / 0.25) 0%, rgb(var(--accent-secondary-rgb) / 0.15) 100%) !important;
+}
+
+.text-accent-gradient {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-secondary) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.border-accent-theme {
+  border-color: var(--accent-color) !important;
+}
+
+.border-accent-theme-glow {
+  border-color: rgb(var(--accent-rgb) / 0.4) !important;
+}
+
+.shadow-accent-theme-glow {
+  box-shadow: 0 0 20px rgb(var(--accent-rgb) / 0.25) !important;
+}
+
+/* ── Layout Padding & Spacing Overrides ────────── */
+/* Compact */
+.layout-compact .gap-\[32px\] { gap: 16px !important; }
+.layout-compact .gap-\[24px\] { gap: 12px !important; }
+.layout-compact .gap-\[20px\] { gap: 10px !important; }
+.layout-compact .gap-\[28px\] { gap: 14px !important; }
+.layout-compact .p-\[24px\] { padding: 12px !important; }
+.layout-compact .p-\[20px\] { padding: 10px !important; }
+.layout-compact .p-\[32px\] { padding: 16px !important; }
+.layout-compact .p-\[16px\] { padding: 10px !important; }
+.layout-compact .px-\[24px\] { padding-left: 12px !important; padding-right: 12px !important; }
+.layout-compact .py-\[24px\] { padding-top: 12px !important; padding-bottom: 12px !important; }
+.layout-compact .min-h-\[380px\] { min-height: 280px !important; }
+.layout-compact .mb-\[16px\] { margin-bottom: 8px !important; }
+.layout-compact .pb-\[80px\] { padding-bottom: 40px !important; }
+
+/* Cinematic */
+.layout-cinematic .gap-\[32px\] { gap: 48px !important; }
+.layout-cinematic .gap-\[24px\] { gap: 36px !important; }
+.layout-cinematic .gap-\[20px\] { gap: 30px !important; }
+.layout-cinematic .gap-\[28px\] { gap: 42px !important; }
+.layout-cinematic .p-\[24px\] { padding: 40px !important; }
+.layout-cinematic .p-\[20px\] { padding: 32px !important; }
+.layout-cinematic .p-\[32px\] { padding: 56px !important; }
+.layout-cinematic .p-\[16px\] { padding: 24px !important; }
+.layout-cinematic .px-\[24px\] { padding-left: 40px !important; padding-right: 40px !important; }
+.layout-cinematic .py-\[24px\] { padding-top: 40px !important; padding-bottom: 40px !important; }
+.layout-cinematic .min-h-\[380px\] { min-height: 520px !important; }
+.layout-cinematic .mb-\[16px\] { margin-bottom: 28px !important; }
+.layout-cinematic .pb-\[80px\] { padding-bottom: 120px !important; }
+
+/* ── Mouse Glow Spotlight Sheen ─────────────────── */
+.mouse-glow-active [class*="backdrop-blur"],
+.mouse-glow-active .glass {
+  position: relative;
+  overflow: hidden;
+}
+
+.mouse-glow-active [class*="backdrop-blur"]::after,
+.mouse-glow-active .glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    250px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgb(var(--accent-rgb) / 0.12),
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.mouse-glow-active [class*="backdrop-blur"]:hover::after,
+.mouse-glow-active .glass:hover::after {
+  opacity: 1;
+}
+
+/* Ensure container child elements sit above the mouse sheen layer */
+.mouse-glow-active [class*="backdrop-blur"] > *,
+.mouse-glow-active .glass > * {
+  position: relative;
+  z-index: 2;
 }

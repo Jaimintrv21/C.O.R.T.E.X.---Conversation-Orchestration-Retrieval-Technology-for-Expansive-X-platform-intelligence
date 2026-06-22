@@ -95,8 +95,8 @@ export default function DashboardOverviewPage() {
               
               <div className="relative z-10 flex flex-col justify-between h-full">
                 <div className="flex justify-between items-start mb-[12px]">
-                  <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-[#6C63FF]/20 to-[#00D2FF]/20 flex items-center justify-center border border-white/[0.1]">
-                    <stat.icon size={16} className="text-[#00D2FF]" />
+                  <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-primary/20 to-[var(--accent-secondary)]/20 flex items-center justify-center border border-white/[0.1]">
+                    <stat.icon size={16} className="text-[var(--accent-secondary)]" />
                   </div>
                   <div className="text-[11px] px-[8px] py-[2px] rounded-full border bg-[#00D97E]/10 border-[#00D97E]/25 text-[#00D97E]">
                     {stat.trend}
@@ -119,19 +119,19 @@ export default function DashboardOverviewPage() {
           <div>
             <h2 className="text-sm font-medium text-white/50 mb-[16px] px-[8px]">Quick Actions</h2>
             <div className="flex flex-wrap items-center gap-[10px]">
-              <button className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(108,99,255,0.2)]">
+              <button className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-primary/20 hover:to-[var(--accent-secondary)]/10 hover:border-primary/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]">
                 <DownloadCloud size={16} />
                 Import conversations
               </button>
-              <Link href="/dashboard/compare" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(108,99,255,0.2)]">
+              <Link href="/dashboard/compare" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-primary/20 hover:to-[var(--accent-secondary)]/10 hover:border-primary/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]">
                 <GitCompare size={16} />
                 New comparison
               </Link>
-              <Link href="/dashboard/artifacts" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(108,99,255,0.2)]">
+              <Link href="/dashboard/artifacts" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-primary/20 hover:to-[var(--accent-secondary)]/10 hover:border-primary/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]">
                 <Boxes size={16} />
                 Generate artifact
               </Link>
-              <Link href="/dashboard/knowledge" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-[#6C63FF]/20 hover:to-[#00D2FF]/10 hover:border-[#6C63FF]/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(108,99,255,0.2)]">
+              <Link href="/dashboard/knowledge" className="flex-1 min-w-[140px] flex items-center justify-center gap-[8px] px-[18px] py-[12px] rounded-[18px] bg-white/[0.04] border border-white/[0.15] text-xs md:text-sm text-white/70 hover:bg-gradient-to-r hover:from-primary/20 hover:to-[var(--accent-secondary)]/10 hover:border-primary/30 hover:text-white transition-all duration-200 ease-out whitespace-nowrap [box-shadow:inset_1px_1px_1px_rgba(255,255,255,0.15)] hover:shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]">
                 <Network size={16} />
                 View knowledge graph
               </Link>

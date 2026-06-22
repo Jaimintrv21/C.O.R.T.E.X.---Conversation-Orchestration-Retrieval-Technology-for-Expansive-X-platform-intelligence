@@ -20,6 +20,34 @@ async def list_artifacts(user: dict = Depends(get_current_user)):
     return ApiListResponse(data=[ArtifactResponse.model_validate(artifact) for artifact in artifacts])
 
 
+from app.schemas.artifacts import SourcePickerGroup, SourcePickerItem
+from collections import defaultdict
+
+@router.get("/source-picker", response_model=ApiListResponse[SourcePickerGroup])
+async def get_source_picker(user: dict = Depends(get_current_user)):
+    store = FirestoreStore()
+    conversations = store.list_conversations(user["id"])
+    
+    grouped = defaultdict(list)
+    for c in conversations:
+        provider = c.get("provider_slug") or "unknown"
+        grouped[provider].append(
+            SourcePickerItem(
+                id=c["id"],
+                title=c.get("title") or "Untitled",
+                message_count=c.get("message_count", 0),
+                last_message_at=c.get("updated_at") or c.get("created_at"),
+                preview=c.get("preview")
+            )
+        )
+    
+    response_data = [
+        SourcePickerGroup(provider_slug=provider, conversations=convs)
+        for provider, convs in grouped.items()
+    ]
+    return ApiListResponse(data=response_data)
+
+
 @router.post("/generate", response_model=ApiResponse, status_code=202)
 async def generate_artifact(
     body: GenerateArtifactRequest,
@@ -27,6 +55,9 @@ async def generate_artifact(
     user: dict = Depends(get_current_user),
     idempotency_key: str | None = Depends(get_idempotency_key),
 ):
+    if len(body.source_ids) > 20:
+        raise HTTPException(status_code=400, detail="Cannot generate artifact from more than 20 sources at once")
+
     store = FirestoreStore()
     artifact = store.create_artifact(
         user_id=user["id"],

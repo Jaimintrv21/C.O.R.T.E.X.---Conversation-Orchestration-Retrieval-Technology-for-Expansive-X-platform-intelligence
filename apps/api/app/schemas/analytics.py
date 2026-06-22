@@ -45,3 +45,30 @@ class ModelUsage(BaseModel):
     message_count: int
     token_count: int
     avg_response_length: float
+
+class SentimentTrend(BaseModel):
+    date: date
+    sentiment_score: float
+
+class ResponseQuality(BaseModel):
+    provider: str
+    model: str
+    clarification_rate: float
+    total_samples: int
+
+class TopicEvolution(BaseModel):
+    week_start: date
+    topic: str
+    count: int
+    trend: str # "growing", "shrinking", "stable"
+
+class CrossProviderComparison(BaseModel):
+    query_cluster: str
+    comparisons: list[dict] # Includes provider, avg_length, avg_time
+
+class KnowledgeGraphStats(BaseModel):
+    node_count: int
+    edge_count: int
+    most_connected_nodes: list[dict]
+    growth_rate_pct: float
+

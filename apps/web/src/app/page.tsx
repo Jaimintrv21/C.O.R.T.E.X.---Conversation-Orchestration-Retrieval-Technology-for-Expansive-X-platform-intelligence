@@ -11,6 +11,10 @@ import { Features } from "@/components/blocks/features-8";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard, Cpu, Network, MessageSquare, Terminal, Menu, X, Target } from "lucide-react";
 
+// FIXED hardcoded landing page theme - never reads from user AppearanceProvider
+const LANDING_ACCENT = '#6C63FF';
+const LANDING_SECONDARY = '#00D2FF';
+
 const NAV_TABS = [
   { title: "Home", icon: Home },
   { title: "Features", icon: Sparkles },
@@ -218,11 +222,10 @@ const ContextPipelineVisualization = () => {
               <button
                 key={idx}
                 onClick={() => selectStep(idx)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 flex gap-4 items-start ${
-                  isActive
+                className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 flex gap-4 items-start ${isActive
                     ? "bg-white/[0.06] border-violet-500/40 shadow-[0_0_20px_rgba(139,92,246,0.12)] scale-[1.01]"
                     : "bg-white/[0.01] border-white/[0.05] hover:bg-white/[0.03] hover:border-white/[0.1]"
-                }`}
+                  }`}
               >
                 <div className={`mt-0.5 p-2 rounded-xl border bg-white/[0.02] border-white/[0.08] ${s.color}`}>
                   <s.icon size={16} />
@@ -262,26 +265,26 @@ const ContextPipelineVisualization = () => {
 
       {/* Visualizer Right */}
       <div className="lg:col-span-7 flex flex-col rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl bg-black/40">
-        
+
         {/* Top visual canvas (Desktop View) */}
         <div className="hidden lg:flex h-[420px] relative bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px] bg-[#07070c] items-center justify-center p-6 border-b border-white/[0.06] overflow-hidden">
-          
+
           {/* Glowing wire paths */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 600 420">
             {/* SVG connections with rounded corners (using Q bezier curves) */}
-            
+
             {/* User Query -> Vector Match */}
             <path d="M 300 90 L 300 105 Q 300 110 295 110 L 165 110 Q 160 110 160 115 L 160 135" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-            
+
             {/* User Query -> Graph Fact */}
             <path d="M 300 90 L 300 105 Q 300 110 305 110 L 435 110 Q 440 110 440 115 L 440 135" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-            
+
             {/* Vector Match -> Prompt Builder */}
             <path d="M 160 205 L 160 215 Q 160 220 165 220 L 295 220 Q 300 220 300 225 L 300 240" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-            
+
             {/* Graph Fact -> Prompt Builder */}
             <path d="M 440 205 L 440 215 Q 440 220 435 220 L 305 220 Q 300 220 300 225 L 300 240" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-            
+
             {/* Prompt Builder -> Ollama */}
             <path d="M 300 310 L 300 330" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
 
@@ -368,15 +371,13 @@ const ContextPipelineVisualization = () => {
           {/* Node 1: User Query */}
           <motion.div
             onClick={() => selectStep(0)}
-            className={`absolute top-[55px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
-              activeStep === 0 
-                ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)] scale-105" 
+            className={`absolute top-[55px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 0
+                ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)] scale-105"
                 : "bg-[#0c0a1a]/85 border-purple-500/30 hover:border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
-              activeStep === 0 ? "bg-purple-500/20 text-purple-400 border-purple-400" : "bg-purple-500/10 text-purple-400/70 border-purple-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${activeStep === 0 ? "bg-purple-500/20 text-purple-400 border-purple-400" : "bg-purple-500/10 text-purple-400/70 border-purple-500/20"
+              }`}>
               <MessageSquare size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -388,15 +389,13 @@ const ContextPipelineVisualization = () => {
           {/* Node 2: Vector Match */}
           <motion.div
             onClick={() => selectStep(1)}
-            className={`absolute top-[170px] left-[26.6%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
-              activeStep === 1 
-                ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-105" 
+            className={`absolute top-[170px] left-[26.6%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 1
+                ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-105"
                 : "bg-[#080b18]/85 border-blue-500/30 hover:border-blue-400/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
-              activeStep === 1 ? "bg-blue-500/20 text-blue-400 border-blue-400" : "bg-blue-500/10 text-blue-400/70 border-blue-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${activeStep === 1 ? "bg-blue-500/20 text-blue-400 border-blue-400" : "bg-blue-500/10 text-blue-400/70 border-blue-500/20"
+              }`}>
               <Search size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -408,15 +407,13 @@ const ContextPipelineVisualization = () => {
           {/* Node 3: Graph Fact */}
           <motion.div
             onClick={() => selectStep(2)}
-            className={`absolute top-[170px] left-[73.3%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
-              activeStep === 2 
-                ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)] scale-105" 
+            className={`absolute top-[170px] left-[73.3%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 2
+                ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)] scale-105"
                 : "bg-[#08130f]/85 border-green-500/30 hover:border-green-400/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
-              activeStep === 2 ? "bg-green-500/20 text-green-400 border-green-400" : "bg-green-500/10 text-green-400/70 border-green-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${activeStep === 2 ? "bg-green-500/20 text-green-400 border-green-400" : "bg-green-500/10 text-green-400/70 border-green-500/20"
+              }`}>
               <Network size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -428,15 +425,13 @@ const ContextPipelineVisualization = () => {
           {/* Node 4: Prompt Builder */}
           <motion.div
             onClick={() => selectStep(3)}
-            className={`absolute top-[275px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
-              activeStep === 3 
-                ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)] scale-105" 
+            className={`absolute top-[275px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 3
+                ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)] scale-105"
                 : "bg-[#160e0a]/85 border-orange-500/30 hover:border-orange-400/50 shadow-[0_0_15px_rgba(249,115,22,0.15)]"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
-              activeStep === 3 ? "bg-orange-500/20 text-orange-400 border-orange-400" : "bg-orange-500/10 text-orange-400/70 border-orange-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${activeStep === 3 ? "bg-orange-500/20 text-orange-400 border-orange-400" : "bg-orange-500/10 text-orange-400/70 border-orange-500/20"
+              }`}>
               <Terminal size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -448,15 +443,13 @@ const ContextPipelineVisualization = () => {
           {/* Node 5: Ollama GLM-5.2 */}
           <motion.div
             onClick={() => selectStep(4)}
-            className={`absolute top-[365px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${
-              activeStep === 4 
-                ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)] scale-105" 
+            className={`absolute top-[365px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 4
+                ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)] scale-105"
                 : "bg-[#150a14]/85 border-pink-500/30 hover:border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.15)]"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
-              activeStep === 4 ? "bg-pink-500/20 text-pink-400 border-pink-400" : "bg-pink-500/10 text-pink-400/70 border-pink-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${activeStep === 4 ? "bg-pink-500/20 text-pink-400 border-pink-400" : "bg-pink-500/10 text-pink-400/70 border-pink-500/20"
+              }`}>
               <Cpu size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -468,19 +461,17 @@ const ContextPipelineVisualization = () => {
 
         {/* Top visual canvas (Mobile stacked list: lg:hidden) */}
         <div className="flex lg:hidden flex-col items-center gap-6 p-6 bg-[#07070c] border-b border-white/[0.06] w-full">
-          
+
           {/* Card 1: User Query */}
           <div
             onClick={() => selectStep(0)}
-            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
-              activeStep === 0 
-                ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)]" 
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 0
+                ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)]"
                 : "bg-[#0c0a1a]/85 border-purple-500/30 hover:border-purple-400/50"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
-              activeStep === 0 ? "bg-purple-500/20 text-purple-400 border-purple-400" : "bg-purple-500/10 text-purple-400/70 border-purple-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${activeStep === 0 ? "bg-purple-500/20 text-purple-400 border-purple-400" : "bg-purple-500/10 text-purple-400/70 border-purple-500/20"
+              }`}>
               <MessageSquare size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -496,15 +487,13 @@ const ContextPipelineVisualization = () => {
           {/* Card 2: Vector Match */}
           <div
             onClick={() => selectStep(1)}
-            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
-              activeStep === 1 
-                ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)]" 
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 1
+                ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)]"
                 : "bg-[#080b18]/85 border-blue-500/30 hover:border-blue-400/50"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
-              activeStep === 1 ? "bg-blue-500/20 text-blue-400 border-blue-400" : "bg-blue-500/10 text-blue-400/70 border-blue-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${activeStep === 1 ? "bg-blue-500/20 text-blue-400 border-blue-400" : "bg-blue-500/10 text-blue-400/70 border-blue-500/20"
+              }`}>
               <Search size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -520,15 +509,13 @@ const ContextPipelineVisualization = () => {
           {/* Card 3: Graph Fact */}
           <div
             onClick={() => selectStep(2)}
-            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
-              activeStep === 2 
-                ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]" 
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 2
+                ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
                 : "bg-[#08130f]/85 border-green-500/30 hover:border-green-400/50"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
-              activeStep === 2 ? "bg-green-500/20 text-green-400 border-green-400" : "bg-green-500/10 text-green-400/70 border-green-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${activeStep === 2 ? "bg-green-500/20 text-green-400 border-green-400" : "bg-green-500/10 text-green-400/70 border-green-500/20"
+              }`}>
               <Network size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -544,15 +531,13 @@ const ContextPipelineVisualization = () => {
           {/* Card 4: Prompt Builder */}
           <div
             onClick={() => selectStep(3)}
-            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
-              activeStep === 3 
-                ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)]" 
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 3
+                ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)]"
                 : "bg-[#160e0a]/85 border-orange-500/30 hover:border-orange-400/50"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
-              activeStep === 3 ? "bg-orange-500/20 text-orange-400 border-orange-400" : "bg-orange-500/10 text-orange-400/70 border-orange-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${activeStep === 3 ? "bg-orange-500/20 text-orange-400 border-orange-400" : "bg-orange-500/10 text-orange-400/70 border-orange-500/20"
+              }`}>
               <Terminal size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -568,15 +553,13 @@ const ContextPipelineVisualization = () => {
           {/* Card 5: Ollama GLM-5.2 */}
           <div
             onClick={() => selectStep(4)}
-            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${
-              activeStep === 4 
-                ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)]" 
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 4
+                ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)]"
                 : "bg-[#150a14]/85 border-pink-500/30 hover:border-pink-400/50"
-            }`}
+              }`}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${
-              activeStep === 4 ? "bg-pink-500/20 text-pink-400 border-pink-400" : "bg-pink-500/10 text-pink-400/70 border-pink-500/20"
-            }`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border ${activeStep === 4 ? "bg-pink-500/20 text-pink-400 border-pink-400" : "bg-pink-500/10 text-pink-400/70 border-pink-500/20"
+              }`}>
               <Cpu size={16} />
             </div>
             <div className="text-left min-w-0">
@@ -599,17 +582,15 @@ const ContextPipelineVisualization = () => {
               </div>
               <button
                 onClick={() => setActiveTab('terminal')}
-                className={`font-semibold transition-all px-2.5 py-1 rounded-md ${
-                  activeTab === 'terminal' ? "bg-white/[0.06] text-white" : "text-white/40 hover:text-white/70"
-                }`}
+                className={`font-semibold transition-all px-2.5 py-1 rounded-md ${activeTab === 'terminal' ? "bg-white/[0.06] text-white" : "text-white/40 hover:text-white/70"
+                  }`}
               >
                 CORTEX Daemon Logs
               </button>
               <button
                 onClick={() => setActiveTab('code')}
-                className={`font-semibold transition-all px-2.5 py-1 rounded-md ${
-                  activeTab === 'code' ? "bg-white/[0.06] text-white" : "text-white/40 hover:text-white/70"
-                }`}
+                className={`font-semibold transition-all px-2.5 py-1 rounded-md ${activeTab === 'code' ? "bg-white/[0.06] text-white" : "text-white/40 hover:text-white/70"
+                  }`}
               >
                 python_client.py
               </button>
@@ -650,7 +631,7 @@ const ContextPipelineVisualization = () => {
                   else if (log.startsWith('[OLLAMA]')) colorClass = "text-fuchsia-400/90";
                   else if (log.startsWith('[SIMULATION')) colorClass = "text-amber-400 font-semibold";
                   else if (log.startsWith('>')) colorClass = "text-blue-300 font-bold";
-                  
+
                   return (
                     <div key={index} className={colorClass}>
                       {log}
@@ -713,6 +694,20 @@ const ContextPipelineVisualization = () => {
 export default function LandingPage() {
   const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // HARDCODED - landing page NEVER reads from user AppearanceProvider
+  const accentColor = LANDING_ACCENT;
+  const secondaryColor = LANDING_SECONDARY;
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
 
   const handleTabChange = (index: number | null) => {
     if (index === null) return;
@@ -728,14 +723,24 @@ export default function LandingPage() {
     actions[index]?.();
   };
 
+  // Static Liquid Glass theme variables for the landing page
+  const landingPageStyle = {
+    '--accent-color': '#6C63FF',
+    '--accent-rgb': '108, 99, 255',
+    '--accent-secondary': '#00D2FF',
+    '--accent-secondary-rgb': '0, 210, 255',
+    '--primary': '244 100% 63%',
+    '--ring': '244 100% 63%',
+  } as React.CSSProperties;
+
   return (
-    <div className="relative min-h-screen bg-black">
+    <div className="theme-liquid-glass relative min-h-screen bg-black" style={landingPageStyle}>
       {/* WebGL Shader — covers entire page */}
-      <WebGLShader />
+      <WebGLShader isStatic />
 
       {/* ExpandableTabs Header */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden md:block">
-        <ExpandableTabs tabs={NAV_TABS as any} activeColor="text-violet-400" onChange={handleTabChange} />
+        <ExpandableTabs tabs={NAV_TABS as any} onChange={handleTabChange} />
       </header>
 
       {/* Brand (top-left) */}
@@ -743,6 +748,80 @@ export default function LandingPage() {
         <img src="/logo.png" alt="CORTEX Logo" className="w-[28px] h-[28px] object-contain rounded-md" />
         <span className="text-base font-bold tracking-tight text-white hidden md:block">CORTEX</span>
       </div>
+
+      {/* Mobile Menu Toggle (top-right) */}
+      {!isMobileMenuOpen && (
+        <div className="fixed top-5 right-6 z-40 md:hidden">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 rounded-full bg-white/[0.05] border border-white/[0.1] text-white/80 hover:text-white backdrop-blur-md"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Drawer Navigation */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            key="mobile-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm md:hidden"
+          />
+        )}
+        {isMobileMenuOpen && (
+          <motion.aside
+            key="mobile-drawer"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed top-0 bottom-0 left-0 w-[290px] h-[100dvh] z-[70] bg-[#0A0A0F]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-2xl p-6 flex flex-col md:hidden overflow-y-auto custom-scrollbar"
+          >
+            {/* Glass Reflection Shine */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
+            
+            <div className="flex flex-col gap-6 relative z-10">
+              {/* Header inside drawer */}
+              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
+                  <span className="font-bold tracking-widest text-base text-accent-gradient">CORTEX</span>
+                </div>
+                <button 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              {/* Nav Links */}
+              <nav className="flex flex-col gap-3">
+                {NAV_TABS.map((tab, i) => {
+                  if (tab.type === "separator") return <div key={`sep-${i}`} className="h-px bg-white/[0.08] my-1 mx-2" />;
+                  return (
+                    <button
+                      key={`tab-${i}`}
+                      onClick={() => {
+                        handleTabChange(i);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-4 h-[44px] px-[16px] rounded-full border border-white/[0.08] bg-white/[0.02] text-[13px] font-semibold text-white/90 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15] transition-all"
+                    >
+                      {tab.icon && <tab.icon size={16} className="text-[#A78BFA]" />}
+                      {tab.title}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* ─── HERO — Full width, no box ─────────────── */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
@@ -756,10 +835,10 @@ export default function LandingPage() {
         </div>
 
         {/* Heading — full width, massive */}
-        <h1 className="text-white text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.9] max-w-6xl">
+        <h1 className="text-white text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.9] max-w-6xl">
           Your AI Conversations
         </h1>
-        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.9] max-w-6xl mt-2 bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">
+        <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.9] max-w-6xl mt-2 bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">
           Unified & Intelligent
         </h1>
 
@@ -768,7 +847,7 @@ export default function LandingPage() {
         </p>
 
         {/* CTA */}
-        <div className="mt-12 flex items-center gap-4">
+        <div className="mt-12 flex flex-wrap justify-center items-center gap-4">
           <LiquidButton className="text-white border border-white/20 rounded-full" size="xl"
             onClick={() => router.push("/login")}>
             Get Started <ArrowRight className="w-4 h-4 ml-1" />
@@ -1006,15 +1085,15 @@ export default function LandingPage() {
             >
               {/* Glass Reflection Shine */}
               <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
-              
+
               <div className="flex flex-col gap-6 relative z-10">
                 {/* Header inside drawer */}
                 <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                   <div className="flex items-center gap-2">
                     <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
-                    <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-[#6C63FF] to-[#00D2FF]">CORTEX</span>
+                    <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-primary to-[var(--accent-secondary)]">CORTEX</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
                   >
@@ -1035,9 +1114,9 @@ export default function LandingPage() {
                           setMobileMenuOpen(false);
                           handleTabChange(idx);
                         }}
-                        className="flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold bg-white/[0.03] border border-white/[0.06] text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-[#6C63FF]/25 hover:to-[#00D2FF]/15 hover:border-white/[0.2] transition-all duration-200"
+                        className="flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold bg-white/[0.03] border border-white/[0.06] text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-primary/25 hover:to-[var(--accent-secondary)]/15 hover:border-white/[0.2] transition-all duration-200"
                       >
-                        <Icon size={16} className="text-violet-400" />
+                        <Icon size={16} className="text-primary" />
                         <span>{tab.title}</span>
                       </button>
                     );

@@ -17,7 +17,9 @@ from app.firestore import FirestoreStore
 from app.services.external_chat_errors import ExternalChatError, error_to_payload
 from app.services.external_chat_service import ExternalChatService
 from app.services.llm_service import LLMGenerationRequest, LLMRouterService
+from app.services.chat_grounding_service import ChatGroundingService
 from app.workers.tasks.embedding_tasks import embed_batch
+from app.workers.tasks.knowledge_tasks import extract_knowledge
 from app.schemas.common import ApiListResponse, ApiResponse, CursorMeta, Meta
 from app.schemas.conversation import (
     ChatMessageRequest,
@@ -65,6 +67,29 @@ async def create_conversation(body: ConversationCreate, user: dict = Depends(get
         metadata=body.metadata or {},
     )
     return ApiResponse(data=_serialize_conversation(conversation))
+
+
+@router.get("/recent-sessions", response_model=ApiListResponse[ConversationResponse])
+async def recent_sessions(user: dict = Depends(get_current_user)):
+    store = FirestoreStore()
+    docs = list(
+        store._col("conversations")
+        .where("user_id", "==", user["id"])
+        .where("session_status", "==", "active")
+        .where("deleted_at", "==", None)
+        .stream()
+    )
+    items = []
+    for doc in docs:
+        c = store._with_id(doc) if hasattr(store, "_with_id") else store.get_conversation(doc.id)
+        if c:
+            items.append(c)
+    items.sort(key=lambda item: item.get("last_message_at") or item.get("created_at") or datetime.min.replace(tzinfo=UTC), reverse=True)
+    page = items[:5]
+    return ApiListResponse(
+        data=[_serialize_conversation(item) for item in page],
+        meta=Meta(pagination=CursorMeta(has_next=False, next_cursor=None, total_count=len(page), page_size=5))
+    )
 
 
 @router.get("", response_model=ApiListResponse[ConversationResponse])
@@ -121,9 +146,7 @@ async def list_conversations(
     )
 
 
-async def _generate_chat_reply(*, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None) -> str:
-    router = LLMRouterService()
-    provider_name = conversation.get("provider_name") or _provider_slug_to_name(provider_slug) or "Assistant"
+async def _build_grounded_prompt(*, user_id: str, provider_name: str, conversation: dict, content: str, use_knowledge_base: bool) -> tuple[str, str]:
     prompt = (
         f"You are a helpful conversation assistant for {provider_name}.\n"
         f"Conversation title: {conversation.get('title') or 'Untitled'}\n"
@@ -131,12 +154,56 @@ async def _generate_chat_reply(*, provider_slug: str | None, conversation: dict,
         f"User message: {content}\n"
         "Respond with a concise, useful answer."
     )
+    
+    if use_knowledge_base:
+        grounding_service = ChatGroundingService()
+        grounded_context = await grounding_service.build_grounded_context(user_id=user_id, query=content)
+        if grounded_context:
+            system_prompt = (
+                "You are CORTEX's AI assistant. You have access to the user's "
+                "own knowledge base built from their past conversations. Use "
+                "the following context when relevant to answer more "
+                "personally and accurately. If the context isn't relevant to "
+                "the current question, ignore it and answer normally.\n\n"
+                f"{grounded_context}"
+            )
+            return prompt, system_prompt
+            
+    system_prompt = "You are a helpful, concise chat assistant."
+    return prompt, system_prompt
+
+@router.post("/{conversation_id}/end-session", response_model=ApiResponse[ConversationResponse])
+async def end_session(conversation_id: uuid.UUID, user: dict = Depends(get_current_user)):
+    store = FirestoreStore()
+    conversation = store.get_conversation(str(conversation_id))
+    if not conversation or conversation.get("user_id") != user["id"] or conversation.get("deleted_at") is not None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+        
+    updated = store.update_conversation(str(conversation_id), {
+        "session_status": "ended",
+        "ended_at": datetime.now(UTC),
+    })
+    
+    from app.workers.tasks.knowledge_tasks import extract_knowledge_for_session
+    extract_knowledge_for_session.delay(str(conversation_id))
+    
+    return ApiResponse(data=_serialize_conversation(updated or conversation))
+
+
+async def _generate_chat_reply(*, user_id: str, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None, use_knowledge_base: bool) -> str:
+    router = LLMRouterService()
+    provider_name = conversation.get("provider_name") or _provider_slug_to_name(provider_slug) or "Assistant"
+    
+    prompt, system_prompt = await _build_grounded_prompt(
+        user_id=user_id, provider_name=provider_name, conversation=conversation, 
+        content=content, use_knowledge_base=use_knowledge_base
+    )
     try:
         reply = await router.generate_text(
             LLMGenerationRequest(
-                task_type="summarization",
+                task_type="primary_chat",
                 prompt=prompt,
-                system_prompt="You are a helpful, concise chat assistant.",
+                system_prompt=system_prompt,
                 temperature=0.2,
                 model=model,
                 local_only=local_only,
@@ -144,13 +211,37 @@ async def _generate_chat_reply(*, provider_slug: str | None, conversation: dict,
         )
         if reply.strip():
             return reply.strip()
-    except Exception:
+    except Exception as exc:
         pass
 
     return (
         f"I saved your message in the live conversation store and I can build on it next. "
         f"Here is a starting point: {content[:240]}"
     )
+
+async def _stream_chat_reply(*, user_id: str, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None, use_knowledge_base: bool):
+    import typing
+    router = LLMRouterService()
+    provider_name = conversation.get("provider_name") or _provider_slug_to_name(provider_slug) or "Assistant"
+    
+    prompt, system_prompt = await _build_grounded_prompt(
+        user_id=user_id, provider_name=provider_name, conversation=conversation, 
+        content=content, use_knowledge_base=use_knowledge_base
+    )
+    try:
+        async for chunk in router.stream_text(
+            LLMGenerationRequest(
+                task_type="primary_chat",
+                prompt=prompt,
+                system_prompt=system_prompt,
+                temperature=0.2,
+                model=model,
+                local_only=local_only,
+            )
+        ):
+            yield chunk
+    except Exception as exc:
+        yield f"I saved your message in the live conversation store and I can build on it next. Here is a starting point: {content[:240]}"
 
 
 async def _get_ollama_chat_response(
@@ -416,6 +507,7 @@ def _persist_chat_turn(
             content=assistant_text,
             content_type="text",
             model=None,
+            provider_slug=provider_slug,
             token_count=max(1, len(assistant_text.split())),
             attachments=None,
             tool_calls=None,
@@ -459,6 +551,7 @@ async def send_message(
         content=body.content,
         content_type="text",
         model=body.model,
+        provider_slug=provider_slug,
         token_count=max(1, len(body.content.split())),
         attachments=None,
         tool_calls=None,
@@ -469,13 +562,23 @@ async def send_message(
 
     assistant_text: str | None = None
     external_error: ExternalChatError | None = None
+    
+    allow_cloud_override = user.get("preferences", {}).get("primary_chat_allow_cloud_override", True)
+    resolved_local_only = body.local_only
+    if body.provider == "local" and not allow_cloud_override:
+        resolved_local_only = True
+        
+    use_kb = body.use_knowledge_base if body.use_knowledge_base is not None else (body.provider == "local")
+
     if body.provider == "local" and provider_slug != "glm-5.2:cloud" and body.model != "glm-5.2:cloud":
         assistant_text = await _generate_chat_reply(
+            user_id=user["id"],
             provider_slug=provider_slug,
             conversation=conversation,
             content=body.content,
             model=body.model,
-            local_only=body.local_only,
+            local_only=resolved_local_only,
+            use_knowledge_base=use_kb,
         )
     elif body.provider == "ollama" or provider_slug == "glm-5.2:cloud" or body.model == "glm-5.2:cloud":
         resolved_model = body.model or provider_slug or "glm-5.2:cloud"
@@ -483,7 +586,7 @@ async def send_message(
             user_id=user["id"],
             messages=store.list_messages(str(conversation_id)),
             model=resolved_model,
-            use_knowledge=body.use_knowledge if body.use_knowledge is not None else True,
+            use_knowledge=use_kb,
         )
     else:
         try:
@@ -509,6 +612,7 @@ async def send_message(
             content=assistant_text,
             content_type="text",
             model=body.model,
+            provider_slug=provider_slug,
             token_count=max(1, len(assistant_text.split())),
             attachments=None,
             tool_calls=None,
@@ -531,6 +635,7 @@ async def send_message(
     if assistant_message:
         new_msg_ids.append(assistant_message["id"])
     embed_batch.delay(message_ids=new_msg_ids)
+    extract_knowledge.delay(message_ids=new_msg_ids)
 
     await emit_audit_log(
         user["id"],
@@ -594,6 +699,7 @@ async def stream_message(
         content=body.content,
         content_type="text",
         model=body.model,
+        provider_slug=provider_slug,
         token_count=max(1, len(body.content.split())),
         attachments=None,
         tool_calls=None,
@@ -613,22 +719,31 @@ async def stream_message(
         async def produce() -> None:
             nonlocal provider_error
             try:
+                allow_cloud_override = user.get("preferences", {}).get("primary_chat_allow_cloud_override", True)
+                resolved_local_only = body.local_only
+                if body.provider == "local" and not allow_cloud_override:
+                    resolved_local_only = True
+                    
+                use_kb = body.use_knowledge_base if body.use_knowledge_base is not None else (body.provider == "local")
+                
                 if body.provider == "local" and provider_slug != "glm-5.2:cloud" and body.model != "glm-5.2:cloud":
-                    assistant_text = await _generate_chat_reply(
+                    async for chunk in _stream_chat_reply(
+                        user_id=user["id"],
                         provider_slug=provider_slug,
                         conversation=conversation,
                         content=body.content,
                         model=body.model,
-                        local_only=body.local_only,
-                    )
-                    await queue.put(("chunk", assistant_text))
+                        local_only=resolved_local_only,
+                        use_knowledge_base=use_kb,
+                    ):
+                        await queue.put(("chunk", chunk))
                 elif body.provider == "ollama" or provider_slug == "glm-5.2:cloud" or body.model == "glm-5.2:cloud":
                     resolved_model = body.model or provider_slug or "glm-5.2:cloud"
                     async for chunk in _stream_ollama_chat(
                         user_id=user["id"],
                         messages=store.list_messages(str(conversation_id)),
                         model=resolved_model,
-                        use_knowledge=body.use_knowledge if body.use_knowledge is not None else True,
+                        use_knowledge=use_kb,
                     ):
                         await queue.put(("chunk", chunk))
                 else:
@@ -715,11 +830,12 @@ async def stream_message(
             )
             store.update_conversation_message_stats(str(conversation_id))
 
-            # Queue async embedding generation for persisted messages
+            # Queue async embedding generation and knowledge extraction for persisted messages
             stream_msg_ids = [user_message["id"]]
             if assistant_message:
                 stream_msg_ids.append(assistant_message["id"])
             embed_batch.delay(message_ids=stream_msg_ids)
+            extract_knowledge.delay(message_ids=stream_msg_ids)
             await emit_audit_log(
                 user["id"],
                 "conversation.message_sent",

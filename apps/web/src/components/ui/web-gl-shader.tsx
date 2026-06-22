@@ -1,10 +1,27 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useAppearance } from "@/hooks/useAppearance"
 
-export function WebGLShader() {
+export function WebGLShader({ isStatic = false }: { isStatic?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mounted, setMounted] = useState(false)
+  const { shaderSpeed, reduceMotion } = useAppearance()
+
+  const speedRef = useRef(0.01)
+
+  // Update speed ref when state changes (no re-init of WebGL context)
+  useEffect(() => {
+    if (isStatic) {
+      speedRef.current = 0.01;
+      return;
+    }
+    let speed = 0.01;
+    if (reduceMotion || shaderSpeed === 'paused') speed = 0.0;
+    else if (shaderSpeed === 'slow') speed = 0.0025;
+    else if (shaderSpeed === 'hyper') speed = 0.045;
+    speedRef.current = speed;
+  }, [shaderSpeed, reduceMotion, isStatic]);
 
   useEffect(() => {
     setMounted(true)
@@ -58,7 +75,7 @@ export function WebGLShader() {
       handleResize()
 
       const animate = () => {
-        uniforms.time.value += 0.01
+        uniforms.time.value += speedRef.current
         renderer.render(scene, camera)
         animationId = requestAnimationFrame(animate)
       }
@@ -82,8 +99,8 @@ export function WebGLShader() {
     }
   }, [mounted])
 
-  // Don't render canvas during SSR — prevents hydration mismatch
-  if (!mounted) return null
+  // Don't render canvas during SSR or if disabled — prevents hydration mismatch and frees resources
+  if (!mounted || (!isStatic && shaderSpeed === 'disabled')) return null
 
   return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full block" />
 }

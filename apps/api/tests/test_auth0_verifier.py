@@ -194,8 +194,8 @@ async def test_jit_provisioning_on_first_request(monkeypatch, auth0_settings):
                 "storage_used": 0,
             }
 
-        def upsert_auth0_session(self, *args, **kwargs):
-            self.calls.append(("session", args, kwargs))
+        def record_login_history(self, *args, **kwargs):
+            self.calls.append(("record_login_history", args, kwargs))
 
     store = FakeStore()
     monkeypatch.setattr("app.dependencies.FirestoreStore", lambda: store)

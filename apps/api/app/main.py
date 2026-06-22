@@ -15,10 +15,10 @@ from app.middleware.logging import LoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 
 # Import all routers
-from app.routers import health, auth, conversations, search, analytics
+from app.routers import health, auth, conversations, search, analytics, settings as settings_router
 from app.routers import knowledge_graph, artifacts, jobs, workspaces, provider_accounts, ingest, usage
 
-settings = get_settings()
+settings_config = get_settings()
 configure_logging()
 
 
@@ -46,7 +46,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=settings_config.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,9 +61,10 @@ app.add_middleware(LoggingMiddleware)
 app.include_router(health.router)
 
 # API v1 routes
-prefix = settings.api_prefix
+prefix = settings_config.api_prefix
 
 app.include_router(auth.router, prefix=prefix)
+app.include_router(settings_router.router, prefix=prefix)
 app.include_router(conversations.router, prefix=prefix)
 app.include_router(search.router, prefix=prefix)
 app.include_router(analytics.router, prefix=prefix)

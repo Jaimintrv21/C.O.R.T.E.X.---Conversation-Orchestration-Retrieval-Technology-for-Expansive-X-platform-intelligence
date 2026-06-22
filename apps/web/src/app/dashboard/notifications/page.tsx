@@ -3,14 +3,16 @@
 import { motion } from 'framer-motion';
 import { Bell, Check, Trash2, Cpu, Sparkles, AlertTriangle } from 'lucide-react';
 import { staggerList, listItem } from '@/lib/motion';
+import { useAppearance } from '@/hooks/useAppearance';
 
 export default function NotificationsPage() {
+  const { accentColor } = useAppearance();
   const notifications = [
     { id: 1, title: 'Model Sync Complete', desc: 'Llama 3 downloaded to Ollama successfully.', time: '2 mins ago', icon: Cpu, color: '#00D97E', read: false },
-    { id: 2, title: 'New Artifact Generated', desc: 'Dashboard scaffolding React components are ready to view.', time: '1 hour ago', icon: Sparkles, color: '#6C63FF', read: false },
+    { id: 2, title: 'New Artifact Generated', desc: 'Dashboard scaffolding React components are ready to view.', time: '1 hour ago', icon: Sparkles, color: accentColor, read: false },
     { id: 3, title: 'Usage Alert', desc: 'You have reached 80% of your OpenAI monthly budget.', time: '4 hours ago', icon: AlertTriangle, color: '#FFBC00', read: false },
     { id: 4, title: 'Workspace Invite', desc: 'Sarah joined your "Personal Workspace" as an Editor.', time: '1 day ago', icon: Bell, color: '#00D2FF', read: true },
-    { id: 5, title: 'Weekly Digest', desc: 'You processed 1,204 messages and extracted 45 new entities this week.', time: '2 days ago', icon: Bell, color: '#6C63FF', read: true },
+    { id: 5, title: 'Weekly Digest', desc: 'You processed 1,204 messages and extracted 45 new entities this week.', time: '2 days ago', icon: Bell, color: accentColor, read: true },
   ];
 
   return (

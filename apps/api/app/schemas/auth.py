@@ -17,23 +17,21 @@ class UserResponse(BaseModel):
     is_verified: bool
     storage_quota: int
     storage_used: int
+    auth_provider: str | None = None
+    created_at: datetime | None = None
+    preferences: dict | None = None
 
     class Config:
         from_attributes = True
 
-
 class SessionResponse(BaseModel):
     id: str
-    user_id: str
-    token_hash: str | None = None
+    session_key: str | None = None
     ip_address: str | None = None
     user_agent: str | None = None
-    expires_at: datetime
-    revoked_at: datetime | None = None
-    auth0_session_id: str | None = None
-    auth0_jti: str | None = None
+    expires_at: datetime | None = None
     last_seen_at: datetime | None = None
-    created_at: datetime
+    revoked_at: datetime | None = None
 
     class Config:
         from_attributes = True

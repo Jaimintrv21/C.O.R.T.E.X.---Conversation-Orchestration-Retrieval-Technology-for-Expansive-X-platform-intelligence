@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { title, description } = await request.json();
+    const { title, description, githubUser, category, difficulty } = await request.json();
 
     if (!title || !description) {
       return NextResponse.json(
@@ -17,9 +17,25 @@ export async function POST(request: Request) {
     const owner = process.env.GITHUB_OWNER || 'Jaimintrv21';
     const repo = process.env.GITHUB_REPO || 'C.O.R.T.E.X.---Conversation-Orchestration-Retrieval-Technology-for-Expansive-X-platform-intelligence';
 
+    const labels = ['user-reported'];
+    if (category) {
+      if (category === 'bug') labels.push('bug');
+      else if (category === 'feature') labels.push('enhancement');
+      else if (category === 'docs') labels.push('documentation');
+      else if (category === 'optimization') labels.push('performance');
+      else if (category === 'styling') labels.push('design');
+      else if (category === 'security') labels.push('security');
+    } else {
+      labels.push('bug');
+    }
+
+    if (difficulty) {
+      if (difficulty === 'easy') labels.push('difficulty:easy');
+      else if (difficulty === 'medium') labels.push('difficulty:medium');
+      else if (difficulty === 'hard') labels.push('difficulty:hard');
+    }
+
     // If there is no token, simulate success so the UI doesn't break
-    // Since the user wants "the new github issue must create", we make the actual call
-    // if the token is available.
     if (!githubToken) {
       console.warn("No GITHUB_TOKEN provided. Simulating issue creation.");
       return NextResponse.json({
@@ -29,17 +45,26 @@ export async function POST(request: Request) {
       });
     }
 
+    const issueBody = githubUser 
+      ? `**Reported by GitHub User:** @${githubUser}\n\n${description}`
+      : description;
+
+    const issueTitle = githubUser
+      ? `[${category?.toUpperCase() || 'BUG'}] ${title} (by @${githubUser})`
+      : `[${category?.toUpperCase() || 'BUG'}] ${title}`;
+
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
       method: 'POST',
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': `token ${githubToken}`,
         'Content-Type': 'application/json',
+        'User-Agent': 'CORTEX-App'
       },
       body: JSON.stringify({
-        title: `[Bug] ${title}`,
-        body: description,
-        labels: ['bug', 'user-reported']
+        title: issueTitle,
+        body: issueBody,
+        labels: labels
       }),
     });
 

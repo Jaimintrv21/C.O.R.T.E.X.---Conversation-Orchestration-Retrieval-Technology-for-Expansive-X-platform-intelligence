@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { GitCompare, MessageSquare, CheckCircle2, Circle } from 'lucide-react';
 import { conversations as conversationsApi } from '@/lib/api';
 import { popIn } from '@/lib/motion';
+import { useAppearance } from '@/hooks/useAppearance';
 
 type Conversation = {
   id: string;
@@ -26,6 +27,7 @@ export default function ComparePage() {
   const [items, setItems] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState<CompareResult | null>(null);
+  const { accentColor } = useAppearance();
 
   useEffect(() => {
     let alive = true;
@@ -78,19 +80,19 @@ export default function ComparePage() {
               return (
                 <button
                   key={conversation.id}
-                  onClick={() => toggleSelected(conversation.id)}
-                  className={`text-left rounded-[18px] p-[14px] border transition-all ${isSelected ? 'bg-[#6C63FF]/[0.08] border-[#6C63FF]/35' : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12]'}`}
-                >
-                  <div className="flex items-center gap-[12px]">
-                    {isSelected ? <CheckCircle2 size={18} className="text-[#6C63FF]" /> : <Circle size={18} className="text-white/30" />}
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{conversation.title}</div>
-                      <div className="text-xs text-white/40 truncate">
-                        {conversation.provider_name || 'Unknown'} | {conversation.message_count || 0} messages
-                      </div>
+                onClick={() => toggleSelected(conversation.id)}
+                className={`text-left rounded-[18px] p-[14px] border transition-all ${isSelected ? 'bg-primary/10 border-primary/40' : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12]'}`}
+              >
+                <div className="flex items-center gap-[12px]">
+                  {isSelected ? <CheckCircle2 size={18} className="text-primary" /> : <Circle size={18} className="text-white/30" />}
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{conversation.title}</div>
+                    <div className="text-xs text-white/40 truncate">
+                      {conversation.provider_name || 'Unknown'} | {conversation.message_count || 0} messages
                     </div>
                   </div>
-                </button>
+                </div>
+              </button>
               );
             })}
           </div>

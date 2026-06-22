@@ -10,6 +10,7 @@ import {
 import { popIn, staggerList, listItem } from '@/lib/motion';
 import { artifacts as artifactsApi } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApi';
+import { useAppearance } from '@/hooks/useAppearance';
 
 import {
   Stepper,
@@ -70,6 +71,7 @@ const mapArtifact = (artifact: any): ArtifactCard => {
 };
 
 export default function ArtifactsPage() {
+  const { accentColor } = useAppearance();
   const [activeTab, setActiveTab] = useState<'generate' | 'manage'>('generate');
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -152,7 +154,7 @@ export default function ArtifactsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-[16px] px-[8px]">
         <div className="flex items-center gap-[16px]">
-          <div className="w-[48px] h-[48px] rounded-full bg-gradient-to-br from-[#6C63FF]/20 to-[#00D2FF]/20 border border-[#6C63FF]/30 flex items-center justify-center flex-shrink-0">
+          <div className="w-[48px] h-[48px] rounded-full bg-gradient-to-br from-primary/20 to-[var(--accent-secondary)]/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
             <Sparkles className="text-[#00D2FF]" size={24} />
           </div>
           <div className="min-w-0">
@@ -166,7 +168,7 @@ export default function ArtifactsPage() {
           <button 
             onClick={() => setActiveTab('generate')}
             className={`px-[16px] py-[6px] rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-              activeTab === 'generate' ? 'bg-[#6C63FF]/30 border border-[#6C63FF]/40 text-white shadow-[0_0_15px_rgba(108,99,255,0.2)]' : 'text-white/50 hover:text-white/80'
+              activeTab === 'generate' ? 'bg-primary/30 border border-primary/40 text-white shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]' : 'text-white/50 hover:text-white/80'
             }`}
           >
             Generate New
@@ -174,7 +176,7 @@ export default function ArtifactsPage() {
           <button 
             onClick={() => setActiveTab('manage')}
             className={`px-[16px] py-[6px] rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-              activeTab === 'manage' ? 'bg-[#6C63FF]/30 border border-[#6C63FF]/40 text-white shadow-[0_0_15px_rgba(108,99,255,0.2)]' : 'text-white/50 hover:text-white/80'
+              activeTab === 'manage' ? 'bg-primary/30 border border-primary/40 text-white shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]' : 'text-white/50 hover:text-white/80'
             }`}
           >
             Manage Artifacts ({artifacts.length})
@@ -212,7 +214,7 @@ export default function ArtifactsPage() {
                     className="relative flex-col items-center justify-center flex-1"
                   >
                     <StepperTrigger className="flex flex-col items-center gap-2">
-                      <StepperIndicator className="data-[state=completed]:bg-[#00D97E] data-[state=completed]:text-white data-[state=active]:bg-[#6C63FF] data-[state=active]:text-white data-[state=active]:shadow-[0_0_16px_rgba(108,99,255,0.4)] data-[state=inactive]:bg-white/10 data-[state=inactive]:text-white/50 border-0 w-8 h-8 md:w-9 md:h-9 font-bold transition-all duration-300">
+                      <StepperIndicator className="data-[state=completed]:bg-[#00D97E] data-[state=completed]:text-white data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-[0_0_16px_rgba(var(--accent-rgb),0.4)] data-[state=inactive]:bg-white/10 data-[state=inactive]:text-white/50 border-0 w-8 h-8 md:w-9 md:h-9 font-bold transition-all duration-300">
                         {step.id}
                       </StepperIndicator>
                       <div className="text-center mt-1">
@@ -243,12 +245,12 @@ export default function ArtifactsPage() {
                             onClick={() => setSelectedType(type.id)}
                             className={`flex items-start gap-[14px] p-[16px] md:p-[18px] rounded-[20px] border text-left transition-all duration-200 ${
                               isSelected 
-                                ? 'bg-gradient-to-br from-[#6C63FF]/10 to-[#00D2FF]/5 border-[#00D2FF]/40 shadow-[0_0_20px_rgba(0,210,255,0.1)] -translate-y-[2px]' 
+                                ? 'bg-gradient-to-br from-primary/10 to-[var(--accent-secondary)]/5 border-[var(--accent-secondary)]/40 shadow-[0_0_20px_rgba(var(--accent-secondary-rgb),0.1)] -translate-y-[2px]' 
                                 : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12]'
                             }`}
                           >
                             <div className={`w-[40px] h-[40px] md:w-[44px] md:h-[44px] rounded-full flex items-center justify-center border flex-shrink-0 transition-all duration-200 ${
-                              isSelected ? 'bg-[#00D2FF]/20 border-[#00D2FF]/50 text-[#00D2FF] shadow-[0_0_12px_rgba(0,210,255,0.2)]' : 'bg-white/[0.04] border-white/[0.08] text-white/50'
+                              isSelected ? 'bg-[var(--accent-secondary)]/20 border-[var(--accent-secondary)]/50 text-[var(--accent-secondary)] shadow-[0_0_12px_rgba(var(--accent-secondary-rgb),0.2)]' : 'bg-white/[0.04] border-white/[0.08] text-white/50'
                         }`}>
                               <type.icon size={20} />
                             </div>
@@ -282,7 +284,7 @@ export default function ArtifactsPage() {
                         <label className="text-sm font-medium text-white/70 pl-[4px]">Data Sources</label>
                         <div className="flex items-center gap-[8px] flex-wrap">
                           {['ChatGPT History', 'Claude Projects', 'Engineering Docs'].map((src, i) => (
-                            <button key={i} className="px-[14px] py-[7px] rounded-full bg-[#6C63FF]/15 border border-[#6C63FF]/30 text-[13px] text-white/90 hover:bg-[#6C63FF]/25 transition-colors whitespace-nowrap">
+                            <button key={i} className="px-[14px] py-[7px] rounded-full bg-primary/15 border border-primary/30 text-[13px] text-white/90 hover:bg-primary/25 transition-colors whitespace-nowrap">
                               ✓ {src}
                             </button>
                           ))}
@@ -297,7 +299,7 @@ export default function ArtifactsPage() {
                         <input 
                           type="text" 
                           placeholder="e.g. Next.js App Router" 
-                          className="w-full bg-white/[0.02] border border-white/[0.08] rounded-full px-[18px] py-[12px] md:py-[11px] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#6C63FF]/50 focus:bg-white/[0.04] focus:shadow-[0_0_0_3px_rgba(108,99,255,0.15)] transition-all" 
+                          className="w-full bg-white/[0.02] border border-white/[0.08] rounded-full px-[18px] py-[12px] md:py-[11px] text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/50 focus:bg-white/[0.04] focus:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)] transition-all" 
                         />
                       </div>
 
@@ -326,7 +328,7 @@ export default function ArtifactsPage() {
                       </button>
                       <button 
                         onClick={() => setCurrentStep(3)}
-                        className="flex items-center justify-center gap-[8px] w-full sm:w-auto px-[24px] py-[12px] md:py-[11px] rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] text-sm text-white font-semibold hover:shadow-[0_0_24px_rgba(108,99,255,0.4)] transition-all"
+                        className="flex items-center justify-center gap-[8px] w-full sm:w-auto px-[24px] py-[12px] md:py-[11px] rounded-full bg-gradient-to-r from-primary to-[var(--accent-secondary)] text-sm text-white font-semibold hover:shadow-[0_0_24px_rgba(var(--accent-rgb),0.4)] transition-all"
                       >
                         <Sparkles size={16} /> Generate
                       </button>
@@ -371,7 +373,7 @@ export default function ArtifactsPage() {
                       </div>
                       <div className="h-[6px] w-full rounded-full bg-white/[0.06] overflow-hidden">
                         <motion.div 
-                          className="h-full rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] relative overflow-hidden"
+                          className="h-full rounded-full bg-gradient-to-r from-primary to-[var(--accent-secondary)] relative overflow-hidden"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ ease: "easeOut" }}
@@ -426,7 +428,7 @@ export default function ArtifactsPage() {
             {/* Search and Sort controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-[16px] px-[8px]">
               {/* Search */}
-              <div className="flex items-center gap-[10px] h-[44px] md:h-[40px] px-[16px] rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40 focus-within:bg-white/[0.08] focus-within:border-[#6C63FF]/50 focus-within:shadow-[0_0_0_3px_rgba(108,99,255,0.15)] transition-all duration-300 w-full md:w-[320px]">
+              <div className="flex items-center gap-[10px] h-[44px] md:h-[40px] px-[16px] rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40 focus-within:bg-white/[0.08] focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)] transition-all duration-300 w-full md:w-[320px]">
                 <Search size={16} className="flex-shrink-0" />
                 <input 
                   type="text" 

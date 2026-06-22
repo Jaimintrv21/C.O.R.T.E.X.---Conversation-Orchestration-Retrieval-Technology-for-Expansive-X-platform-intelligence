@@ -7,6 +7,7 @@ import { WebGLShader } from "@/components/ui/web-gl-shader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerList, listItem } from "@/lib/motion";
+import { useAppearance } from "@/hooks/useAppearance";
 
 const plans = [
   {
@@ -39,10 +40,10 @@ const plans = [
     period: "/ month",
     desc: "For teams, shared collaboration workspace sync, and advanced AI utilities.",
     badge: "Most Popular",
-    badgeClass: "text-[#6C63FF] bg-[#6C63FF]/15 border-[#6C63FF]/30 shadow-[0_0_12px_rgba(108,99,255,0.2)]",
-    borderClass: "border-[#6C63FF]/20 hover:border-[#6C63FF]/45",
-    bgClass: "bg-[#6C63FF]/[0.02]",
-    checkColor: "text-[#6C63FF]",
+    badgeClass: "text-primary bg-primary/15 border-primary/30 shadow-[0_0_12px_rgba(var(--accent-rgb),0.2)]",
+    borderClass: "border-primary/20 hover:border-primary/45",
+    bgClass: "bg-primary/[0.02]",
+    checkColor: "text-primary",
     highlight: true,
     features: [
       "Everything in Free +",
@@ -53,7 +54,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Upgrade to Pro",
-    ctaClass: "text-white bg-gradient-to-r from-[#6C63FF] to-[#00D2FF] border-[#6C63FF]/45",
+    ctaClass: "text-white bg-gradient-to-r from-primary to-[var(--accent-secondary)] border-primary/45",
     href: "/register",
   },
   {
@@ -122,6 +123,7 @@ const faqs = [
 
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { accentColor, secondaryColor } = useAppearance();
 
   return (
     <main className="relative min-h-screen bg-black text-white py-20 px-6 md:px-12 overflow-y-auto">
@@ -142,7 +144,7 @@ export default function PricingPage() {
 
         {/* Title */}
         <div className="text-center flex flex-col gap-4 max-w-2xl mx-auto">
-          <span className="text-xs font-semibold text-[#6C63FF] tracking-[0.2em] uppercase">Pricing & Plans</span>
+          <span style={{ color: accentColor }} className="text-xs font-semibold tracking-[0.2em] uppercase">Pricing & Plans</span>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
             Simple, <span className="bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">Transparent</span> Pricing
           </h1>
@@ -158,49 +160,85 @@ export default function PricingPage() {
           animate="visible"
           className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
         >
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              variants={listItem}
-              className={`rounded-[32px] backdrop-blur-xl ${plan.bgClass} border ${plan.borderClass} p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group`}
-            >
-              {plan.highlight && (
-                <div className="absolute -top-[60px] -right-[60px] w-[150px] h-[150px] rounded-full bg-[#6C63FF]/10 blur-[50px] pointer-events-none group-hover:bg-[#6C63FF]/25 transition-all duration-500" />
-              )}
+          {plans.map((plan, i) => {
+            const isPro = plan.name === "Pro";
+            
+            const badgeStyle = isPro ? { 
+              color: accentColor, 
+              backgroundColor: `${accentColor}1a`, 
+              borderColor: `${accentColor}4d`, 
+              boxShadow: `0 0 12px ${accentColor}33` 
+            } : undefined;
 
-              <div className="flex flex-col gap-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
-                    <p className="text-xs text-white/45">{plan.desc}</p>
+            const borderStyle = isPro ? { borderColor: `${accentColor}33` } : undefined;
+            const bgStyle = isPro ? { backgroundColor: `${accentColor}05` } : undefined;
+            const checkStyle = isPro ? { color: accentColor } : undefined;
+            
+            const ctaStyle = isPro ? {
+              background: `linear-gradient(to right, ${accentColor}, ${secondaryColor})`,
+              borderColor: `${accentColor}73`,
+              color: '#ffffff'
+            } : undefined;
+
+            return (
+              <motion.div
+                key={plan.name}
+                variants={listItem}
+                style={borderStyle || bgStyle ? { ...borderStyle, ...bgStyle } : undefined}
+                className={`rounded-[32px] backdrop-blur-xl ${isPro ? '' : plan.bgClass} border ${isPro ? '' : plan.borderClass} p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group`}
+              >
+                {plan.highlight && (
+                  <div 
+                    style={{ backgroundColor: `${accentColor}1a` }} 
+                    className="absolute -top-[60px] -right-[60px] w-[150px] h-[150px] rounded-full blur-[50px] pointer-events-none group-hover:opacity-100 transition-all duration-500" 
+                  />
+                )}
+
+                <div className="flex flex-col gap-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+                      <p className="text-xs text-white/45">{plan.desc}</p>
+                    </div>
+                    <span 
+                      style={badgeStyle} 
+                      className={`text-xs font-semibold border px-3 py-1 rounded-full flex-shrink-0 ${isPro ? '' : plan.badgeClass}`}
+                    >
+                      {plan.badge}
+                    </span>
                   </div>
-                  <span className={`text-xs font-semibold border px-3 py-1 rounded-full flex-shrink-0 ${plan.badgeClass}`}>
-                    {plan.badge}
-                  </span>
+
+                  <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
+                    <span className="text-5xl font-extrabold text-white">{plan.price}</span>
+                    {plan.period && <span className="text-xs text-white/40">{plan.period}</span>}
+                  </div>
+
+                  <ul className="flex flex-col gap-3 text-xs text-white/70">
+                    {plan.features.map((feature, j) => (
+                      <li key={j} className="flex items-start gap-2.5">
+                        <Check 
+                          style={isPro ? checkStyle : undefined} 
+                          className={`${isPro ? '' : plan.checkColor} flex-shrink-0 mt-0.5`} 
+                          size={14} 
+                        />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <div className="flex items-baseline gap-1 border-b border-white/[0.06] pb-6">
-                  <span className="text-5xl font-extrabold text-white">{plan.price}</span>
-                  {plan.period && <span className="text-xs text-white/40">{plan.period}</span>}
-                </div>
-
-                <ul className="flex flex-col gap-3 text-xs text-white/70">
-                  {plan.features.map((feature, j) => (
-                    <li key={j} className="flex items-start gap-2.5">
-                      <Check className={`${plan.checkColor} flex-shrink-0 mt-0.5`} size={14} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <Link href={plan.href}>
-                <LiquidButton className={`w-full rounded-full ${plan.ctaClass}`} size="default">
-                  {plan.cta}
-                </LiquidButton>
-              </Link>
-            </motion.div>
-          ))}
+                <Link href={plan.href}>
+                  <LiquidButton 
+                    style={ctaStyle} 
+                    className={`w-full rounded-full ${isPro ? '' : plan.ctaClass}`} 
+                    size="default"
+                  >
+                    {plan.cta}
+                  </LiquidButton>
+                </Link>
+              </motion.div>
+            );
+          })}
         </motion.div>
 
         {/* Feature Comparison Table */}

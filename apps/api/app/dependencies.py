@@ -53,14 +53,12 @@ async def get_current_user(
 
     session_key = payload.get("sid") or payload.get("jti")
     if session_key:
-        store.upsert_auth0_session(
-            str(session_key),
+        store.record_login_history(
             user_id=user["id"],
+            session_key=str(session_key),
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             expires_at=datetime.fromtimestamp(int(payload["exp"]), tz=timezone.utc),
-            auth0_jti=str(payload.get("jti")) if payload.get("jti") else None,
-            last_seen_at=datetime.fromtimestamp(int(payload.get("iat", payload["exp"])), tz=timezone.utc),
         )
     return user
 

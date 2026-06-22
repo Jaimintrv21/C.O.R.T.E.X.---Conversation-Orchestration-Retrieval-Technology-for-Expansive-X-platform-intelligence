@@ -112,6 +112,7 @@ class ArtifactGenerationService:
                         "intent": intent,
                         "template": template,
                         "sources": [conv["id"] for conv in conversations],
+                        "source_provider_breakdown": facts["source_provider_breakdown"],
                     },
                 },
             )
@@ -129,33 +130,80 @@ class ArtifactGenerationService:
             raise
 
     def _extract_facts(self, conversations: list[dict]) -> dict:
-        top_terms: Counter[str] = Counter()
-        decisions: list[str] = []
-        message_total = 0
-
+        MAX_TOTAL_CHARS = 100000  # Budget: ~25k tokens
+        
+        # Build the initial list of raw message content per conversation
+        convo_data = []
+        source_provider_breakdown = Counter()
+        
         for conversation in conversations:
             messages = self.store.list_messages(conversation["id"])
-            for message in messages:
-                message_total += 1
-                words = [word.strip(".,:;!?()[]{}").lower() for word in message["content"].split()]
-                top_terms.update(word for word in words if len(word) > 4)
-                lowered = message["content"].lower()
-                if any(marker in lowered for marker in ("decide", "decision", "agreed", "next step")):
-                    decisions.append(message["content"][:240])
+            provider = conversation.get("provider_slug", "unknown")
+            source_provider_breakdown[provider] += 1
+            
+            # Sort messages chronologically
+            messages.sort(key=lambda m: m["created_at"])
+            raw_text = []
+            for m in messages:
+                role = m.get("role", "user")
+                created = m.get("created_at")
+                created_str = created.isoformat() if hasattr(created, "isoformat") else str(created)
+                provider_tag = m.get("provider_slug", provider)
+                raw_text.append(f"[{created_str}] [{provider_tag}] {role.upper()}: {m['content']}")
+            
+            full_text = "\n".join(raw_text)
+            convo_data.append({
+                "id": conversation["id"],
+                "title": conversation.get("title", "Untitled"),
+                "provider": provider,
+                "message_count": len(messages),
+                "created_at": conversation.get("created_at"),
+                "full_text": full_text,
+                "char_length": len(full_text),
+                "summary": None,
+            })
+            
+        # Priority sort: Highest priority first (most messages, newest)
+        convo_data.sort(key=lambda c: (c["message_count"], c["created_at"]), reverse=True)
+        
+        # Enforce budget by summarizing-down lowest priority if needed
+        total_chars = sum(c["char_length"] for c in convo_data)
+        if total_chars > MAX_TOTAL_CHARS:
+            # We need to shrink. Process from lowest priority (end of list)
+            for i in range(len(convo_data) - 1, -1, -1):
+                if total_chars <= MAX_TOTAL_CHARS:
+                    break
+                # Mock summarize-down
+                # In a real app we would call LLM to summarize this specific conversation block
+                # Here we simulate by aggressively truncating and appending a summarization note
+                c = convo_data[i]
+                old_len = c["char_length"]
+                target_len = min(500, old_len)
+                c["full_text"] = "[SUMMARIZED TO FIT CONTEXT] " + c["full_text"][:target_len] + "... [END SUMMARY]"
+                c["char_length"] = len(c["full_text"])
+                total_chars = total_chars - old_len + c["char_length"]
+
+        # Assemble the formatted sources
+        sources_text = []
+        for c in convo_data:
+            sources_text.append(
+                f"=== CONVERSATION SOURCE ===\n"
+                f"Title: {c['title']}\n"
+                f"Primary AI Provider: {c['provider']}\n"
+                f"Date: {c['created_at']}\n"
+                f"Content:\n{c['full_text']}\n"
+                f"===========================\n"
+            )
 
         return {
             "conversation_count": len(conversations),
-            "message_count": message_total,
-            "top_terms": [term for term, _ in top_terms.most_common(12)],
-            "decisions": decisions[:10],
-            "titles": [conversation.get("title") for conversation in conversations if conversation.get("title")],
+            "source_provider_breakdown": dict(source_provider_breakdown),
+            "sources_formatted_text": "\n".join(sources_text),
         }
 
     def _detect_intent(self, artifact_type: str, facts: dict) -> str:
         if artifact_type in {"wiki", "report", "presentation"}:
             return "general"
-        if facts.get("decisions"):
-            return "decision_log"
         return "general"
 
     def _select_template(self, artifact_type: str, intent: str) -> str:
@@ -165,14 +213,15 @@ class ArtifactGenerationService:
         )
 
     def _build_prompt(self, artifact: dict, facts: dict, template: str) -> str:
-        prompt = {
-            "artifact_type": artifact["artifact_type"],
-            "title": artifact["title"],
-            "template": template,
-            "user_prompt": artifact.get("prompt"),
-            "facts": facts,
-        }
-        return json.dumps(prompt, indent=2, sort_keys=True)
+        prompt = (
+            f"You are tasked with generating a {artifact['artifact_type']} ({template}).\n"
+            f"Title: {artifact['title']}\n"
+            f"User Prompt: {artifact.get('prompt') or 'Generate a comprehensive artifact based on the provided sources.'}\n\n"
+            f"Below are the source conversations you MUST synthesize and attribute correctly:\n\n"
+            f"{facts['sources_formatted_text']}\n\n"
+            "When writing the artifact, be sure to explicitly attribute information to the source provider (e.g., 'As discussed with ChatGPT...' or 'Based on the Claude conversation...')."
+        )
+        return prompt
 
     def _render_artifact(self, artifact_type: str, payload: dict) -> dict:
         sections = payload.get("sections", [])

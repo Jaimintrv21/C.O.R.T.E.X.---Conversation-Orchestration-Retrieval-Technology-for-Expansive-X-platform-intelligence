@@ -75,6 +75,11 @@ class Settings(BaseSettings):
     llm_knowledge_graph_model: str = "ollama/qwen2.5:7b"
     llm_fallback_model: str = "openai/gpt-4o-mini"
 
+    primary_chat_model: str = "glm-5.2:cloud"
+    primary_chat_is_cloud_hosted: bool = True
+    ollama_cloud_api_key: str | None = None
+    ollama_cloud_base_url: str = "https://ollama.com"
+
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_high_quality_model: str = "nomic-ai/nomic-embed-text-v1.5"
     embedding_cloud_model: str = "openai/text-embedding-3-small"

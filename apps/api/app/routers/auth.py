@@ -13,7 +13,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.get("/me", response_model=ApiResponse[UserResponse])
 async def me(user: dict = Depends(get_current_user)):
-    return ApiResponse(data=UserResponse.model_validate(user))
+    user_data = dict(user)
+    user_data["auth_provider"] = user_data.get("auth0_connection")
+    return ApiResponse(data=UserResponse.model_validate(user_data))
 
 
 @router.delete("/logout", response_model=ApiResponse)
@@ -30,7 +32,7 @@ async def logout(request: Request, user: dict = Depends(get_current_user)):
 async def sessions(user: dict = Depends(get_current_user)):
     store = FirestoreStore()
     return ApiListResponse(
-        data=[SessionResponse.model_validate(session) for session in store.list_sessions(user["id"])],
+        data=[SessionResponse.model_validate(session) for session in store.list_login_history(user["id"])],
     )
 
 
@@ -41,11 +43,8 @@ async def revoke_session(
     user: dict = Depends(get_current_user),
 ):
     store = FirestoreStore()
-    session = store.get_session(session_id)
+    session = store.revoke_login_session(user["id"], session_id)
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-    if session.get("user_id") != user["id"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot revoke another user's session")
-    session = store.revoke_session(session_id)
     await emit_audit_log(user["id"], "session.revoked", "session", session_id, request)
     return ApiResponse(data=SessionResponse.model_validate(session))
