@@ -19,7 +19,7 @@ const plans = [
     badge: "Self Hosted",
     badgeClass: "text-white/40 bg-white/[0.05] border-white/[0.08]",
     borderClass: "border-white/[0.06] hover:border-white/[0.12]",
-    bgClass: "bg-white/[0.02]",
+    bgClass: "bg-white/[0.02] hover:bg-white/[0.03]",
     checkColor: "text-[#00D97E]",
     features: [
       "Unlimited conversations",
@@ -30,7 +30,7 @@ const plans = [
       "PII redaction & offline security",
     ],
     cta: "Get Started Free",
-    ctaClass: "text-white border border-white/20",
+    ctaClass: "text-white border border-white/20 hover:bg-white/[0.05]",
     href: "/register",
   },
   {
@@ -40,10 +40,10 @@ const plans = [
     period: "/ month",
     desc: "For teams, shared collaboration workspace sync, and advanced AI utilities.",
     badge: "Most Popular",
-    badgeClass: "text-primary bg-primary/15 border-primary/30 shadow-[0_0_12px_rgba(var(--accent-rgb),0.2)]",
-    borderClass: "border-primary/20 hover:border-primary/45",
-    bgClass: "bg-primary/[0.02]",
-    checkColor: "text-primary",
+    badgeClass: "text-[var(--accent-color)] bg-[rgba(var(--accent-rgb),0.1)] border-[rgba(var(--accent-rgb),0.3)] shadow-[0_0_12px_rgba(var(--accent-rgb),0.2)]",
+    borderClass: "border-[rgba(var(--accent-rgb),0.25)] hover:border-[rgba(var(--accent-rgb),0.5)]",
+    bgClass: "bg-[rgba(var(--accent-rgb),0.03)] hover:bg-[rgba(var(--accent-rgb),0.05)]",
+    checkColor: "text-[var(--accent-color)]",
     highlight: true,
     features: [
       "Everything in Free +",
@@ -54,7 +54,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Upgrade to Pro",
-    ctaClass: "text-white bg-gradient-to-r from-primary to-[var(--accent-secondary)] border-primary/45",
+    ctaClass: "text-white bg-gradient-to-r from-[var(--accent-color)] to-[var(--accent-secondary)] border-[rgba(var(--accent-rgb),0.4)] hover:opacity-90",
     href: "/register",
   },
   {
@@ -66,7 +66,7 @@ const plans = [
     badge: "Contact Us",
     badgeClass: "text-[#00D2FF] bg-[#00D2FF]/10 border-[#00D2FF]/20",
     borderClass: "border-white/[0.06] hover:border-[#00D2FF]/30",
-    bgClass: "bg-white/[0.02]",
+    bgClass: "bg-white/[0.02] hover:bg-white/[0.03]",
     checkColor: "text-[#00D2FF]",
     features: [
       "Everything in Pro +",
@@ -77,7 +77,7 @@ const plans = [
       "SLA & dedicated support",
     ],
     cta: "Contact Sales",
-    ctaClass: "text-white border border-[#00D2FF]/30",
+    ctaClass: "text-white border border-[#00D2FF]/30 hover:bg-white/[0.05]",
     href: "mailto:sales@cortex.ai",
   },
 ];
@@ -123,7 +123,6 @@ const faqs = [
 
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const { accentColor, secondaryColor } = useAppearance();
 
   return (
     <main className="relative min-h-screen bg-black text-white py-20 px-6 md:px-12 overflow-y-auto">
@@ -144,9 +143,9 @@ export default function PricingPage() {
 
         {/* Title */}
         <div className="text-center flex flex-col gap-4 max-w-2xl mx-auto">
-          <span style={{ color: accentColor }} className="text-xs font-semibold tracking-[0.2em] uppercase">Pricing & Plans</span>
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase text-[var(--accent-color)]">Pricing & Plans</span>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Simple, <span className="bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">Transparent</span> Pricing
+            Simple, <span className="bg-gradient-to-r from-[var(--accent-color)] via-purple-400 to-[var(--accent-secondary)] bg-clip-text text-transparent animate-pulse duration-3000">Transparent</span> Pricing
           </h1>
           <p className="text-white/40 text-sm md:text-base">
             Self-host for free or unlock team features. No hidden costs, no data lock-in.
@@ -163,34 +162,15 @@ export default function PricingPage() {
           {plans.map((plan, i) => {
             const isPro = plan.name === "Pro";
             
-            const badgeStyle = isPro ? { 
-              color: accentColor, 
-              backgroundColor: `${accentColor}1a`, 
-              borderColor: `${accentColor}4d`, 
-              boxShadow: `0 0 12px ${accentColor}33` 
-            } : undefined;
-
-            const borderStyle = isPro ? { borderColor: `${accentColor}33` } : undefined;
-            const bgStyle = isPro ? { backgroundColor: `${accentColor}05` } : undefined;
-            const checkStyle = isPro ? { color: accentColor } : undefined;
-            
-            const ctaStyle = isPro ? {
-              background: `linear-gradient(to right, ${accentColor}, ${secondaryColor})`,
-              borderColor: `${accentColor}73`,
-              color: '#ffffff'
-            } : undefined;
-
             return (
               <motion.div
                 key={plan.name}
                 variants={listItem}
-                style={borderStyle || bgStyle ? { ...borderStyle, ...bgStyle } : undefined}
-                className={`rounded-[32px] backdrop-blur-xl ${isPro ? '' : plan.bgClass} border ${isPro ? '' : plan.borderClass} p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group`}
+                className={`rounded-[32px] backdrop-blur-xl ${plan.bgClass} border ${plan.borderClass} p-8 flex flex-col justify-between gap-8 transition-all relative overflow-hidden group ${isPro ? 'shadow-[0_0_24px_rgba(var(--accent-rgb),0.06)] hover:shadow-[0_0_36px_rgba(var(--accent-rgb),0.12)]' : 'hover:shadow-[0_0_24px_rgba(255,255,255,0.02)]'}`}
               >
                 {plan.highlight && (
                   <div 
-                    style={{ backgroundColor: `${accentColor}1a` }} 
-                    className="absolute -top-[60px] -right-[60px] w-[150px] h-[150px] rounded-full blur-[50px] pointer-events-none group-hover:opacity-100 transition-all duration-500" 
+                    className="absolute -top-[60px] -right-[60px] w-[150px] h-[150px] rounded-full bg-[rgba(var(--accent-rgb),0.15)] blur-[50px] pointer-events-none group-hover:opacity-100 transition-all duration-500" 
                   />
                 )}
 
@@ -201,8 +181,7 @@ export default function PricingPage() {
                       <p className="text-xs text-white/45">{plan.desc}</p>
                     </div>
                     <span 
-                      style={badgeStyle} 
-                      className={`text-xs font-semibold border px-3 py-1 rounded-full flex-shrink-0 ${isPro ? '' : plan.badgeClass}`}
+                      className={`text-xs font-semibold border px-3 py-1 rounded-full flex-shrink-0 ${plan.badgeClass}`}
                     >
                       {plan.badge}
                     </span>
@@ -217,8 +196,7 @@ export default function PricingPage() {
                     {plan.features.map((feature, j) => (
                       <li key={j} className="flex items-start gap-2.5">
                         <Check 
-                          style={isPro ? checkStyle : undefined} 
-                          className={`${isPro ? '' : plan.checkColor} flex-shrink-0 mt-0.5`} 
+                          className={`${plan.checkColor} flex-shrink-0 mt-0.5`} 
                           size={14} 
                         />
                         <span>{feature}</span>
@@ -229,8 +207,7 @@ export default function PricingPage() {
 
                 <Link href={plan.href}>
                   <LiquidButton 
-                    style={ctaStyle} 
-                    className={`w-full rounded-full ${isPro ? '' : plan.ctaClass}`} 
+                    className={`w-full rounded-full ${plan.ctaClass}`} 
                     size="default"
                   >
                     {plan.cta}
@@ -250,7 +227,7 @@ export default function PricingPage() {
                 <tr className="border-b border-white/[0.06] bg-white/[0.02]">
                   <th className="p-4 font-semibold text-white">Feature</th>
                   <th className="p-4 font-semibold text-white text-center">Free</th>
-                  <th className="p-4 font-semibold text-white text-center">Pro</th>
+                  <th className="p-4 font-semibold text-center text-[var(--accent-color)] bg-[rgba(var(--accent-rgb),0.03)] border-x border-white/[0.03]">Pro</th>
                   <th className="p-4 font-semibold text-white text-center">Enterprise</th>
                 </tr>
               </thead>
@@ -258,17 +235,23 @@ export default function PricingPage() {
                 {comparisonRows.map((row, i) => (
                   <tr key={i} className={`border-b border-white/[0.04] hover:bg-white/[0.01] transition-colors ${i % 2 === 0 ? 'bg-white/[0.005]' : ''}`}>
                     <td className="p-4 font-medium text-white/95">{row.name}</td>
-                    {[row.free, row.pro, row.enterprise].map((val, j) => (
-                      <td key={j} className="p-4 text-center">
-                        {val === true ? (
-                          <Check size={16} className="text-[#00D97E] mx-auto" />
-                        ) : val === false ? (
-                          <X size={16} className="text-white/20 mx-auto" />
-                        ) : (
-                          <span className="text-white font-medium">{val}</span>
-                        )}
-                      </td>
-                    ))}
+                    {[row.free, row.pro, row.enterprise].map((val, j) => {
+                      const isProCol = j === 1;
+                      return (
+                        <td 
+                          key={j} 
+                          className={`p-4 text-center ${isProCol ? 'bg-[rgba(var(--accent-rgb),0.02)] border-x border-white/[0.03]' : ''}`}
+                        >
+                          {val === true ? (
+                            <Check size={16} className={`${isProCol ? 'text-[var(--accent-color)]' : 'text-[#00D97E]'} mx-auto`} />
+                          ) : val === false ? (
+                            <X size={16} className="text-white/20 mx-auto" />
+                          ) : (
+                            <span className={`${isProCol ? 'text-[var(--accent-color)] font-semibold' : 'text-white'} font-medium`}>{val}</span>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -283,7 +266,7 @@ export default function PricingPage() {
             {faqs.map((faq, i) => (
               <div
                 key={i}
-                className="rounded-[20px] border border-white/[0.08] bg-white/[0.02] backdrop-blur-md overflow-hidden transition-all hover:border-white/[0.12]"
+                className="rounded-[20px] border border-white/[0.08] bg-white/[0.01] hover:bg-white/[0.03] backdrop-blur-md overflow-hidden transition-all hover:border-white/[0.16] hover:shadow-[0_0_20px_rgba(255,255,255,0.02)]"
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}

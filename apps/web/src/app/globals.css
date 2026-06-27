@@ -324,8 +324,8 @@
 }
 
 /* Ensure container child elements sit above the mouse sheen layer */
-.mouse-glow-active [class*="backdrop-blur"] > *,
-.mouse-glow-active .glass > * {
+.mouse-glow-active [class*="backdrop-blur"] > *:not(.absolute),
+.mouse-glow-active .glass > *:not(.absolute) {
   position: relative;
   z-index: 2;
 }

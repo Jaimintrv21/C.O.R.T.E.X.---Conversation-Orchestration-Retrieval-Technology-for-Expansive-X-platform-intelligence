@@ -135,9 +135,9 @@ const ContextPipelineVisualization = () => {
     }
   }, [consoleLogs]);
 
-  // Lock body scroll during simulation
+  // Lock body scroll during simulation (desktop only)
   useEffect(() => {
-    if (isSimulating) {
+    if (isSimulating && typeof window !== 'undefined' && window.innerWidth > 768) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
@@ -760,6 +760,19 @@ export default function LandingPage() {
         <span className="text-base font-bold tracking-tight text-white hidden md:block">CORTEX</span>
       </div>
 
+      {/* Mobile More Overlay */}
+      <AnimatePresence>
+        {isMobileMoreOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMoreOpen(false)}
+            className="fixed inset-0 z-[45] bg-black/40 backdrop-blur-[2px] md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Mobile Floating Bottom Navigation (Aesthetic Glassmorphism) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] md:hidden">
         {/* Background panel */}
@@ -805,28 +818,35 @@ export default function LandingPage() {
             <span className={`text-[10px] font-semibold transition-colors ${activeTab === 1 ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Features</span>
           </button>
 
-          {/* Pricing */}
+          {/* Pipeline */}
           <button
             onClick={() => {
-              router.push("/pricing");
+              document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" });
               setMobileMoreOpen(false);
             }}
             className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
           >
-            <CreditCard size={18} className="text-white/60 group-hover:text-white transition-colors" />
-            <span className="text-[10px] font-semibold text-white/50 group-hover:text-white transition-colors">Pricing</span>
+            {activeTab === 4 && (
+              <motion.div
+                layoutId="activeMobileLandingTab"
+                className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <Brain size={18} className={`transition-colors ${activeTab === 4 ? 'text-[#6C63FF]' : 'text-white/60 group-hover:text-white'}`} />
+            <span className={`text-[10px] font-semibold transition-colors ${activeTab === 4 ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Pipeline</span>
           </button>
 
-          {/* DOCX */}
+          {/* Get Started */}
           <button
             onClick={() => {
-              router.push("/docx");
+              router.push("/register");
               setMobileMoreOpen(false);
             }}
             className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
           >
-            <BookOpen size={18} className="text-white/60 group-hover:text-white transition-colors" />
-            <span className="text-[10px] font-semibold text-white/50 group-hover:text-white transition-colors">DOCX</span>
+            <UserPlus size={18} className="text-white/60 group-hover:text-white transition-colors" />
+            <span className="text-[10px] font-semibold text-white/50 group-hover:text-white transition-colors">Start</span>
           </button>
 
           {/* More */}
@@ -859,21 +879,49 @@ export default function LandingPage() {
               {/* Glass Reflection Shine */}
               <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] rounded-[28px] overflow-hidden" />
               
+              {/* Header with Back button */}
+              <div className="flex items-center justify-between pb-2 mb-1 border-b border-white/[0.08] relative z-10 px-1">
+                <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">More Options</span>
+                <button 
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="flex items-center justify-center w-6 h-6 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-2.5 relative z-10">
-                {/* Pipeline */}
+                {/* Pricing */}
                 <button
                   onClick={() => {
-                    document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" });
+                    router.push("/pricing");
                     setMobileMoreOpen(false);
                   }}
                   className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
-                    <Brain size={16} />
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                    <CreditCard size={16} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[12px] font-bold text-white font-sans">Pipeline</span>
-                    <span className="text-[8px] text-white/40 font-medium font-sans">Context Flow</span>
+                    <span className="text-[12px] font-bold text-white font-sans">Pricing</span>
+                    <span className="text-[8px] text-white/40 font-medium font-sans">View Plans</span>
+                  </div>
+                </button>
+
+                {/* DOCX */}
+                <button
+                  onClick={() => {
+                    router.push("/docx");
+                    setMobileMoreOpen(false);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                    <BookOpen size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-white font-sans">DOCX</span>
+                    <span className="text-[8px] text-white/40 font-medium font-sans">Documentation</span>
                   </div>
                 </button>
 
@@ -883,7 +931,7 @@ export default function LandingPage() {
                     router.push("/login");
                     setMobileMoreOpen(false);
                   }}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left col-span-2"
                 >
                   <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
                     <LogIn size={16} />
@@ -891,23 +939,6 @@ export default function LandingPage() {
                   <div className="flex flex-col">
                     <span className="text-[12px] font-bold text-white font-sans">Sign In</span>
                     <span className="text-[8px] text-white/40 font-medium font-sans">Access Account</span>
-                  </div>
-                </button>
-
-                {/* Get Started */}
-                <button
-                  onClick={() => {
-                    router.push("/register");
-                    setMobileMoreOpen(false);
-                  }}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left col-span-2"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                    <UserPlus size={16} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[12px] font-bold text-white font-sans">Get Started</span>
-                    <span className="text-[8px] text-white/40 font-medium font-sans">Create a new workspace</span>
                   </div>
                 </button>
               </div>

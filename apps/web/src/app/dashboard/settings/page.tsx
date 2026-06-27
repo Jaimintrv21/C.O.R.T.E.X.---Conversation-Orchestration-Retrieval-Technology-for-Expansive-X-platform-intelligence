@@ -108,6 +108,7 @@ export default function SettingsPage() {
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama3');
   const [activeAppearanceSubTab, setActiveAppearanceSubTab] = useState<'Style' | 'Color' | 'Motion' | 'Layout' | 'Labs'>('Style');
+  const [activeSupportTab, setActiveSupportTab] = useState<'Report' | 'FAQ' | 'Policies'>('Report');
 
   // Workspace Management States
   const [workspaceName, setWorkspaceName] = useState('Personal Workspace');
@@ -1046,72 +1047,133 @@ ${bugDescription}
             <section className="flex flex-col gap-[20px] md:gap-[24px]">
               <div className="px-[8px]">
                 <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">User Profile</h2>
-                <p className="text-[11px] md:text-sm text-white/50">Manage your account details and preferences.</p>
+                <p className="text-[11px] md:text-sm text-white/50">Manage your personal information, preferences, and security settings.</p>
               </div>
 
-              <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[32px]">
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-[24px] text-center sm:text-left">
-                  <div style={acGradient} className="w-[80px] h-[80px] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
-                    <User size={32} className="text-white" />
-                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <span className="text-xs font-medium text-white">Edit</span>
+              <div className="flex flex-col lg:flex-row gap-[24px]">
+                {/* Left Column: Personal Info & Preferences */}
+                <div className="flex-1 flex flex-col gap-[24px]">
+                  {/* Profile Picture */}
+                  <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[24px] flex flex-col sm:flex-row items-center sm:items-start gap-[24px] text-center sm:text-left transition-all hover:bg-white/[0.04]">
+                    <div style={acGradient} className="w-[80px] h-[80px] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.4)] flex-shrink-0 relative group cursor-pointer">
+                      <User size={32} className="text-white" />
+                      <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                        <span className="text-xs font-medium text-white flex items-center gap-[4px]"><Palette size={14}/> Edit</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col justify-center h-full pt-1">
+                      <h3 className="text-white font-medium text-sm md:text-base">Profile Picture</h3>
+                      <p className="text-white/50 text-[11px] md:text-sm mb-[16px]">PNG, JPG up to 5MB.</p>
+                      <div className="flex justify-center sm:justify-start gap-[12px]">
+                        <button className="px-[16px] py-[6px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white hover:bg-white/[0.1] transition-all shadow-sm">Upload New</button>
+                        <button className="px-[16px] py-[6px] rounded-full border border-transparent text-xs font-medium text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-all">Remove</button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-white font-medium text-sm md:text-base">Profile Picture</h3>
-                    <p className="text-white/50 text-[11px] md:text-sm mb-[12px]">PNG, JPG up to 5MB</p>
-                    <div className="flex justify-center sm:justify-start gap-[12px]">
-                      <button className="px-[16px] py-[6px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white hover:bg-white/[0.1] transition-all">Upload New</button>
-                      <button className="px-[16px] py-[6px] rounded-full border border-transparent text-xs font-medium text-white/50 hover:text-red-400 transition-all">Remove</button>
+
+                  {/* Personal Information */}
+                  <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[24px] flex flex-col gap-[20px]">
+                    <h3 className="text-sm md:text-base font-medium text-white mb-[4px]">Personal Information</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">First Name</label>
+                        <input type="text" defaultValue="John" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15]" />
+                      </div>
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Last Name</label>
+                        <input type="text" defaultValue="Doe" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15]" />
+                      </div>
                     </div>
+                    <div className="flex flex-col gap-[8px]">
+                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Email Address</label>
+                      <input type="email" defaultValue="john@cortex.ai" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15]" />
+                    </div>
+                    <div className="flex flex-col gap-[8px]">
+                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bio</label>
+                      <textarea placeholder="Tell us a little about yourself..." rows={3} className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15] resize-y custom-scrollbar" />
+                    </div>
+                  </div>
+                  
+                  {/* Preferences */}
+                  <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[24px] flex flex-col gap-[20px]">
+                    <h3 className="text-sm md:text-base font-medium text-white mb-[4px]">Regional Preferences</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Timezone</label>
+                        <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15] appearance-none cursor-pointer">
+                          <option className="bg-[#0A0A0F]">Pacific Time (US & Canada)</option>
+                          <option className="bg-[#0A0A0F]">Eastern Time (US & Canada)</option>
+                          <option className="bg-[#0A0A0F]">UTC</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Language</label>
+                        <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15] appearance-none cursor-pointer">
+                          <option className="bg-[#0A0A0F]">English (US)</option>
+                          <option className="bg-[#0A0A0F]">Spanish</option>
+                          <option className="bg-[#0A0A0F]">French</option>
+                          <option className="bg-[#0A0A0F]">German</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button style={acGradient} className="w-full sm:w-auto px-[32px] py-[12px] rounded-full text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:-translate-y-0.5">
+                      Save Profile Changes
+                    </button>
                   </div>
                 </div>
 
-                <div className="w-full h-[1px] bg-white/[0.06]" />
-
-                <div className="flex flex-col gap-[20px] md:gap-[24px] max-w-[500px] w-full">
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Full Name</label>
-                    <input type="text" defaultValue="John Doe" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
-                  </div>
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Email Address</label>
-                    <input type="email" defaultValue="john@cortex.ai" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
-                  </div>
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Timezone</label>
-                    <select className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all appearance-none cursor-pointer">
-                      <option className="bg-[#0A0A0F]">Pacific Time (US & Canada)</option>
-                      <option className="bg-[#0A0A0F]">Eastern Time (US & Canada)</option>
-                      <option className="bg-[#0A0A0F]">UTC</option>
-                    </select>
-                  </div>
-
-                  <button style={acGradient} className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full text-white text-sm font-medium hover:opacity-90 transition-all">
-                    Save Changes
-                  </button>
-                </div>
-
-                <div className="w-full h-[1px] bg-white/[0.06]" />
-
-                {/* Security Section */}
-                <div className="flex flex-col gap-[20px] md:gap-[24px] max-w-[500px] w-full">
-                  <h3 className="text-sm md:text-base font-medium text-white">Security</h3>
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Current Password</label>
-                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
-                  </div>
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">New Password</label>
-                    <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" />
+                {/* Right Column: Security */}
+                <div className="w-full lg:w-[350px] flex flex-col gap-[24px]">
+                  <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[24px] flex flex-col gap-[20px]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <KeyRound size={16} className="text-white/70" />
+                      <h3 className="text-sm md:text-base font-medium text-white">Security</h3>
+                    </div>
+                    <div className="flex flex-col gap-[16px]">
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Current Password</label>
+                        <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15]" />
+                      </div>
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">New Password</label>
+                        <input type="password" placeholder="••••••••" className="bg-white/[0.02] border border-white/[0.08] rounded-full px-[16px] py-[10px] text-xs text-white focus:outline-none focus:border-white/[0.2] focus:bg-white/[0.05] transition-all hover:border-white/[0.15]" />
+                      </div>
+                      <button style={acBg10} className="w-full mt-[8px] px-[20px] py-[10px] rounded-full border border-white/[0.1] text-white text-xs font-semibold hover:border-white/[0.3] hover:bg-white/[0.08] transition-all">
+                        Update Password
+                      </button>
+                    </div>
                   </div>
 
-                  <button style={acBg10} className="w-full sm:w-fit mt-[8px] px-[24px] py-[12px] md:py-[10px] rounded-full border border-white/[0.1] text-white text-sm font-medium hover:border-white/[0.2] transition-all">
-                    Change Password
-                  </button>
+                  <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[24px] flex flex-col gap-[16px]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Monitor size={16} className="text-white/70" />
+                      <h3 className="text-sm md:text-base font-medium text-white">Active Sessions</h3>
+                    </div>
+                    <div className="flex flex-col gap-[12px]">
+                      <div className="flex items-start justify-between p-3 rounded-[16px] bg-white/[0.02] border border-white/[0.05]">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-white">Windows • Chrome</span>
+                          <span className="text-[10px] text-white/50">Current Session • New York, US</span>
+                        </div>
+                        <div className="w-2 h-2 rounded-full bg-[#00D97E] mt-1 shadow-[0_0_6px_#00D97E]"></div>
+                      </div>
+                      <div className="flex items-start justify-between p-3 rounded-[16px] hover:bg-white/[0.02] transition-colors border border-transparent hover:border-white/[0.05] group">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-white/80 group-hover:text-white transition-colors">MacBook Pro • Safari</span>
+                          <span className="text-[10px] text-white/40 group-hover:text-white/60 transition-colors">Active 2 days ago • SF, US</span>
+                        </div>
+                        <button className="text-[10px] text-white/40 hover:text-red-400 transition-colors mt-0.5">Revoke</button>
+                      </div>
+                    </div>
+                    <button className="w-full mt-[4px] px-[20px] py-[8px] rounded-full border border-white/[0.08] text-white/70 text-xs font-medium hover:border-white/[0.15] hover:bg-white/[0.04] transition-all">
+                      Sign Out All Devices
+                    </button>
+                  </div>
                 </div>
               </div>
-
             </section>
           )}
 
@@ -1397,128 +1459,189 @@ ${bugDescription}
             <section className="flex flex-col gap-[20px] md:gap-[24px]">
               <div className="px-[8px]">
                 <h2 className="text-base md:text-lg font-medium text-white mb-[4px]">Help & Support</h2>
-                <p className="text-[11px] md:text-sm text-white/50">Report issues, submit feedback, or get help with C.O.R.T.E.X.</p>
+                <p className="text-[11px] md:text-sm text-white/50">Report issues, find answers, and review our policies.</p>
+              </div>
+              
+              <div className="flex gap-[8px] px-[8px] overflow-x-auto custom-scrollbar pb-2">
+                {['Report', 'FAQ', 'Policies'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveSupportTab(tab as any)}
+                    className={`px-[16px] py-[8px] rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      activeSupportTab === tab
+                        ? 'bg-white/[0.1] text-white border border-white/[0.2]'
+                        : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05] border border-transparent'
+                    }`}
+                  >
+                    {tab === 'Report' ? 'Report a Problem' : tab === 'FAQ' ? 'FAQs' : 'Privacy & Terms'}
+                  </button>
+                ))}
               </div>
 
               <div className="rounded-[20px] md:rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] p-[20px] md:p-[32px] flex flex-col gap-[28px]">
-                <div className="flex flex-col gap-[16px]">
-                  <h3 className="text-sm md:text-base font-medium text-white">Report a Problem</h3>
-                  <p className="text-[11px] md:text-xs text-white/50">Select your preferred reporting channel. Creating a GitHub issue puts the bug directly onto our public tracking board.</p>
-                </div>
-
-                {/* Tab selector for report method */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px] max-w-[500px]">
-                  {[
-                    { id: 'normal', name: 'Option 1: Standard Feedback', desc: 'Direct message to internal support logs' },
-                    { id: 'github', name: 'Option 2: Create GitHub Issue', desc: 'Creates a public issue in GitHub repo' }
-                  ].map(method => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setReportMethod(method.id as any)}
-                      style={reportMethod === method.id ? {...acBg15, ...acBorder40} : undefined}
-                      className={`flex flex-col items-start p-[16px] rounded-[20px] border text-left transition-all ${
-                        reportMethod === method.id
-                          ? 'text-white border'
-                          : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
-                      }`}
-                    >
-                      <span className="text-xs font-semibold text-white mb-[4px]">{method.name}</span>
-                      <span className="text-[10px] text-white/40 leading-normal">{method.desc}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <form onSubmit={handleReportBug} className="flex flex-col gap-[20px] max-w-[600px] w-full">
-                  {reportMethod === 'github' && (
-                    <div className="flex flex-col gap-[8px] animate-in fade-in slide-in-from-top-2 duration-200">
-                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">GitHub Username / ID</label>
-                      <input 
-                        type="text" 
-                        placeholder="e.g. Jaimintrv21" 
-                        value={githubUser}
-                        onChange={(e) => setGithubUser(e.target.value)}
-                        required
-                        className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" 
-                      />
+                {activeSupportTab === 'Report' && (
+                  <div className="flex flex-col gap-[28px]">
+                    <div className="flex flex-col gap-[16px]">
+                      <h3 className="text-sm md:text-base font-medium text-white">Report a Problem</h3>
+                      <p className="text-[11px] md:text-xs text-white/50">Select your preferred reporting channel. Creating a GitHub issue puts the bug directly onto our public tracking board.</p>
                     </div>
-                  )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
-                    <div className="flex flex-col gap-[8px]">
-                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Category</label>
-                      <select 
-                        value={bugCategory} 
-                        onChange={(e: any) => setBugCategory(e.target.value)}
-                        className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all cursor-pointer"
+                    {/* Tab selector for report method */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px] max-w-[500px]">
+                      {[
+                        { id: 'normal', name: 'Option 1: Standard Feedback', desc: 'Direct message to internal support logs' },
+                        { id: 'github', name: 'Option 2: Create GitHub Issue', desc: 'Creates a public issue in GitHub repo' }
+                      ].map(method => (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setReportMethod(method.id as any)}
+                          style={reportMethod === method.id ? {...acBg15, ...acBorder40} : undefined}
+                          className={`flex flex-col items-start p-[16px] rounded-[20px] border text-left transition-all ${
+                            reportMethod === method.id
+                              ? 'text-white border'
+                              : 'bg-white/[0.02] border-white/[0.08] text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                          }`}
+                        >
+                          <span className="text-xs font-semibold text-white mb-[4px]">{method.name}</span>
+                          <span className="text-[10px] text-white/40 leading-normal">{method.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <form onSubmit={handleReportBug} className="flex flex-col gap-[20px] max-w-[600px] w-full">
+                      {reportMethod === 'github' && (
+                        <div className="flex flex-col gap-[8px] animate-in fade-in slide-in-from-top-2 duration-200">
+                          <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">GitHub Username / ID</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Jaimintrv21" 
+                            value={githubUser}
+                            onChange={(e) => setGithubUser(e.target.value)}
+                            required
+                            className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" 
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
+                        <div className="flex flex-col gap-[8px]">
+                          <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Category</label>
+                          <select 
+                            value={bugCategory} 
+                            onChange={(e: any) => setBugCategory(e.target.value)}
+                            className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all cursor-pointer"
+                          >
+                            <option value="bug" className="bg-[#0A0A0F]">🐛 Bug / Defect</option>
+                            <option value="feature" className="bg-[#0A0A0F]">✨ Feature Request</option>
+                            <option value="docs" className="bg-[#0A0A0F]">📚 Documentation</option>
+                            <option value="optimization" className="bg-[#0A0A0F]">⚡ Optimization / Performance</option>
+                            <option value="styling" className="bg-[#0A0A0F]">🎨 Styling / Design</option>
+                            <option value="security" className="bg-[#0A0A0F]">🔒 Security Vulnerability</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-[8px]">
+                          <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Estimated Difficulty to Fix</label>
+                          <select 
+                            value={bugDifficulty} 
+                            onChange={(e: any) => setBugDifficulty(e.target.value)}
+                            className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all cursor-pointer"
+                          >
+                            <option value="easy" className="bg-[#0A0A0F]">🟢 Easy (Quick fix, minor change)</option>
+                            <option value="medium" className="bg-[#0A0A0F]">🟡 Medium (Requires code changes & validation)</option>
+                            <option value="hard" className="bg-[#0A0A0F]">🔴 Hard / Complex (Requires deep architecture change)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Title</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Dashboard fails to load after sync" 
+                          value={bugTitle}
+                          onChange={(e) => setBugTitle(e.target.value)}
+                          required
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" 
+                        />
+                      </div>
+                      
+                      <div className="flex flex-col gap-[8px]">
+                        <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Description</label>
+                        <textarea 
+                          placeholder="Please provide steps to reproduce the issue, expected behavior, and actual behavior." 
+                          rows={5}
+                          value={bugDescription}
+                          onChange={(e) => setBugDescription(e.target.value)}
+                          required
+                          className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[16px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all resize-y" 
+                        />
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        disabled={isSubmittingBug}
+                        className={`w-full sm:w-fit px-[24px] py-[12px] md:py-[10px] rounded-full text-sm font-medium transition-all flex items-center justify-center gap-[8px] ${
+                          isSubmittingBug 
+                            ? 'bg-white/[0.05] text-white/30 cursor-not-allowed border border-white/[0.1]' 
+                            : 'text-white hover:opacity-90'
+                        }`}
+                        style={!isSubmittingBug ? acGradient : undefined}
                       >
-                        <option value="bug" className="bg-[#0A0A0F]">🐛 Bug / Defect</option>
-                        <option value="feature" className="bg-[#0A0A0F]">✨ Feature Request</option>
-                        <option value="docs" className="bg-[#0A0A0F]">📚 Documentation</option>
-                        <option value="optimization" className="bg-[#0A0A0F]">⚡ Optimization / Performance</option>
-                        <option value="styling" className="bg-[#0A0A0F]">🎨 Styling / Design</option>
-                        <option value="security" className="bg-[#0A0A0F]">🔒 Security Vulnerability</option>
-                      </select>
+                        {isSubmittingBug ? (
+                          <>
+                            <div className="w-[16px] h-[16px] border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          reportMethod === 'github' ? 'Create GitHub Issue' : 'Submit Feedback'
+                        )}
+                      </button>
+                    </form>
+                  </div>
+                )}
+                
+                {activeSupportTab === 'FAQ' && (
+                  <div className="flex flex-col gap-[20px] animate-in fade-in duration-300">
+                    <h3 className="text-sm md:text-base font-medium text-white mb-[8px]">Frequently Asked Questions</h3>
+                    {[
+                      { q: "How does local AI integration work?", a: "C.O.R.T.E.X. connects to your local Ollama instance running on port 11434 by default. This ensures complete privacy as your data never leaves your machine." },
+                      { q: "Can I use multiple cloud providers at once?", a: "Yes, you can connect multiple providers (e.g. OpenAI and Anthropic) and select different models for specific tasks or pipelines within your workspace." },
+                      { q: "What happens when I delete my account?", a: "Account deletion is permanent. It instantly wipes your profile, settings, and vector database index. However, connected external providers remain untouched." },
+                      { q: "How is my data encrypted?", a: "All conversation logs and artifacts are encrypted at rest using AES-256. API keys are stored in a secure enclave and are never exposed to the client." }
+                    ].map((faq, i) => (
+                      <div key={i} className="flex flex-col gap-[8px] p-[16px] rounded-[16px] bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                        <h4 className="text-[13px] md:text-sm font-medium text-white/90">{faq.q}</h4>
+                        <p className="text-[11px] md:text-xs text-white/50 leading-relaxed">{faq.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeSupportTab === 'Policies' && (
+                  <div className="flex flex-col gap-[32px] animate-in fade-in duration-300">
+                    <div className="flex flex-col gap-[12px]">
+                      <h3 className="text-sm md:text-base font-medium text-white">Privacy Policy</h3>
+                      <div className="p-[16px] rounded-[16px] bg-white/[0.02] border border-white/[0.05] text-[11px] md:text-xs text-white/60 leading-relaxed h-[150px] overflow-y-auto custom-scrollbar">
+                        <p className="mb-2"><strong>1. Data Collection:</strong> We collect only the data necessary to provide you with C.O.R.T.E.X. services. This includes workspace metadata, user preferences, and encrypted API keys. If you opt-in to telemetry, we collect anonymous crash reports.</p>
+                        <p className="mb-2"><strong>2. Data Usage:</strong> Your data is used exclusively to power the features of this application. We do not sell, rent, or share your personal information with third parties.</p>
+                        <p className="mb-2"><strong>3. Local Processing:</strong> When using the Ollama integration, all processing happens locally on your device. No data is sent to external servers in this mode.</p>
+                        <p><strong>4. Data Deletion:</strong> You retain the right to delete your data at any time via the "Danger Zone" tab. This action will completely wipe your local and cloud indices.</p>
+                      </div>
                     </div>
-
-                    <div className="flex flex-col gap-[8px]">
-                      <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Estimated Difficulty to Fix</label>
-                      <select 
-                        value={bugDifficulty} 
-                        onChange={(e: any) => setBugDifficulty(e.target.value)}
-                        className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all cursor-pointer"
-                      >
-                        <option value="easy" className="bg-[#0A0A0F]">🟢 Easy (Quick fix, minor change)</option>
-                        <option value="medium" className="bg-[#0A0A0F]">🟡 Medium (Requires code changes & validation)</option>
-                        <option value="hard" className="bg-[#0A0A0F]">🔴 Hard / Complex (Requires deep architecture change)</option>
-                      </select>
+                    
+                    <div className="flex flex-col gap-[12px]">
+                      <h3 className="text-sm md:text-base font-medium text-white">Terms & Conditions</h3>
+                      <div className="p-[16px] rounded-[16px] bg-white/[0.02] border border-white/[0.05] text-[11px] md:text-xs text-white/60 leading-relaxed h-[150px] overflow-y-auto custom-scrollbar">
+                        <p className="mb-2"><strong>1. Acceptance of Terms:</strong> By accessing and using C.O.R.T.E.X., you accept and agree to be bound by the terms and provision of this agreement.</p>
+                        <p className="mb-2"><strong>2. User Conduct:</strong> You agree not to use the platform to generate illegal, harmful, or abusive content. API keys provided must belong to you, and you are responsible for any charges incurred with your respective providers.</p>
+                        <p className="mb-2"><strong>3. Intellectual Property:</strong> All content, features, and functionality are owned by C.O.R.T.E.X. and are protected by international copyright, trademark, and other intellectual property laws.</p>
+                        <p><strong>4. Termination:</strong> We may terminate or suspend access to our service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Title</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Dashboard fails to load after sync" 
-                      value={bugTitle}
-                      onChange={(e) => setBugTitle(e.target.value)}
-                      required
-                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[12px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all" 
-                    />
-                  </div>
-                  
-                  <div className="flex flex-col gap-[8px]">
-                    <label className="text-[11px] md:text-xs text-white/50 pl-[8px]">Bug Description</label>
-                    <textarea 
-                      placeholder="Please provide steps to reproduce the issue, expected behavior, and actual behavior." 
-                      rows={5}
-                      value={bugDescription}
-                      onChange={(e) => setBugDescription(e.target.value)}
-                      required
-                      className="bg-white/[0.02] border border-white/[0.08] rounded-[16px] px-[16px] py-[16px] text-xs md:text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all resize-y" 
-                    />
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    disabled={isSubmittingBug}
-                    className={`w-full sm:w-fit px-[24px] py-[12px] md:py-[10px] rounded-full text-sm font-medium transition-all flex items-center justify-center gap-[8px] ${
-                      isSubmittingBug 
-                        ? 'bg-white/[0.05] text-white/30 cursor-not-allowed border border-white/[0.1]' 
-                        : 'text-white hover:opacity-90'
-                    }`}
-                    style={!isSubmittingBug ? acGradient : undefined}
-                  >
-                    {isSubmittingBug ? (
-                      <>
-                        <div className="w-[16px] h-[16px] border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      reportMethod === 'github' ? 'Create GitHub Issue' : 'Submit Feedback'
-                    )}
-                  </button>
-                </form>
+                )}
               </div>
             </section>
           )}

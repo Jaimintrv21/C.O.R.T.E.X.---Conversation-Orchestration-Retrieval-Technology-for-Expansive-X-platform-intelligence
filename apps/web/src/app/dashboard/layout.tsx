@@ -360,6 +360,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </AnimatePresence>
 
+        {/* Mobile More Overlay */}
+        <AnimatePresence>
+          {isMobileMoreOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMoreOpen(false)}
+              className="fixed inset-0 z-[45] bg-black/40 backdrop-blur-[2px] md:hidden"
+            />
+          )}
+        </AnimatePresence>
+
         {/* Mobile Floating Bottom Navigation (Aesthetic Glassmorphism) */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] md:hidden">
           {/* Background panel */}
@@ -489,6 +502,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Glass Reflection Shine */}
                 <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] rounded-[28px] overflow-hidden" />
                 
+                {/* Header with Back button */}
+                <div className="flex items-center justify-between pb-2 mb-1 border-b border-white/[0.08] relative z-10 px-1">
+                  <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">More Options</span>
+                  <button 
+                    onClick={() => setMobileMoreOpen(false)}
+                    className="flex items-center justify-center w-6 h-6 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2.5 relative z-10">
                   {/* Compare */}
                   {(() => {
