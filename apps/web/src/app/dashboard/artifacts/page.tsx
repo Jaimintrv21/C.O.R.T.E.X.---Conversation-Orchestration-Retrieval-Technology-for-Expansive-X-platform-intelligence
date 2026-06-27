@@ -76,6 +76,7 @@ export default function ArtifactsPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [selectedSources, setSelectedSources] = useState<string[]>(['ChatGPT History', 'Claude Projects']);
 
   // Manage Tab States
   const { data: rawArtifacts, isLoading, error, refetch } = useApiQuery(artifactsApi.list);
@@ -281,16 +282,35 @@ export default function ArtifactsPage() {
                     
                     <div className="flex flex-col gap-[24px]">
                       <div className="flex flex-col gap-[10px]">
-                        <label className="text-sm font-medium text-white/70 pl-[4px]">Data Sources</label>
+                        <div className="flex justify-between items-center px-[4px]">
+                          <label className="text-sm font-medium text-white/70">Data Sources</label>
+                          <span className={`text-xs ${selectedSources.length >= 5 ? 'text-red-400 font-bold' : 'text-white/40'}`}>
+                            {selectedSources.length}/5 max
+                          </span>
+                        </div>
                         <div className="flex items-center gap-[8px] flex-wrap">
-                          {['ChatGPT History', 'Claude Projects', 'Engineering Docs'].map((src, i) => (
-                            <button key={i} className="px-[14px] py-[7px] rounded-full bg-primary/15 border border-primary/30 text-[13px] text-white/90 hover:bg-primary/25 transition-colors whitespace-nowrap">
-                              ✓ {src}
+                          {selectedSources.map((src, i) => (
+                            <button 
+                              key={i} 
+                              onClick={() => setSelectedSources(prev => prev.filter(s => s !== src))}
+                              className="px-[14px] py-[7px] rounded-full bg-primary/15 border border-primary/30 text-[13px] text-white/90 hover:bg-red-500/20 hover:border-red-500/30 transition-colors whitespace-nowrap group flex items-center gap-[4px]"
+                            >
+                              <span className="group-hover:hidden">✓</span>
+                              <X size={12} className="hidden group-hover:block" />
+                              {src}
                             </button>
                           ))}
-                          <button className="px-[14px] py-[7px] rounded-full bg-white/[0.03] border border-dashed border-white/[0.12] text-[13px] text-white/40 hover:bg-white/[0.06] hover:text-white/60 transition-all whitespace-nowrap">
-                            + Add Source
-                          </button>
+                          {selectedSources.length < 5 && (
+                            <button 
+                              onClick={() => {
+                                const newSource = `Source ${selectedSources.length + 1}`;
+                                if (selectedSources.length < 5) setSelectedSources([...selectedSources, newSource]);
+                              }}
+                              className="px-[14px] py-[7px] rounded-full bg-white/[0.03] border border-dashed border-white/[0.12] text-[13px] text-white/40 hover:bg-white/[0.06] hover:text-white/60 transition-all whitespace-nowrap"
+                            >
+                              + Add Source
+                            </button>
+                          )}
                         </div>
                       </div>
 

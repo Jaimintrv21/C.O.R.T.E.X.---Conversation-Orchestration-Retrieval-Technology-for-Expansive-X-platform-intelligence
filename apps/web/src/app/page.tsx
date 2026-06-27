@@ -693,21 +693,32 @@ const ContextPipelineVisualization = () => {
 
 export default function LandingPage() {
   const router = useRouter();
-  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<number | null>(0);
   // HARDCODED - landing page NEVER reads from user AppearanceProvider
   const accentColor = LANDING_ACCENT;
   const secondaryColor = LANDING_SECONDARY;
 
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 250; // Trigger threshold
+      
+      const featuresEl = document.getElementById("features");
+      const timelineEl = document.getElementById("timeline");
+      
+      if (timelineEl && scrollPos >= timelineEl.offsetTop) {
+        setActiveTab(4); // Pipeline / timeline is tab index 4
+      } else if (featuresEl && scrollPos >= featuresEl.offsetTop) {
+        setActiveTab(1); // Features is tab index 1
+      } else {
+        setActiveTab(0); // Home is tab index 0
+      }
     };
-  }, [isMobileMenuOpen]);
+    
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Initial run on mount
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleTabChange = (index: number | null) => {
     if (index === null) return;
@@ -740,7 +751,7 @@ export default function LandingPage() {
 
       {/* ExpandableTabs Header */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden md:block">
-        <ExpandableTabs tabs={NAV_TABS as any} onChange={handleTabChange} />
+        <ExpandableTabs tabs={NAV_TABS as any} activeTab={activeTab} onChange={handleTabChange} />
       </header>
 
       {/* Brand (top-left) */}
@@ -749,79 +760,161 @@ export default function LandingPage() {
         <span className="text-base font-bold tracking-tight text-white hidden md:block">CORTEX</span>
       </div>
 
-      {/* Mobile Menu Toggle (top-right) */}
-      {!isMobileMenuOpen && (
-        <div className="fixed top-5 right-6 z-40 md:hidden">
+      {/* Mobile Floating Bottom Navigation (Aesthetic Glassmorphism) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] md:hidden">
+        {/* Background panel */}
+        <div className="relative h-[72px] rounded-full backdrop-blur-2xl bg-[#0A0A0F]/70 border border-white/[0.15] shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-around px-2 pointer-events-auto">
+          {/* Glass reflection shine */}
+          <div className="absolute inset-0 rounded-full pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] overflow-hidden" />
+          
+          {/* Home */}
           <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="p-2 rounded-full bg-white/[0.05] border border-white/[0.1] text-white/80 hover:text-white backdrop-blur-md"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              setMobileMoreOpen(false);
+            }}
+            className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
           >
-            <Menu size={20} />
+            {activeTab === 0 && (
+              <motion.div
+                layoutId="activeMobileLandingTab"
+                className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <Home size={18} className={`transition-colors ${activeTab === 0 ? 'text-[#6C63FF]' : 'text-white/60 group-hover:text-white'}`} />
+            <span className={`text-[10px] font-semibold transition-colors ${activeTab === 0 ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Home</span>
+          </button>
+
+          {/* Features */}
+          <button
+            onClick={() => {
+              document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+              setMobileMoreOpen(false);
+            }}
+            className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+          >
+            {activeTab === 1 && (
+              <motion.div
+                layoutId="activeMobileLandingTab"
+                className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <Sparkles size={18} className={`transition-colors ${activeTab === 1 ? 'text-[#6C63FF]' : 'text-white/60 group-hover:text-white'}`} />
+            <span className={`text-[10px] font-semibold transition-colors ${activeTab === 1 ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Features</span>
+          </button>
+
+          {/* Pricing */}
+          <button
+            onClick={() => {
+              router.push("/pricing");
+              setMobileMoreOpen(false);
+            }}
+            className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+          >
+            <CreditCard size={18} className="text-white/60 group-hover:text-white transition-colors" />
+            <span className="text-[10px] font-semibold text-white/50 group-hover:text-white transition-colors">Pricing</span>
+          </button>
+
+          {/* DOCX */}
+          <button
+            onClick={() => {
+              router.push("/docx");
+              setMobileMoreOpen(false);
+            }}
+            className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+          >
+            <BookOpen size={18} className="text-white/60 group-hover:text-white transition-colors" />
+            <span className="text-[10px] font-semibold text-white/50 group-hover:text-white transition-colors">DOCX</span>
+          </button>
+
+          {/* More */}
+          <button
+            onClick={() => setMobileMoreOpen(!isMobileMoreOpen)}
+            className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+          >
+            {isMobileMoreOpen && (
+              <motion.div
+                layoutId="activeMobileLandingTab"
+                className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <Menu size={18} className={`transition-all duration-300 ${isMobileMoreOpen ? 'text-[#6C63FF] rotate-90 scale-110' : 'text-white/60 group-hover:text-white'}`} />
+            <span className={`text-[10px] font-semibold transition-colors ${isMobileMoreOpen ? 'text-[#6C63FF]' : 'text-white/50 group-hover:text-white'}`}>More</span>
           </button>
         </div>
-      )}
 
-      {/* Mobile Drawer Navigation */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            key="mobile-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setMobileMenuOpen(false)}
-            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm md:hidden"
-          />
-        )}
-        {isMobileMenuOpen && (
-          <motion.aside
-            key="mobile-drawer"
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 bottom-0 left-0 w-[290px] h-[100dvh] z-[70] bg-[#0A0A0F]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-2xl p-6 flex flex-col md:hidden overflow-y-auto custom-scrollbar"
-          >
-            {/* Glass Reflection Shine */}
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
-            
-            <div className="flex flex-col gap-6 relative z-10">
-              {/* Header inside drawer */}
-              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-                <div className="flex items-center gap-2">
-                  <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
-                  <span className="font-bold tracking-widest text-base text-accent-gradient">CORTEX</span>
-                </div>
-                <button 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
+        {/* More popup */}
+        <AnimatePresence>
+          {isMobileMoreOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute bottom-[84px] left-0 right-0 rounded-[28px] border border-white/[0.12] bg-[#0A0A0F]/95 backdrop-blur-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] flex flex-col gap-3 z-50"
+            >
+              {/* Glass Reflection Shine */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] rounded-[28px] overflow-hidden" />
+              
+              <div className="grid grid-cols-2 gap-2.5 relative z-10">
+                {/* Pipeline */}
+                <button
+                  onClick={() => {
+                    document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" });
+                    setMobileMoreOpen(false);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
                 >
-                  <X size={18} />
+                  <div className="w-8 h-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                    <Brain size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-white font-sans">Pipeline</span>
+                    <span className="text-[8px] text-white/40 font-medium font-sans">Context Flow</span>
+                  </div>
+                </button>
+
+                {/* Sign In */}
+                <button
+                  onClick={() => {
+                    router.push("/login");
+                    setMobileMoreOpen(false);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <LogIn size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-white font-sans">Sign In</span>
+                    <span className="text-[8px] text-white/40 font-medium font-sans">Access Account</span>
+                  </div>
+                </button>
+
+                {/* Get Started */}
+                <button
+                  onClick={() => {
+                    router.push("/register");
+                    setMobileMoreOpen(false);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left col-span-2"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                    <UserPlus size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-white font-sans">Get Started</span>
+                    <span className="text-[8px] text-white/40 font-medium font-sans">Create a new workspace</span>
+                  </div>
                 </button>
               </div>
-              {/* Nav Links */}
-              <nav className="flex flex-col gap-3">
-                {NAV_TABS.map((tab, i) => {
-                  if (tab.type === "separator") return <div key={`sep-${i}`} className="h-px bg-white/[0.08] my-1 mx-2" />;
-                  return (
-                    <button
-                      key={`tab-${i}`}
-                      onClick={() => {
-                        handleTabChange(i);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center gap-4 h-[44px] px-[16px] rounded-full border border-white/[0.08] bg-white/[0.02] text-[13px] font-semibold text-white/90 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15] transition-all"
-                    >
-                      {tab.icon && <tab.icon size={16} className="text-[#A78BFA]" />}
-                      {tab.title}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ─── HERO — Full width, no box ─────────────── */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
@@ -1048,85 +1141,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-      {/* Mobile Hamburger Menu Toggle */}
-      <AnimatePresence>
-        {!isMobileMenuOpen && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setMobileMenuOpen(true)}
-            className="fixed top-5 right-6 z-50 p-2 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl md:hidden text-white/80 hover:text-white flex items-center justify-center hover:bg-white/[0.08]"
-          >
-            <Menu size={18} />
-          </motion.button>
-        )}
-      </AnimatePresence>
 
-      {/* Mobile Menu Sidebar Drawer */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
-            />
-            {/* Drawer */}
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-[16px] left-[16px] bottom-[16px] w-[260px] z-50 rounded-[32px] backdrop-blur-3xl bg-white/[0.05] border border-white/[0.15] p-5 flex flex-col justify-between md:hidden shadow-[0_24px_50px_rgba(0,0,0,0.7),inset_1px_1px_2px_rgba(255,255,255,0.2),inset_-1px_-1px_2px_rgba(0,0,0,0.3),0_0_20px_rgba(255,255,255,0.02)] overflow-hidden"
-            >
-              {/* Glass Reflection Shine */}
-              <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
-
-              <div className="flex flex-col gap-6 relative z-10">
-                {/* Header inside drawer */}
-                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-                  <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
-                    <span className="font-bold tracking-widest text-base bg-clip-text text-transparent bg-gradient-to-r from-primary to-[var(--accent-secondary)]">CORTEX</span>
-                  </div>
-                  <button
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                {/* Nav Links */}
-                <nav className="flex flex-col gap-2">
-                  {NAV_TABS.map((tab, idx) => {
-                    if (tab.type === "separator") {
-                      return <div key={`sep-${idx}`} className="h-px bg-white/10 my-1" />;
-                    }
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.title}
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          handleTabChange(idx);
-                        }}
-                        className="flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold bg-white/[0.03] border border-white/[0.06] text-white/70 hover:text-white hover:bg-gradient-to-r hover:from-primary/25 hover:to-[var(--accent-secondary)]/15 hover:border-white/[0.2] transition-all duration-200"
-                      >
-                        <Icon size={16} className="text-primary" />
-                        <span>{tab.title}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

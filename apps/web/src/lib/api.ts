@@ -215,6 +215,7 @@ export const auth = {
   login: (data: { email: string; password: string }) => request<{ access_token: string; refresh_token: string }>("POST", "/auth/login", data),
   refresh: (refresh_token: string) => request<unknown>("POST", "/auth/refresh", { refresh_token }),
   logout: () => request<unknown>("DELETE", "/auth/logout"),
+  me: () => request<{ has_completed_first_integration: boolean }>("GET", "/auth/me"),
 };
 
 // Conversations
@@ -278,4 +279,9 @@ export const workspaces = {
   update: (id: string, data: Record<string, unknown>) => request<WorkspaceResponse>("PATCH", `/workspaces/${id}`, data),
   addMember: (id: string, data: { user_id: string; role: string }) => request<unknown>("POST", `/workspaces/${id}/members`, data),
   removeMember: (id: string, userId: string) => request<unknown>("DELETE", `/workspaces/${id}/members/${userId}`),
+};
+
+// Provider Accounts
+export const providerAccounts = {
+  list: () => request<any[]>("GET", "/provider-accounts"),
 };

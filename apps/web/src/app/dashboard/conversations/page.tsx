@@ -278,8 +278,11 @@ export default function ConversationsPage() {
                     />
 
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-white/95 font-medium truncate group-hover:text-white transition-colors">
+                      <div className="text-[13px] text-white/95 font-medium truncate group-hover:text-white transition-colors flex items-center gap-[6px]">
                         {conv.title}
+                        {new Date().getTime() - new Date(conv.created_at || 0).getTime() < 24 * 60 * 60 * 1000 && (
+                          <span className="text-[9px] px-[6px] py-[2px] rounded-full bg-[#00D97E]/20 text-[#00D97E] border border-[#00D97E]/30 uppercase tracking-wider">New</span>
+                        )}
                       </div>
                       <div className="text-[11px] text-white/40 truncate mt-[2px]">
                         {conv.summary || conv.preview || 'No preview available.'}

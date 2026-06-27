@@ -1,0 +1,21 @@
+# Prioritized SQA Action Items
+
+- [ ] **1. [CRITICAL] Fix Account Deletion Cascade (BUG-003)**
+  - Wire the Auth0ManagementAPI and MinIO drop logic in the `delete_account_data` Celery task. Stop leaving orphaned identities.
+- [ ] **2. [HIGH] Implement Genuine Knowledge Extraction (BUG-002)**
+  - Replace the static mocks in `KnowledgeExtractionService.extract_from_session` with real LLM extractions writing to Neo4j.
+- [ ] **3. [HIGH] Replace Artifact Truncation with Summarization (BUG-005)**
+  - Hook the budget-exceeded strings in `ArtifactGenerationService` into a background LLM summarizer rather than silently slicing strings in half.
+- [ ] **4. [HIGH] Calculate Deep Analytics (BUG-004)**
+  - Rewrite the 6 endpoints in `/analytics` to query real firestore/neo4j aggregates rather than returning hardcoded static fixtures.
+- [ ] **5. [MEDIUM] Implement Real Auth0 Token Revocation on Logout (BUG-001)**
+  - Extend the `DELETE /logout` endpoint to actively kill the session in Auth0 or blacklist the JWT in Redis instead of relying strictly on client-side cleanup.
+- [ ] **6. [MEDIUM] Write Stuck Extraction Recovery Query (BUG-006)**
+  - Implement the Firestore query inside `tasks.recover_stuck_extractions` to find sessions stuck in "processing" for >10 mins and requeue them.
+- [ ] **7. [MEDIUM] Async User Provisioning (BUG-007)**
+  - Remove synchronous HTTP calls during `get_or_create_user_from_auth0` to prevent blocking the request thread.
+- [ ] **8. [LOW] Fix Broken Analytics Tests**
+  - Fix test assertions in `test_deep_analytics.py` that currently fail because they evaluate mocked endpoints.
+- [ ] **9. [INFORMATIONAL] Dependency Upgrades**
+  - Migrate `google.generativeai` -> `google.genai` before GCP deprecation date.
+  - Update Pydantic definitions from `class Config:` to `model_config = ConfigDict(...)` to clear deprecation warnings.

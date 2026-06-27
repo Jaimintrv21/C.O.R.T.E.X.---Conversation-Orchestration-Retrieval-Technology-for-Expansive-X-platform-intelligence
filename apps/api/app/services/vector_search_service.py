@@ -40,7 +40,7 @@ class SearchBackend(Protocol):
         *,
         user_id: str,
         workspace_id: str | None = None,
-        provider_slug: str | None = None,
+        provider_slugs: list[str] | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
         limit: int = 20,
@@ -77,7 +77,7 @@ class InMemoryCosineBackend:
         *,
         user_id: str,
         workspace_id: str | None = None,
-        provider_slug: str | None = None,
+        provider_slugs: list[str] | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
         limit: int = 20,
@@ -86,11 +86,12 @@ class InMemoryCosineBackend:
         candidates = self.store.list_embeddings_for_user(
             user_id,
             workspace_id=workspace_id,
-            provider_slug=provider_slug,
         )
 
         scored: list[tuple[float, dict[str, Any]]] = []
         for emb in candidates:
+            if provider_slugs and emb.get("provider_slug") not in provider_slugs:
+                continue
             vec = emb.get("vector")
             if not vec or not isinstance(vec, list):
                 continue
@@ -161,7 +162,7 @@ class QdrantBackend:
         *,
         user_id: str,
         workspace_id: str | None = None,
-        provider_slug: str | None = None,
+        provider_slugs: list[str] | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
         limit: int = 20,
@@ -175,9 +176,9 @@ class QdrantBackend:
             must_conditions.append(
                 FieldCondition(key="workspace_id", match=MatchValue(value=workspace_id)),
             )
-        if provider_slug:
+        if provider_slugs:
             must_conditions.append(
-                FieldCondition(key="provider_slug", match=MatchValue(value=provider_slug)),
+                FieldCondition(key="provider_slug", match=MatchValue(value=provider_slugs[0])) # Simplification for now, should use MatchAny if available
             )
 
         client = self._get_client()

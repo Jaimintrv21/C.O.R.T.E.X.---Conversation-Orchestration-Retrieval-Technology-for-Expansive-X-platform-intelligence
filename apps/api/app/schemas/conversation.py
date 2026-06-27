@@ -108,6 +108,7 @@ class ChatMessageRequest(BaseModel):
     model: str | None = None
     local_only: bool | None = None
     use_knowledge_base: bool | None = None
+    knowledge_sources: list[str] | None = None
 
 
 class ChatStreamDeltaResponse(BaseModel):

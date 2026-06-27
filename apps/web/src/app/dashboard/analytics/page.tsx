@@ -118,7 +118,7 @@ function AnalyticsPage() {
 
   const providerData = useMemo(() => {
     return displayProviders.map((p: ProviderBreakdown) => ({
-      name: p.provider.substring(0, 4),
+      name: p.provider.length > 10 ? p.provider.substring(0, 10) + '...' : p.provider,
       value: p.conversations,
     }));
   }, [displayProviders]);

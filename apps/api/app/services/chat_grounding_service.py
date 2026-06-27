@@ -21,6 +21,7 @@ class ChatGroundingService:
     async def build_grounded_context(
         self, *, user_id: str, query: str, max_nodes: int = 8,
         max_conversation_snippets: int = 5,
+        provider_slugs: list[str] | None = None,
     ) -> str:
         """Builds a string of context from the knowledge graph and past conversations."""
         try:
@@ -32,21 +33,29 @@ class ChatGroundingService:
                 hits = self.search_backend.search(
                     query_vector=query_vector,
                     user_id=user_id,
+                    provider_slugs=provider_slugs,
                     limit=max_conversation_snippets
                 )
                 if hits:
                     snippets = []
+                    found_slugs = set()
                     for hit in hits:
                         # Optionally format date if hit.created_at is present
                         date_str = hit.created_at.strftime("%Y-%m-%d") if hit.created_at else "Past message"
                         snippets.append(f"- ({date_str}) \"{hit.chunk_text}\"")
+                        if hit.provider_slug:
+                            found_slugs.add(hit.provider_slug)
                     snippets_text = "RELEVANT PAST MESSAGES:\n" + "\n".join(snippets) + "\n"
+                    if found_slugs:
+                        snippets_text += f"CITATIONS: {', '.join(found_slugs)}\n"
 
             # 2. Query Neo4j for top relevant nodes and their immediate relationships
             # For simplicity without a dedicated semantic graph index, we fetch the most occurring
             # nodes or nodes that loosely match the query text.
             # To keep it bounded and relevant, we pull top nodes and then filter by query match.
             all_nodes = self.neo4j_store.list_nodes(user_id=user_id, limit=max_nodes * 5)
+            # Neo4j nodes don't easily map to provider slugs unless we fetch source conversations, 
+            # so we'll just filter them conceptually or skip filtering if we can't.
             query_lower = query.lower()
             
             # Simple keyword overlap scoring

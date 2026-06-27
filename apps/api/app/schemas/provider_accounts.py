@@ -7,25 +7,27 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-ConnectionType = Literal["extension", "api_key", "file_watch"]
+ConnectionMethod = Literal["extension", "api_key", "file_import"]
 
 
 class dictConnectRequest(BaseModel):
     provider_slug: str = Field(min_length=1, max_length=80)
-    connection_type: ConnectionType
+    connection_method: ConnectionMethod
     api_key: str | None = None
     display_name: str | None = None
     monthly_cap_usd: float | None = Field(default=None, ge=0)
+    base_url: str | None = None
 
 
 class dictResponse(BaseModel):
     id: str
     user_id: str
     provider_slug: str
-    connection_type: ConnectionType
+    connection_method: ConnectionMethod
     display_name: str | None = None
     api_key_preview: str | None = None
     last_synced_at: datetime | None = None
+    knowledge_sync_status: Literal["idle", "processing", "synced"] = "idle"
     is_active: bool
     needs_reauth: bool = False
     monthly_cap_usd: float | None = None
@@ -39,10 +41,11 @@ class dictResponse(BaseModel):
 
 class dictSummaryResponse(BaseModel):
     provider_slug: str
-    connection_type: ConnectionType
+    connection_method: ConnectionMethod
     display_name: str | None = None
     api_key_preview: str | None = None
     last_synced_at: datetime | None = None
+    knowledge_sync_status: Literal["idle", "processing", "synced"] = "idle"
     is_active: bool
     needs_reauth: bool = False
     monthly_cap_usd: float | None = None

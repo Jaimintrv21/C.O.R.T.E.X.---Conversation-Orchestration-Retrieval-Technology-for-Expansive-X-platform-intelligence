@@ -263,7 +263,7 @@ class FirestoreStore:
         *,
         user_id: str,
         provider_slug: str,
-        connection_type: str,
+        connection_method: str,
         display_name: str | None = None,
         api_key: str | None = None,
         extension_token_jti: str | None = None,
@@ -277,7 +277,7 @@ class FirestoreStore:
             "user_id": user_id,
             "workspace_id": None,
             "provider_slug": provider_slug,
-            "connection_type": connection_type,
+            "connection_method": connection_method,
             "display_name": display_name,
             "encrypted_api_key": None,
             "api_key_nonce": None,
@@ -288,6 +288,7 @@ class FirestoreStore:
             "extension_token_expires_at": extension_token_expires_at,
             "extension_token_revoked_at": None,
             "last_synced_at": None,
+            "knowledge_sync_status": "idle",
             "is_active": True,
             "metadata": metadata or {},
             "created_at": now,
@@ -317,6 +318,39 @@ class FirestoreStore:
         patch["updated_at"] = utcnow()
         self._col("provider_accounts").document(provider_account_id).set(patch, merge=True)
         return self.get_provider_account(provider_account_id)
+
+    def get_integration_status(self, user_id: str, provider_slug: str) -> dict[str, Any]:
+        accounts = self.list_provider_accounts(user_id)
+        accounts = [acc for acc in accounts if acc.get("provider_slug") == provider_slug and acc.get("is_active", True)]
+        
+        methods = {}
+        last_synced = None
+        for acc in accounts:
+            method = acc.get("connection_method")
+            if not method: continue
+            
+            acc_last_synced = acc.get("last_synced_at")
+            methods[method] = {
+                "id": acc["id"],
+                "last_synced_at": acc_last_synced,
+                "status": acc.get("knowledge_sync_status", "idle")
+            }
+            if acc_last_synced:
+                if last_synced is None or acc_last_synced > last_synced:
+                    last_synced = acc_last_synced
+                    
+        tier = "none"
+        if methods:
+            if "extension" in methods or "api_key" in methods:
+                tier = "full"
+            else:
+                tier = "partial"
+                
+        return {
+            "methods": methods,
+            "last_synced_at": last_synced,
+            "tier": tier
+        }
 
     def revoke_provider_account(self, provider_account_id: str) -> dict[str, Any] | None:
         account = self.get_provider_account(provider_account_id)
@@ -914,10 +948,14 @@ class FirestoreStore:
 
     def provider_breakdown(self, user_id: str) -> list[dict[str, Any]]:
         conversations = self.list_conversations(user_id)
+        accounts = self.list_provider_accounts(user_id)
+        slug_to_name = {acc.get("provider_slug"): acc.get("display_name") for acc in accounts if acc.get("provider_slug")}
+        
         totals = len(conversations) or 1
         grouped: dict[str, dict[str, Any]] = defaultdict(lambda: {"conversations": 0, "messages": 0, "tokens": 0})
         for conv in conversations:
-            key = conv.get("provider_name") or self._provider_name(conv.get("provider_slug"))
+            slug = conv.get("provider_slug")
+            key = slug_to_name.get(slug) or conv.get("provider_name") or self._provider_name(slug)
             grouped[key]["conversations"] += 1
             grouped[key]["messages"] += int(conv.get("message_count") or 0)
             grouped[key]["tokens"] += int(conv.get("token_count") or 0)

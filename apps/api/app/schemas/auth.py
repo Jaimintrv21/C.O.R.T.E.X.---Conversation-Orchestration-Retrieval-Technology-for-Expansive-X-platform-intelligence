@@ -18,6 +18,7 @@ class UserResponse(BaseModel):
     storage_quota: int
     storage_used: int
     auth_provider: str | None = None
+    has_completed_first_integration: bool = False
     created_at: datetime | None = None
     preferences: dict | None = None
 

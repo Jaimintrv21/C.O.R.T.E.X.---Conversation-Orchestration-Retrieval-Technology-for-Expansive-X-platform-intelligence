@@ -37,9 +37,11 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const router = useRouter();
+  const [isMobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [isNotifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -76,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <>
       <div 
-        className={`relative min-h-screen flex text-white overflow-hidden font-sans bg-black ${
+        className={`relative min-h-screen flex text-white font-sans bg-black ${
           sidebarPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
         }`}
       >
@@ -124,17 +126,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <motion.div
                       layoutId="activeNavPill"
                       transition={pillTransition}
-                      className="absolute inset-0 bg-accent-gradient border border-accent-theme-glow shadow-accent-theme-glow rounded-full -z-10"
+                      className="absolute inset-0 bg-accent-gradient border border-accent-theme-glow shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] rounded-xl -z-10"
                     />
                   )}
                   <div 
                     data-active={isActive}
-                    className={`flex items-center gap-[12px] h-[40px] rounded-full text-sm transition-all duration-200 ease-out
-                      ${isSidebarOpen ? 'px-[14px] justify-start' : 'justify-center'}
-                      ${isActive ? 'text-white' : 'text-white/50 hover:bg-white/[0.08] hover:text-white/90'}`}
+                    className={`flex items-center gap-[14px] h-[44px] rounded-xl text-[14px] font-medium transition-all duration-200 ease-out group
+                      ${isSidebarOpen ? 'px-[16px] justify-start' : 'justify-center'}
+                      ${isActive ? 'text-white' : 'text-white/60 hover:bg-white/[0.06] hover:text-white'}`}
                   >
-                    <item.icon size={20} className="flex-shrink-0" />
-                    {isSidebarOpen && <span className="whitespace-nowrap font-medium">{item.name}</span>}
+                    <item.icon size={18} className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-[var(--accent-color)] transition-colors'}`} />
+                    {isSidebarOpen && <span className="whitespace-nowrap tracking-wide">{item.name}</span>}
                   </div>
                 </Link>
               );
@@ -144,9 +146,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden h-screen relative z-10 p-[16px] ${
-        sidebarPosition === 'right' ? 'pl-[16px] pr-[8px]' : sidebarPosition === 'none' ? 'px-[16px]' : 'pl-[8px] pr-[16px]'
-      }`}>
+      <div 
+        className={`flex-1 flex flex-col min-w-0 overflow-hidden h-[100dvh] relative z-10 p-[16px] md:p-[16px] ${
+          sidebarPosition === 'right' ? 'md:pl-[16px] md:pr-[8px]' : sidebarPosition === 'none' ? 'md:px-[16px]' : 'md:pl-[8px] md:pr-[16px]'
+        }`}
+        style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}
+        onClick={() => {
+          if (isNotifOpen) setNotifOpen(false);
+        }}
+      >
         
         {/* Floating Pill Topbar */}
         <header className="relative z-30 h-[56px] rounded-full backdrop-blur-3xl bg-white/[0.04] border border-white/[0.15] px-[12px] sm:px-[20px] flex items-center justify-between gap-[10px] sm:gap-[16px] shadow-[0_12px_32px_rgba(0,0,0,0.5),inset_1px_1px_1px_rgba(255,255,255,0.15),inset_-1px_-1px_1px_rgba(0,0,0,0.2)] flex-shrink-0 mb-[16px]">
@@ -157,10 +165,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           
           {/* Left: CORTEX Logo & Search */}
           <div className="flex-1 flex items-center gap-[8px] sm:gap-[12px] min-w-0 relative z-10">
-            {/* Hamburger Mobile Menu Toggle - always shown on mobile, also shown on desktop when no sidebar */}
+            {/* Hamburger Mobile Menu Toggle - only shown on desktop when sidebar position is none */}
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className={`flex md:hidden ${sidebarPosition === 'none' ? 'md:flex' : ''} p-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-white/80 hover:text-white items-center justify-center hover:bg-white/[0.1] flex-shrink-0`}
+              className={`hidden ${sidebarPosition === 'none' ? 'md:flex' : 'hidden'} p-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-white/80 hover:text-white items-center justify-center hover:bg-white/[0.1] flex-shrink-0`}
             >
               <Menu size={16} />
             </button>
@@ -175,13 +183,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 // Set dynamic focus outline colors via style injection
                 color: 'rgba(255,255,255,0.4)',
               }}
-              className="flex items-center gap-[10px] h-[36px] px-[14px] rounded-full bg-white/[0.05] border border-white/[0.1] transition-all duration-300 ease-out focus-within:bg-white/[0.1] focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)] w-full max-w-[120px] xs:max-w-[150px] sm:max-w-[220px] sm:focus-within:max-w-[380px] flex-shrink"
+              className="flex items-center gap-[10px] h-[36px] px-[14px] rounded-full bg-white/[0.05] border border-white/[0.1] transition-all duration-300 ease-out focus-within:bg-white/[0.1] focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)] w-full max-w-[100px] xs:max-w-[150px] sm:max-w-[220px] sm:focus-within:max-w-[380px] flex-shrink min-w-0"
             >
               <Search size={16} className="flex-shrink-0 text-white/40" />
               <input 
                 type="text" 
                 placeholder="Search..." 
-                className="bg-transparent border-none outline-none w-full text-xs sm:text-sm text-white placeholder:text-white/30"
+                className="bg-transparent border-none outline-none w-full text-xs sm:text-sm text-white placeholder:text-white/30 min-w-0"
               />
             </div>
           </div>
@@ -189,38 +197,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Right: Actions & User Profile */}
           <div className="flex items-center gap-[8px] sm:gap-[16px] flex-shrink-0 z-10">
             {/* Notification Bell Dropdown */}
-            <div className="static sm:relative group/notif flex-shrink-0">
-              <button className="w-[36px] h-[36px] rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-white/50 hover:text-white hover:bg-white/[0.08] transition-colors relative flex-shrink-0">
-                <Bell size={16} />
-                <div className="absolute top-[2px] right-[2px] w-[8px] h-[8px] rounded-full bg-primary shadow-[0_0_8px_var(--accent-color)]" />
+            <div className="relative flex-shrink-0">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotifOpen(!isNotifOpen);
+                }}
+                className={`w-[36px] h-[36px] rounded-full border flex items-center justify-center transition-all duration-300 relative flex-shrink-0 ${
+                  isNotifOpen 
+                    ? 'bg-white/[0.12] border-white/[0.2] text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]' 
+                    : 'bg-white/[0.05] border-white/[0.1] text-white/70 hover:text-white hover:bg-white/[0.08]'
+                }`}
+              >
+                <Bell size={16} className={isNotifOpen ? "fill-white/20" : ""} />
+                <div className="absolute top-[2px] right-[2px] w-[8px] h-[8px] rounded-full bg-primary shadow-[0_0_8px_var(--accent-color)] animate-pulse" />
               </button>
               
-              {/* Dropdown Panel */}
-              <div className="absolute top-full left-[16px] right-[16px] sm:left-auto sm:right-0 mt-[8px] w-auto sm:w-[320px] rounded-[20px] backdrop-blur-3xl bg-[#0A0A0F]/90 border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.5),inset_3px_3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_-3px_-3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.2),inset_-1px_-1px_1px_-0.5px_rgba(255,255,255,0.2)] opacity-0 translate-y-2 pointer-events-none group-hover/notif:opacity-100 group-hover/notif:translate-y-0 group-hover/notif:pointer-events-auto transition-all duration-300 z-50 overflow-hidden flex flex-col">
-                <div className="px-[16px] py-[12px] border-b border-white/[0.08] flex items-center justify-between">
-                  <h3 className="font-semibold text-sm text-white">Notifications</h3>
-                  <span className="text-[10px] uppercase tracking-wider text-white/40 bg-white/[0.05] px-[8px] py-[3px] rounded-full">3 New</span>
-                </div>
-                <div className="flex flex-col">
-                  {[
-                    { title: 'Model Sync Complete', desc: 'Llama 3 downloaded to Ollama.', time: '2m ago', color: '#00D97E' },
-                    { title: 'New Artifact Generated', desc: 'Dashboard scaffolding ready.', time: '1h ago', color: 'var(--accent-color)' },
-                    { title: 'Usage Alert', desc: '80% of OpenAI monthly budget.', time: '4h ago', color: '#FFBC00' }
-                  ].map((n, i) => (
-                    <div key={i} className="px-[16px] py-[12px] border-b border-white/[0.04] hover:bg-white/[0.04] transition-colors flex items-start gap-[10px] cursor-pointer">
-                      <div className="w-[8px] h-[8px] rounded-full mt-[5px] flex-shrink-0" style={{ backgroundColor: n.color, boxShadow: n.color.startsWith('var') ? '0 0 8px var(--accent-color)' : `0 0 8px ${n.color}80` }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-white/90 truncate">{n.title}</p>
-                        <p className="text-xs text-white/50 truncate mt-[1px]">{n.desc}</p>
-                      </div>
-                      <span className="text-[10px] text-white/30 flex-shrink-0">{n.time}</span>
+              {/* Dropdown Panel - State Driven */}
+              <AnimatePresence>
+                {isNotifOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-[calc(100%+12px)] -right-12 sm:right-0 w-[calc(100vw-32px)] max-w-[320px] sm:w-[320px] rounded-[20px] backdrop-blur-3xl bg-[#0A0A0F]/95 border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.5),inset_3px_3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_-3px_-3px_0.5px_-3.5px_rgba(255,255,255,0.08),inset_1px_1px_1px_-0.5px_rgba(255,255,255,0.2),inset_-1px_-1px_1px_-0.5px_rgba(255,255,255,0.2)] z-50 overflow-hidden flex flex-col origin-top-right"
+                  >
+                    <div className="px-[16px] py-[12px] border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+                      <h3 className="font-semibold text-sm text-white flex items-center gap-2">
+                        <Bell size={14} className="text-white/50" /> Notifications
+                      </h3>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-[8px] py-[3px] rounded-full">3 New</span>
                     </div>
-                  ))}
-                </div>
-                <Link href="/dashboard/notifications" className="block px-[16px] py-[10px] text-center text-xs font-medium text-[#00D2FF] hover:bg-white/[0.04] transition-colors">
-                  View All Notifications
-                </Link>
-              </div>
+                    <div className="flex flex-col max-h-[300px] overflow-y-auto custom-scrollbar">
+                      {[
+                        { title: 'Model Sync Complete', desc: 'Llama 3 downloaded to Ollama.', time: '2m ago', color: '#00D97E' },
+                        { title: 'New Artifact Generated', desc: 'Dashboard scaffolding ready.', time: '1h ago', color: 'var(--accent-color)' },
+                        { title: 'Usage Alert', desc: '80% of OpenAI monthly budget.', time: '4h ago', color: '#FFBC00' }
+                      ].map((n, i) => (
+                        <div key={i} className="px-[16px] py-[14px] border-b border-white/[0.04] hover:bg-white/[0.06] transition-colors flex items-start gap-[12px] cursor-pointer group">
+                          <div className="w-[8px] h-[8px] rounded-full mt-[5px] flex-shrink-0 transition-transform group-hover:scale-125" style={{ backgroundColor: n.color, boxShadow: n.color.startsWith('var') ? '0 0 8px var(--accent-color)' : `0 0 8px ${n.color}80` }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-semibold text-white/95 truncate">{n.title}</p>
+                            <p className="text-xs text-white/60 truncate mt-[2px]">{n.desc}</p>
+                          </div>
+                          <span className="text-[10px] text-white/40 flex-shrink-0 font-medium">{n.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Link href="/dashboard/notifications" onClick={() => setNotifOpen(false)} className="block px-[16px] py-[12px] text-center text-xs font-semibold text-[#00D2FF] hover:bg-white/[0.06] hover:text-[#00D2FF] transition-colors border-t border-white/[0.08]">
+                      View All Notifications
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="w-[1px] h-[20px] bg-white/[0.12] mx-[2px] flex-shrink-0" />
@@ -252,84 +283,311 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
-    </div>
 
-    {/* Drawer Mobile Menu */}
-    <AnimatePresence>
-      {isMobileMenuOpen && (
-        <motion.div
-          key="dashboard-mobile-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => setMobileMenuOpen(false)}
-          className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm ${sidebarPosition === 'none' ? '' : 'md:hidden'}`}
-        />
-      )}
-      {isMobileMenuOpen && (
-        <motion.aside
-          key="dashboard-mobile-drawer"
-          initial={{ x: '-100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '-100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className={`fixed top-0 bottom-0 left-0 w-[290px] h-[100dvh] z-[70] bg-[#0A0A0F]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-2xl p-6 flex flex-col overflow-y-auto custom-scrollbar ${
-            sidebarPosition === 'none' ? '' : 'md:hidden'
-          }`}
-        >
-          {/* Glass Reflection Shine */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
-          
-          <div className="flex flex-col gap-6 relative z-10 flex-1 pr-1">
-            {/* Header inside drawer */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
-                <span className="font-bold tracking-widest text-base text-accent-gradient">CORTEX</span>
-              </div>
-              <button 
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {/* Nav Links */}
-            <nav className="flex flex-col gap-2">
-              {navItems.map((item) => {
-                const isActive = item.href === '/dashboard' 
-                  ? pathname === '/dashboard' 
-                  : (pathname === item.href || pathname?.startsWith(item.href + '/'));
-                return (
-                  <Link 
-                    key={item.name} 
-                    href={item.href}
+      {/* Drawer Mobile Menu */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              key="dashboard-mobile-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm ${sidebarPosition === 'none' ? 'hidden md:block' : 'hidden'}`}
+            />
+          )}
+          {isMobileMenuOpen && (
+            <motion.aside
+              key="dashboard-mobile-drawer"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className={`fixed top-0 bottom-0 left-0 w-[290px] h-[100dvh] z-[70] bg-[#0A0A0F]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-2xl p-6 flex flex-col overflow-y-auto custom-scrollbar ${
+                sidebarPosition === 'none' ? 'hidden md:flex' : 'hidden'
+              }`}
+            >
+              {/* Glass Reflection Shine */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] z-0" />
+              
+              <div className="flex flex-col gap-6 relative z-10 flex-1 pr-1" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+                {/* Header inside drawer */}
+                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="CORTEX Logo" className="w-[24px] h-[24px] object-contain rounded-md" />
+                    <span className="font-bold tracking-widest text-base text-accent-gradient">CORTEX</span>
+                  </div>
+                  <button 
                     onClick={() => setMobileMenuOpen(false)}
-                    className="relative group outline-none"
+                    className="p-1 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white"
                   >
-                    <div 
-                      style={isActive ? {
-                        background: `linear-gradient(135deg, ${accentColor}26, ${secondaryColor}1a)`,
-                        borderColor: `${accentColor}99`,
-                        boxShadow: `0 0 15px ${accentColor}33, inset 0 1px 0 rgba(255,255,255,0.15)`
-                      } : {}}
-                      className={`flex items-center gap-3 h-[42px] px-4 rounded-full text-xs font-semibold transition-all duration-200 relative z-10
-                        ${isActive 
-                          ? 'border text-white shadow-lg' 
-                          : 'text-white/50 hover:bg-white/[0.05] hover:text-white/95 border border-transparent'}`}
-                    >
-                      <item.icon size={16} className="flex-shrink-0" />
-                      <span>{item.name}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </nav>
+                    <X size={18} />
+                  </button>
+                </div>
+                {/* Nav Links */}
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => {
+                    const isActive = item.href === '/dashboard' 
+                      ? pathname === '/dashboard' 
+                      : (pathname === item.href || pathname?.startsWith(item.href + '/'));
+                    return (
+                      <Link 
+                        key={item.name} 
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="relative group outline-none"
+                      >
+                        <div 
+                          style={isActive ? {
+                            background: `linear-gradient(135deg, ${accentColor}40, ${secondaryColor}22)`,
+                            borderColor: `${accentColor}80`,
+                            boxShadow: `0 0 20px ${accentColor}40, inset 0 1px 0 rgba(255,255,255,0.15)`
+                          } : {}}
+                          className={`flex items-center gap-[14px] h-[46px] px-[16px] rounded-xl text-[14px] font-medium transition-all duration-200 relative z-10 group
+                            ${isActive 
+                              ? 'border text-white shadow-lg' 
+                              : 'text-white/60 hover:bg-white/[0.06] hover:text-white border border-transparent'}`}
+                        >
+                          <item.icon size={18} className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-[var(--accent-color)] transition-colors'}`} />
+                          <span className="tracking-wide">{item.name}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile Floating Bottom Navigation (Aesthetic Glassmorphism) */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] md:hidden">
+          {/* Background panel */}
+          <div className="relative h-[72px] rounded-full backdrop-blur-2xl bg-[#0A0A0F]/70 border border-white/[0.15] shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-around px-2 pointer-events-auto">
+            {/* Glass reflection shine */}
+            <div className="absolute inset-0 rounded-full pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] overflow-hidden" />
+            
+            {/* Dashboard */}
+            {(() => {
+              const href = '/dashboard';
+              const isActive = pathname === href;
+              return (
+                <Link
+                  href={href}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeMobileBottomTab"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                    />
+                  )}
+                  <LayoutDashboard size={18} className={`transition-colors ${isActive ? 'text-[var(--accent-color)]' : 'text-white/60 group-hover:text-white'}`} />
+                  <span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Home</span>
+                </Link>
+              );
+            })()}
+
+            {/* AI Chat */}
+            {(() => {
+              const href = '/dashboard/ai-chat';
+              const isActive = pathname === href || pathname?.startsWith(href + '/');
+              return (
+                <Link
+                  href={href}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeMobileBottomTab"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                    />
+                  )}
+                  <Bot size={18} className={`transition-colors ${isActive ? 'text-[var(--accent-color)]' : 'text-white/60 group-hover:text-white'}`} />
+                  <span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Chat</span>
+                </Link>
+              );
+            })()}
+
+            {/* Conversations */}
+            {(() => {
+              const href = '/dashboard/conversations';
+              const isActive = pathname === href || pathname?.startsWith(href + '/');
+              return (
+                <Link
+                  href={href}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeMobileBottomTab"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                    />
+                  )}
+                  <MessageSquare size={18} className={`transition-colors ${isActive ? 'text-[var(--accent-color)]' : 'text-white/60 group-hover:text-white'}`} />
+                  <span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Convs</span>
+                </Link>
+              );
+            })()}
+
+            {/* Knowledge */}
+            {(() => {
+              const href = '/dashboard/knowledge';
+              const isActive = pathname === href || pathname?.startsWith(href + '/');
+              return (
+                <Link
+                  href={href}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeMobileBottomTab"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                    />
+                  )}
+                  <Network size={18} className={`transition-colors ${isActive ? 'text-[var(--accent-color)]' : 'text-white/60 group-hover:text-white'}`} />
+                  <span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-white' : 'text-white/50 group-hover:text-white'}`}>Graph</span>
+                </Link>
+              );
+            })()}
+
+            {/* More */}
+            <button
+              onClick={() => setMobileMoreOpen(!isMobileMoreOpen)}
+              className="relative flex flex-col items-center justify-center gap-0.5 w-[64px] h-[52px] rounded-full group outline-none"
+            >
+              {isMobileMoreOpen && (
+                <motion.div
+                  layoutId="activeMobileBottomTab"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  className="absolute inset-0 bg-white/[0.08] border border-white/[0.1] rounded-full -z-10 shadow-[inset_1px_1px_1px_rgba(255,255,255,0.15)]"
+                />
+              )}
+              <Menu size={18} className={`transition-all duration-300 ${isMobileMoreOpen ? 'text-[var(--accent-color)] rotate-90 scale-110' : 'text-white/60 group-hover:text-white'}`} />
+              <span className={`text-[10px] font-semibold transition-colors ${isMobileMoreOpen ? 'text-[var(--accent-color)]' : 'text-white/50 group-hover:text-white'}`}>More</span>
+            </button>
           </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
-  </>
+
+          {/* More popup */}
+          <AnimatePresence>
+            {isMobileMoreOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute bottom-[84px] left-0 right-0 rounded-[28px] border border-white/[0.12] bg-[#0A0A0F]/95 backdrop-blur-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] flex flex-col gap-3 z-50"
+              >
+                {/* Glass Reflection Shine */}
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/[0.01] via-white/[0.03] to-white/[0.08] rounded-[28px] overflow-hidden" />
+                
+                <div className="grid grid-cols-2 gap-2.5 relative z-10">
+                  {/* Compare */}
+                  {(() => {
+                    const href = '/dashboard/compare';
+                    const isActive = pathname === href || pathname?.startsWith(href + '/');
+                    return (
+                      <Link
+                        href={href}
+                        onClick={() => setMobileMoreOpen(false)}
+                        className={`flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border transition-all text-left ${
+                          isActive ? 'border-[var(--accent-color)] bg-white/[0.06]' : 'border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                          <GitCompare size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-bold text-white font-sans">Compare</span>
+                          <span className="text-[8px] text-white/40 font-medium font-sans">Models/Convs</span>
+                        </div>
+                      </Link>
+                    );
+                  })()}
+
+                  {/* Analytics */}
+                  {(() => {
+                    const href = '/dashboard/analytics';
+                    const isActive = pathname === href || pathname?.startsWith(href + '/');
+                    return (
+                      <Link
+                        href={href}
+                        onClick={() => setMobileMoreOpen(false)}
+                        className={`flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border transition-all text-left ${
+                          isActive ? 'border-[var(--accent-color)] bg-white/[0.06]' : 'border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                          <BarChart2 size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-bold text-white font-sans">Analytics</span>
+                          <span className="text-[8px] text-white/40 font-medium font-sans">Tokens/Spend</span>
+                        </div>
+                      </Link>
+                    );
+                  })()}
+
+                  {/* Artifacts */}
+                  {(() => {
+                    const href = '/dashboard/artifacts';
+                    const isActive = pathname === href || pathname?.startsWith(href + '/');
+                    return (
+                      <Link
+                        href={href}
+                        onClick={() => setMobileMoreOpen(false)}
+                        className={`flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border transition-all text-left ${
+                          isActive ? 'border-[var(--accent-color)] bg-white/[0.06]' : 'border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                          <Boxes size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-bold text-white font-sans">Artifacts</span>
+                          <span className="text-[8px] text-white/40 font-medium font-sans">Exports/Files</span>
+                        </div>
+                      </Link>
+                    );
+                  })()}
+
+                  {/* Settings */}
+                  {(() => {
+                    const href = '/dashboard/settings';
+                    const isActive = pathname === href || pathname?.startsWith(href + '/');
+                    return (
+                      <Link
+                        href={href}
+                        onClick={() => setMobileMoreOpen(false)}
+                        className={`flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border transition-all text-left ${
+                          isActive ? 'border-[var(--accent-color)] bg-white/[0.06]' : 'border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                          <Settings size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-bold text-white font-sans">Settings</span>
+                          <span className="text-[8px] text-white/40 font-medium font-sans">Preferences</span>
+                        </div>
+                      </Link>
+                    );
+                  })()}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </>
   );
 }
 

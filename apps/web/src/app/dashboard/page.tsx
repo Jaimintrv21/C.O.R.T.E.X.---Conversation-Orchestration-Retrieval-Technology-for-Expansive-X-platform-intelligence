@@ -14,15 +14,19 @@ import {
   AlertCircle,
   RefreshCcw,
 } from 'lucide-react';
-import { analytics, jobs, OverviewMetrics, ProviderBreakdown, JobResponse } from '@/lib/api';
+import React from 'react';
+import { analytics, jobs, OverviewMetrics, ProviderBreakdown, JobResponse, providerAccounts, auth } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApi';
 import { cardHover, staggerList, listItem } from '@/lib/motion';
 import Link from 'next/link';
 
 export default function DashboardOverviewPage() {
+  const [showNudge, setShowNudge] = React.useState(true);
   const { data: overview, isLoading: isOverviewLoading, error: overviewError, refetch: refetchOverview } = useApiQuery(analytics.overview);
   const { data: providers, isLoading: isProvidersLoading } = useApiQuery(analytics.providers);
   const { data: jobsList, isLoading: isJobsLoading } = useApiQuery(jobs.list);
+  const { data: providerStatusList } = useApiQuery<{ provider_slug: string, tier: string }[]>(() => providerAccounts.list().then(res => fetch('/api/v1/provider-accounts/status').then(r => r.json()).then(j => j.data)));
+  const { data: user } = useApiQuery(auth.me);
 
   const mockOverview: OverviewMetrics = {
     total_conversations: 14,
@@ -46,10 +50,12 @@ export default function DashboardOverviewPage() {
   const displayProviders = (providers && providers.length > 0) ? providers : mockProviders;
   const displayJobs = (jobsList && jobsList.length > 0) ? jobsList : mockJobs;
 
+  const activeProvidersCount = providerStatusList?.filter(p => p.tier === 'full' || p.tier === 'partial').length ?? displayOverview.providers_used;
+
   const stats = [
     { label: 'Total Conversations', value: displayOverview.total_conversations.toLocaleString(), icon: MessageSquare, trend: 'Live', trendUp: true },
     { label: 'Messages Indexed', value: displayOverview.total_messages.toLocaleString(), icon: Database, trend: 'Live', trendUp: true },
-    { label: 'Active Providers', value: `${displayOverview.providers_used}`, icon: Cpu, trend: 'Live', trendUp: true },
+    { label: 'Active Providers', value: `${activeProvidersCount}`, icon: Cpu, trend: 'Live', trendUp: true },
     { label: 'Avg Search Time', value: `${Math.max(1, Math.round(displayOverview.avg_messages_per_conversation * 10))}ms`, icon: Zap, trend: 'Derived', trendUp: true },
   ];
 
@@ -63,8 +69,29 @@ export default function DashboardOverviewPage() {
 
   const isLoading = false; // Force false to prevent infinite skeleton if api is down
 
+  const showOnboardingNudge = showNudge && user && !user.has_completed_first_integration;
+
   return (
     <div className="flex flex-col gap-[20px] md:gap-[32px] w-full max-w-full overflow-x-hidden">
+      {/* Onboarding Nudge */}
+      {showOnboardingNudge && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-[24px] p-[24px] overflow-hidden border border-primary/30 [box-shadow:0_0_40px_rgba(var(--primary-rgb),0.15)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-[20px]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-[var(--accent-secondary)]/5 to-transparent backdrop-blur-xl pointer-events-none" />
+          <div className="relative z-10">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-[8px]">Connect your first AI platform to start building your knowledge base</h2>
+            <p className="text-sm md:text-base text-white/70 max-w-[600px]">CORTEX works best when it can index your conversations. Connect ChatGPT, Claude, or another provider to see the magic happen.</p>
+          </div>
+          <div className="relative z-10 flex items-center gap-[12px] flex-shrink-0">
+            <button onClick={() => setShowNudge(false)} className="px-[16px] py-[10px] rounded-full text-xs font-semibold text-white/50 hover:text-white hover:bg-white/[0.05] transition-all">Dismiss</button>
+            <Link href="/dashboard/settings?tab=Integrations" className="px-[20px] py-[10px] rounded-full bg-white text-black text-sm font-bold shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-white/90 transition-all whitespace-nowrap">Connect Platform</Link>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
         {isLoading ? (

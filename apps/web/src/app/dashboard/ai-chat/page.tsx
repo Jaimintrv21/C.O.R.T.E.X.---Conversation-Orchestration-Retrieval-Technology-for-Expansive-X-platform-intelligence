@@ -16,7 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
-import { conversations as conversationsApi } from '@/lib/api';
+import { conversations as conversationsApi, providerAccounts as providerAccountsApi } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApi';
 import { listItem, staggerList } from '@/lib/motion';
 
@@ -43,16 +43,16 @@ type MessageRow = {
 
 const providerChoices = [
   { slug: 'glm-5.2:cloud', label: 'CORTEX Local', accent: '#8B5CF6' },
-] as const;
+];
 
-const providerLabel = (slug?: string | null, name?: string | null) => {
+const providerLabel = (slug?: string | null, name?: string | null, userChoices = providerChoices) => {
   if (name) return name;
   if (!slug) return 'Unknown';
-  return providerChoices.find((item) => item.slug === slug)?.label ?? slug;
+  return userChoices.find((item) => item.slug === slug)?.label ?? slug;
 };
 
-const providerAccent = (slug?: string | null) =>
-  providerChoices.find((item) => item.slug === slug)?.accent ?? '#00D97E';
+const providerAccent = (slug?: string | null, userChoices = providerChoices) =>
+  userChoices.find((item) => item.slug === slug)?.accent ?? '#00D97E';
 
 const formatTime = (value?: string | null) => {
   if (!value) return '';
@@ -66,11 +66,12 @@ const formatDate = (value?: string | null) => {
 
 export default function AiChatPage() {
   const { data: rawConversations, isLoading: isConversationsLoading, error: conversationsError, refetch: refetchConversations } = useApiQuery(() => conversationsApi.list(undefined, 200));
+  const { data: rawProviderAccounts } = useApiQuery(() => providerAccountsApi.list());
   
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [activeId, setActiveId] = useState<string>('');
-  const [composerProvider, setComposerProvider] = useState<'glm-5.2:cloud'>('glm-5.2:cloud');
+  const [composerProvider, setComposerProvider] = useState<string>('glm-5.2:cloud');
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<'all' | 'glm-5.2:cloud'>('all');
   const [useKnowledge, setUseKnowledge] = useState(true);
@@ -133,8 +134,27 @@ export default function AiChatPage() {
     [conversations, activeId],
   );
 
-  const activeColor = providerAccent(activeConversation?.provider_slug ?? composerProvider);
-  const activeLabel = providerLabel(activeConversation?.provider_slug ?? composerProvider, activeConversation?.provider_name);
+  const userProviderChoices = useMemo(() => {
+    const defaultChoices = [...providerChoices];
+    if (rawProviderAccounts && Array.isArray(rawProviderAccounts)) {
+      rawProviderAccounts.forEach((account) => {
+        if ((account.connection_method === 'api_key' || account.connection_method === 'extension') && account.is_active) {
+          if (!defaultChoices.some(c => c.slug === account.provider_slug)) {
+            const colors: Record<string, string> = { openai: '#00D97E', anthropic: '#D97757', google: '#4A90E2', perplexity: '#FFBC00', custom: '#888888' };
+            defaultChoices.push({
+              slug: account.provider_slug,
+              label: account.display_name || account.provider_slug,
+              accent: colors[account.provider_slug] || '#888888'
+            });
+          }
+        }
+      });
+    }
+    return defaultChoices;
+  }, [rawProviderAccounts]);
+
+  const activeColor = providerAccent(activeConversation?.provider_slug ?? composerProvider, userProviderChoices);
+  const activeLabel = providerLabel(activeConversation?.provider_slug ?? composerProvider, activeConversation?.provider_name, userProviderChoices);
 
   const loadMessages = async (conversationId: string) => {
     if (!conversationId) {
@@ -163,9 +183,12 @@ export default function AiChatPage() {
   useEffect(() => {
     if (activeId) {
       loadMessages(activeId);
-      setComposerProvider('glm-5.2:cloud');
+      const activeConv = conversations.find(c => c.id === activeId);
+      if (activeConv && activeConv.provider_slug) {
+        setComposerProvider(activeConv.provider_slug);
+      }
     }
-  }, [activeId]);
+  }, [activeId, conversations]);
 
   const filteredAndSortedConversations = useMemo(() => {
     const query = searchQuery.toLowerCase();
@@ -210,7 +233,7 @@ export default function AiChatPage() {
   const createConversation = async () => {
     const response = await conversationsApi.create({
       title: 'New Chat',
-      provider_slug: 'glm-5.2:cloud',
+      provider_slug: composerProvider,
       metadata: { source: 'dashboard-ai-chat' },
     });
     const created = response.data as ConversationRow | null;
@@ -235,7 +258,9 @@ export default function AiChatPage() {
 
   const handleSelectConversation = (conversation: ConversationRow) => {
     setActiveId(conversation.id);
-    setComposerProvider('glm-5.2:cloud');
+    if (conversation.provider_slug) {
+      setComposerProvider(conversation.provider_slug);
+    }
     setIsSidebarOpen(false); // Auto-close sidebar on mobile after selection
   };
 
@@ -322,13 +347,13 @@ export default function AiChatPage() {
       const res = await fetch(`/api/v1/conversations/${conversationId}/messages/stream`, {
         method: 'POST',
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ content, provider_slug: 'glm-5.2:cloud', use_knowledge: useKnowledge }),
+        body: JSON.stringify({ content, provider_slug: composerProvider, use_knowledge: useKnowledge }),
       });
 
       if (!res.ok) {
         // Fallback to normal non-streaming if /stream doesn't exist (e.g. 404)
         if (res.status === 404) {
-          const fallbackRes = await conversationsApi.sendMessage(conversationId, { content, provider_slug: 'glm-5.2:cloud', use_knowledge: useKnowledge });
+          const fallbackRes = await conversationsApi.sendMessage(conversationId, { content, provider_slug: composerProvider, use_knowledge: useKnowledge });
           const turn = fallbackRes.data as any;
           if (turn) {
             setMessages(prev => [...prev.filter(m => !m.id.startsWith('temp-')), turn.user_message, turn.assistant_message]);
@@ -369,7 +394,7 @@ export default function AiChatPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] md:gap-[20px] w-full max-w-[1400px] mx-auto h-[calc(100vh-140px)] min-h-[500px] relative">
+    <div className="flex flex-col gap-[16px] md:gap-[20px] w-full max-w-[1400px] mx-auto h-[calc(100dvh-200px)] md:h-[calc(100vh-140px)] relative">
       <div className="flex flex-col lg:flex-row gap-[16px] md:gap-[20px] h-full items-stretch">
         
         {/* Main Chat Area */}
@@ -401,10 +426,21 @@ export default function AiChatPage() {
                 <h2 className="text-[14px] md:text-[15px] font-semibold text-white/90 truncate">
                   {activeConversation?.title || 'New Chat Session'}
                 </h2>
-                <p className="text-[10px] md:text-[11px] text-white/45 flex items-center gap-1 truncate">
+                <div className="text-[10px] md:text-[11px] text-white/45 flex items-center gap-1 truncate">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-                  Live backend chat stream
-                </p>
+                  <select
+                    value={composerProvider}
+                    onChange={(e) => setComposerProvider(e.target.value)}
+                    className="bg-transparent border-none outline-none text-white/60 hover:text-white transition-colors cursor-pointer appearance-none pr-4 relative"
+                    style={{ WebkitAppearance: 'none', background: `url("data:image/svg+xml;utf8,<svg fill='white' height='10' viewBox='0 0 24 24' width='10' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>") no-repeat right center` }}
+                  >
+                    {userProviderChoices.map((c) => (
+                      <option key={c.slug} value={c.slug} className="bg-[#0F0F15] text-white/90">
+                        Using {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 

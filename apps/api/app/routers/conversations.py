@@ -146,7 +146,7 @@ async def list_conversations(
     )
 
 
-async def _build_grounded_prompt(*, user_id: str, provider_name: str, conversation: dict, content: str, use_knowledge_base: bool) -> tuple[str, str]:
+async def _build_grounded_prompt(*, user_id: str, provider_name: str, conversation: dict, content: str, use_knowledge_base: bool, knowledge_sources: list[str] | None = None) -> tuple[str, str]:
     prompt = (
         f"You are a helpful conversation assistant for {provider_name}.\n"
         f"Conversation title: {conversation.get('title') or 'Untitled'}\n"
@@ -157,7 +157,7 @@ async def _build_grounded_prompt(*, user_id: str, provider_name: str, conversati
     
     if use_knowledge_base:
         grounding_service = ChatGroundingService()
-        grounded_context = await grounding_service.build_grounded_context(user_id=user_id, query=content)
+        grounded_context = await grounding_service.build_grounded_context(user_id=user_id, query=content, provider_slugs=knowledge_sources)
         if grounded_context:
             system_prompt = (
                 "You are CORTEX's AI assistant. You have access to the user's "
@@ -190,13 +190,13 @@ async def end_session(conversation_id: uuid.UUID, user: dict = Depends(get_curre
     return ApiResponse(data=_serialize_conversation(updated or conversation))
 
 
-async def _generate_chat_reply(*, user_id: str, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None, use_knowledge_base: bool) -> str:
+async def _generate_chat_reply(*, user_id: str, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None, use_knowledge_base: bool, knowledge_sources: list[str] | None = None) -> str:
     router = LLMRouterService()
     provider_name = conversation.get("provider_name") or _provider_slug_to_name(provider_slug) or "Assistant"
     
     prompt, system_prompt = await _build_grounded_prompt(
         user_id=user_id, provider_name=provider_name, conversation=conversation, 
-        content=content, use_knowledge_base=use_knowledge_base
+        content=content, use_knowledge_base=use_knowledge_base, knowledge_sources=knowledge_sources
     )
     try:
         reply = await router.generate_text(
@@ -219,14 +219,14 @@ async def _generate_chat_reply(*, user_id: str, provider_slug: str | None, conve
         f"Here is a starting point: {content[:240]}"
     )
 
-async def _stream_chat_reply(*, user_id: str, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None, use_knowledge_base: bool):
+async def _stream_chat_reply(*, user_id: str, provider_slug: str | None, conversation: dict, content: str, model: str | None, local_only: bool | None, use_knowledge_base: bool, knowledge_sources: list[str] | None = None):
     import typing
     router = LLMRouterService()
     provider_name = conversation.get("provider_name") or _provider_slug_to_name(provider_slug) or "Assistant"
     
     prompt, system_prompt = await _build_grounded_prompt(
         user_id=user_id, provider_name=provider_name, conversation=conversation, 
-        content=content, use_knowledge_base=use_knowledge_base
+        content=content, use_knowledge_base=use_knowledge_base, knowledge_sources=knowledge_sources
     )
     try:
         async for chunk in router.stream_text(
@@ -579,6 +579,7 @@ async def send_message(
             model=body.model,
             local_only=resolved_local_only,
             use_knowledge_base=use_kb,
+            knowledge_sources=body.knowledge_sources,
         )
     elif body.provider == "ollama" or provider_slug == "glm-5.2:cloud" or body.model == "glm-5.2:cloud":
         resolved_model = body.model or provider_slug or "glm-5.2:cloud"
@@ -735,6 +736,7 @@ async def stream_message(
                         model=body.model,
                         local_only=resolved_local_only,
                         use_knowledge_base=use_kb,
+                        knowledge_sources=body.knowledge_sources,
                     ):
                         await queue.put(("chunk", chunk))
                 elif body.provider == "ollama" or provider_slug == "glm-5.2:cloud" or body.model == "glm-5.2:cloud":
@@ -872,6 +874,22 @@ async def import_conversations(
     idempotency_key: str | None = Depends(get_idempotency_key),
 ):
     store = FirestoreStore()
+    
+    if provider_slug:
+        accounts = store.list_provider_accounts(user["id"])
+        account = next((a for a in accounts if a.get("provider_slug") == provider_slug and a.get("connection_method") == "file_import"), None)
+        if not account:
+            if len([a for a in accounts if a.get("is_active")]) >= 5:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You've reached the maximum of 5 connected AI sources")
+            account = store.create_provider_account(
+                user_id=user["id"],
+                provider_slug=provider_slug,
+                connection_method="file_import",
+                display_name=store._provider_name(provider_slug) or provider_slug,
+                metadata={"mode": "file_import"},
+            )
+        store.update_provider_account(account["id"], {"last_synced_at": datetime.now(UTC), "is_active": True})
+
     job = store.create_job(
         user_id=user["id"],
         workspace_id=str(workspace_id) if workspace_id else None,

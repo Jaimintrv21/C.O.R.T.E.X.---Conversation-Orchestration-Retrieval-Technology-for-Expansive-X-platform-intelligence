@@ -77,7 +77,7 @@ export default function KnowledgeGraphPage() {
   }, [nodes, activeTypes]);
 
   return (
-    <div className="flex flex-col gap-[16px] h-[calc(100vh-140px)] min-h-[600px] w-full">
+    <div className="flex flex-col gap-[16px] h-[calc(100dvh-200px)] md:h-[calc(100vh-140px)] w-full">
       
       <h1 className="text-2xl font-bold text-white px-[8px] flex-shrink-0">Knowledge Graph</h1>
 
@@ -148,8 +148,8 @@ export default function KnowledgeGraphPage() {
           </div>
         )}
 
-        {/* Top-left controls (Bottom-left on mobile so it doesn't overlap header/notifs) */}
-        <div className="absolute bottom-[24px] md:bottom-auto md:top-[24px] left-[24px] flex flex-col md:flex-row items-center gap-[8px] z-20">
+        {/* Top-left controls (Horizontal below filters on mobile, vertical on desktop) */}
+        <div className="absolute top-[72px] md:top-[24px] left-[16px] md:left-[24px] flex flex-row md:flex-col items-center gap-[8px] z-20">
           {[ZoomIn, ZoomOut, RotateCcw, Maximize].map((Icon, i) => (
             <button key={i} className="w-[36px] h-[36px] rounded-full backdrop-blur-xl bg-white/[0.08] border border-white/[0.15] flex items-center justify-center text-white/70 hover:bg-white/[0.14] hover:text-white hover:scale-[1.08] active:scale-[0.95] transition-all duration-150 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
               <Icon size={16} />
@@ -157,8 +157,11 @@ export default function KnowledgeGraphPage() {
           ))}
         </div>
 
-        {/* Top-right filters (Top-left on mobile to use space efficiently) */}
-        <div className="absolute top-[24px] left-[24px] md:left-auto md:right-[24px] flex items-center gap-[8px] flex-wrap justify-start md:justify-end max-w-[calc(100vw-48px)] md:max-w-[400px] z-20">
+        {/* Top-right filters (Horizontal scroll on mobile, wrap on desktop) */}
+        <div 
+          className="absolute top-[16px] left-[16px] right-[16px] md:left-auto md:right-[24px] flex items-center gap-[8px] overflow-x-auto md:flex-wrap justify-start md:justify-end z-20 pb-2"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {nodeTypes.map(type => {
             const isActive = activeTypes.has(type.label);
             return (
@@ -179,17 +182,17 @@ export default function KnowledgeGraphPage() {
           })}
         </div>
 
-        {/* Popup Card (Bottom Sheet on mobile, floating on Desktop) */}
+        {/* Popup Card (Floating card above the bottom navigation bar on mobile, floating on Desktop) */}
         <AnimatePresence>
           {selectedNode && (
             <motion.div
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
+              initial={{ opacity: 0, y: '50%', scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: '50%', scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute bottom-0 md:bottom-auto md:top-1/2 left-0 md:left-1/2 w-full md:w-auto md:ml-[40px] md:-mt-[60px] z-30 rounded-t-[24px] md:rounded-[18px] backdrop-blur-2xl bg-[#12121A]/95 md:bg-[#12121A]/90 border-t md:border border-white/[0.12] p-[24px] md:p-[16px] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:shadow-[0_16px_40px_rgba(0,0,0,0.5)] md:min-w-[280px]"
+              className="absolute bottom-[112px] md:bottom-auto md:top-1/2 left-[16px] md:left-1/2 w-[calc(100%-32px)] md:w-auto md:ml-[40px] md:-mt-[60px] z-30 rounded-[24px] md:rounded-[18px] backdrop-blur-2xl bg-[#12121A]/95 md:bg-[#12121A]/90 border border-white/[0.12] p-[20px] md:p-[16px] shadow-[0_16px_40px_rgba(0,0,0,0.5)] md:min-w-[280px]"
             >
-              {/* Mobile Drag Handle */}
+              {/* Mobile Drag Handle decoration */}
               <div className="w-[32px] h-[4px] rounded-full bg-white/20 mx-auto mb-[16px] md:hidden" />
               
               <div className="flex items-start justify-between mb-[12px]">

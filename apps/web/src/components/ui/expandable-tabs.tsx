@@ -24,6 +24,7 @@ interface ExpandableTabsProps {
   tabs: TabItem[];
   className?: string;
   activeColor?: string;
+  activeTab?: number | null;
   onChange?: (index: number | null) => void;
 }
 
@@ -48,10 +49,17 @@ export function ExpandableTabs({
   tabs,
   className,
   activeColor = "text-primary",
+  activeTab,
   onChange,
 }: ExpandableTabsProps) {
-  const [selected, setSelected] = React.useState<number | null>(null);
+  const [selected, setSelected] = React.useState<number | null>(activeTab !== undefined ? activeTab : null);
   const outsideClickRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (activeTab !== undefined) {
+      setSelected(activeTab);
+    }
+  }, [activeTab]);
 
   useOnClickOutside(outsideClickRef, () => {
     setSelected(null);

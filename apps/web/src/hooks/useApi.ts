@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 type ApiFunction<T> = (...args: any[]) => Promise<{ data: T | null; meta?: any; errors?: any[] | null }>;
 
@@ -13,23 +13,41 @@ export function useApiQuery<T>(
 
   const { enabled = true, onSuccess, onError } = options;
 
+  // Use refs to prevent infinite render loops when anonymous functions are passed directly
+  const apiFunctionRef = useRef(apiFunction);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    apiFunctionRef.current = apiFunction;
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  });
+
+  const serializedArgs = JSON.stringify(args);
+
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiFunction(...args);
+      const response = await apiFunctionRef.current(...args);
       if (response.errors && response.errors.length > 0) {
         throw new Error(response.errors[0].message || 'API Error');
       }
       setData(response.data);
-      if (onSuccess && response.data) onSuccess(response.data);
+      if (onSuccessRef.current && response.data) {
+        onSuccessRef.current(response.data);
+      }
     } catch (err: any) {
-      setError(err instanceof Error ? err : new Error(err.message || 'Unknown error'));
-      if (onError) onError(err);
+      const formattedError = err instanceof Error ? err : new Error(err.message || 'Unknown error');
+      setError(formattedError);
+      if (onErrorRef.current) {
+        onErrorRef.current(formattedError);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [apiFunction, JSON.stringify(args)]);
+  }, [serializedArgs]); // Only recreate when args values change
 
   useEffect(() => {
     if (enabled) {
@@ -39,3 +57,4 @@ export function useApiQuery<T>(
 
   return { data, isLoading, error, refetch: fetch };
 }
+
