@@ -1339,12 +1339,14 @@ ${bugDescription}
 
                     <ul className="flex flex-col gap-3 text-xs text-white/70">
                       {[
-                        "Unlimited conversations",
-                        "Local AI via Ollama",
-                        "Hybrid search (full-text + semantic)",
-                        "JSON & Markdown export",
-                        "Single user workspace",
-                        "PII redaction & offline security",
+                        "Conversation Import (All Providers)",
+                        "Local Ollama Integration",
+                        "Hybrid Search (BM25 + Semantic)",
+                        "Model Compare Mode",
+                        "Artifact Generation",
+                        "Full Analytics & Heatmaps",
+                        "Knowledge Graph",
+                        "Cloud Sync & Backups weekly/daily once per day",
                       ].map((feature, i) => (
                         <li key={i} className="flex items-start gap-2.5">
                           <Check className="text-[#00D97E] flex-shrink-0 mt-0.5" size={14} />
@@ -1391,11 +1393,11 @@ ${bugDescription}
                     <ul className="flex flex-col gap-3 text-xs text-white/70">
                       {[
                         "Everything in Free +",
-                        "Semantic search with embeddings",
-                        "Artifact generation engine",
-                        "Full analytics & heatmaps",
-                        "Multi-user workspace (up to 5)",
-                        "Priority support",
+                        "Team Workspaces & RBAC (up to 10)",
+                        "SSO / SAML",
+                        "PII Redaction",
+                        "Audit Logs",
+                        "Cloud Sync & Backups high and good",
                       ].map((feature, i) => (
                         <li key={i} className="flex items-start gap-2.5">
                           <Check style={{ color: accentColor }} className="flex-shrink-0 mt-0.5" size={14} />

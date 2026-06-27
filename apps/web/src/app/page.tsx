@@ -22,6 +22,7 @@ const NAV_TABS = [
   { type: "separator" as const },
   { title: "Pipeline", icon: Brain },
   { title: "DOCX", icon: BookOpen },
+  { title: "Support", icon: MessageSquare },
   { type: "separator" as const },
   { title: "Sign In", icon: LogIn },
   { title: "Get Started", icon: UserPlus },
@@ -728,8 +729,9 @@ export default function LandingPage() {
       2: () => router.push("/pricing"),
       4: () => document.getElementById("timeline")?.scrollIntoView({ behavior: "smooth" }),
       5: () => router.push("/docx"),
-      7: () => router.push("/login"),
-      8: () => router.push("/register"),
+      6: () => router.push("/support"),
+      8: () => router.push("/login"),
+      9: () => router.push("/register"),
     };
     actions[index]?.();
   };
@@ -925,13 +927,30 @@ export default function LandingPage() {
                   </div>
                 </button>
 
+                {/* Support */}
+                <button
+                  onClick={() => {
+                    router.push("/support");
+                    setMobileMoreOpen(false);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <MessageSquare size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-white font-sans">Support</span>
+                    <span className="text-[8px] text-white/40 font-medium font-sans">Help Center</span>
+                  </div>
+                </button>
+
                 {/* Sign In */}
                 <button
                   onClick={() => {
                     router.push("/login");
                     setMobileMoreOpen(false);
                   }}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left col-span-2"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-left"
                 >
                   <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
                     <LogIn size={16} />
