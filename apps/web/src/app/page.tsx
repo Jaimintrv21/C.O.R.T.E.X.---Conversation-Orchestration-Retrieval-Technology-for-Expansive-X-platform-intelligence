@@ -203,7 +203,11 @@ const ContextPipelineVisualization = () => {
   };
 
   return (
-    <div id="context-pipeline-visualizer" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch py-12 px-6 md:px-10 rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <div 
+      id="context-pipeline-visualizer" 
+      onClick={triggerSimulation}
+      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch py-12 px-6 md:px-10 rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer hover:border-violet-500/30 transition-colors"
+    >
       {/* Description Left */}
       <div className="lg:col-span-5 flex flex-col justify-between space-y-8">
         <div>
@@ -222,7 +226,7 @@ const ContextPipelineVisualization = () => {
             return (
               <button
                 key={idx}
-                onClick={() => selectStep(idx)}
+                onClick={(e) => { e.stopPropagation(); selectStep(idx); }}
                 className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 flex gap-4 items-start ${isActive
                     ? "bg-white/[0.06] border-violet-500/40 shadow-[0_0_20px_rgba(139,92,246,0.12)] scale-[1.01]"
                     : "bg-white/[0.01] border-white/[0.05] hover:bg-white/[0.03] hover:border-white/[0.1]"
@@ -371,7 +375,7 @@ const ContextPipelineVisualization = () => {
           {/* Cards for desktop */}
           {/* Node 1: User Query */}
           <motion.div
-            onClick={() => selectStep(0)}
+            onClick={(e) => { e.stopPropagation(); selectStep(0); }}
             className={`absolute top-[55px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 0
                 ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)] scale-105"
                 : "bg-[#0c0a1a]/85 border-purple-500/30 hover:border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
@@ -389,7 +393,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Node 2: Vector Match */}
           <motion.div
-            onClick={() => selectStep(1)}
+            onClick={(e) => { e.stopPropagation(); selectStep(1); }}
             className={`absolute top-[170px] left-[26.6%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 1
                 ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] scale-105"
                 : "bg-[#080b18]/85 border-blue-500/30 hover:border-blue-400/50 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
@@ -407,7 +411,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Node 3: Graph Fact */}
           <motion.div
-            onClick={() => selectStep(2)}
+            onClick={(e) => { e.stopPropagation(); selectStep(2); }}
             className={`absolute top-[170px] left-[73.3%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 2
                 ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)] scale-105"
                 : "bg-[#08130f]/85 border-green-500/30 hover:border-green-400/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
@@ -425,7 +429,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Node 4: Prompt Builder */}
           <motion.div
-            onClick={() => selectStep(3)}
+            onClick={(e) => { e.stopPropagation(); selectStep(3); }}
             className={`absolute top-[275px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 3
                 ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)] scale-105"
                 : "bg-[#160e0a]/85 border-orange-500/30 hover:border-orange-400/50 shadow-[0_0_15px_rgba(249,115,22,0.15)]"
@@ -443,7 +447,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Node 5: CORTEX Engine */}
           <motion.div
-            onClick={() => selectStep(4)}
+            onClick={(e) => { e.stopPropagation(); selectStep(4); }}
             className={`absolute top-[365px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 4
                 ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)] scale-105"
                 : "bg-[#150a14]/85 border-pink-500/30 hover:border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.15)]"
@@ -465,7 +469,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Card 1: User Query */}
           <div
-            onClick={() => selectStep(0)}
+            onClick={(e) => { e.stopPropagation(); selectStep(0); }}
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 0
                 ? "bg-purple-500/10 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.35)]"
                 : "bg-[#0c0a1a]/85 border-purple-500/30 hover:border-purple-400/50"
@@ -487,7 +491,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Card 2: Vector Match */}
           <div
-            onClick={() => selectStep(1)}
+            onClick={(e) => { e.stopPropagation(); selectStep(1); }}
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 1
                 ? "bg-blue-500/10 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)]"
                 : "bg-[#080b18]/85 border-blue-500/30 hover:border-blue-400/50"
@@ -509,7 +513,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Card 3: Graph Fact */}
           <div
-            onClick={() => selectStep(2)}
+            onClick={(e) => { e.stopPropagation(); selectStep(2); }}
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 2
                 ? "bg-green-500/10 border-green-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
                 : "bg-[#08130f]/85 border-green-500/30 hover:border-green-400/50"
@@ -531,7 +535,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Card 4: Prompt Builder */}
           <div
-            onClick={() => selectStep(3)}
+            onClick={(e) => { e.stopPropagation(); selectStep(3); }}
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 3
                 ? "bg-orange-500/10 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.35)]"
                 : "bg-[#160e0a]/85 border-orange-500/30 hover:border-orange-400/50"
@@ -553,7 +557,7 @@ const ContextPipelineVisualization = () => {
 
           {/* Card 5: CORTEX AI Core */}
           <div
-            onClick={() => selectStep(4)}
+            onClick={(e) => { e.stopPropagation(); selectStep(4); }}
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 4
                 ? "bg-pink-500/10 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.35)]"
                 : "bg-[#150a14]/85 border-pink-500/30 hover:border-pink-400/50"
@@ -582,14 +586,14 @@ const ContextPipelineVisualization = () => {
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
               </div>
               <button
-                onClick={() => setActiveTab('terminal')}
+                onClick={(e) => { e.stopPropagation(); setActiveTab('terminal'); }}
                 className={`font-semibold transition-all px-2.5 py-1 rounded-md ${activeTab === 'terminal' ? "bg-white/[0.06] text-white" : "text-white/40 hover:text-white/70"
                   }`}
               >
                 CORTEX Daemon Logs
               </button>
               <button
-                onClick={() => setActiveTab('code')}
+                onClick={(e) => { e.stopPropagation(); setActiveTab('code'); }}
                 className={`font-semibold transition-all px-2.5 py-1 rounded-md ${activeTab === 'code' ? "bg-white/[0.06] text-white" : "text-white/40 hover:text-white/70"
                   }`}
               >
