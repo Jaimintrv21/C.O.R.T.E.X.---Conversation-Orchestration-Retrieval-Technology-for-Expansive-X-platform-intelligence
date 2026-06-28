@@ -1393,7 +1393,7 @@ ${bugDescription}
                     <ul className="flex flex-col gap-3 text-xs text-white/70">
                       {[
                         "Everything in Free +",
-                        "Team Workspaces & RBAC (up to 10)",
+                        "Team Workspaces & RBAC (upto 10 )",
                         "SSO / SAML",
                         "PII Redaction",
                         "Audit Logs",
