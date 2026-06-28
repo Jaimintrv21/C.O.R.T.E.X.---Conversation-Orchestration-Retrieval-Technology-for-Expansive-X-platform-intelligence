@@ -6,11 +6,12 @@ import { useAppearance } from '@/hooks/useAppearance';
 import {
   Cpu, Shield, KeyRound, Bell, Settings as SettingsIcon, Database, User,
   CreditCard, Box, Check, UserPlus, Trash2, X, Palette, Moon, Sun,
-  Monitor, Smartphone, Mail, AlertOctagon, Download, Eraser, Sparkles
+  Monitor, Smartphone, Mail, AlertOctagon, Download, Eraser, Sparkles,
+  UploadCloud, FileJson, History
 } from 'lucide-react';
 import { popIn, staggerList, listItem } from '@/lib/motion';
 
-const tabs = ['Profile', 'Appearance', 'Integrations', 'Notifications', 'Privacy', 'Workspace', 'Billing', 'Help & Support', 'Danger Zone'];
+const tabs = ['Profile', 'Appearance', 'Integrations', 'Import/Export', 'Notifications', 'Privacy', 'Workspace', 'Billing', 'Help & Support', 'Danger Zone'];
 
 const providers = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', status: 'connected', color: '#00D97E' },
@@ -142,6 +143,45 @@ export default function SettingsPage() {
   const [provModel, setProvModel] = useState('');
   const [provEndpoint, setProvEndpoint] = useState('');
   const [provShowAdvanced, setProvShowAdvanced] = useState(false);
+
+  // Import/Export States
+  const [importFiles, setImportFiles] = useState<Record<string, File | null>>({});
+  const [importProgress, setImportProgress] = useState<Record<string, number>>({});
+  const [isImporting, setIsImporting] = useState<Record<string, boolean>>({});
+
+  const handleFileDrop = (providerId: string, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setImportFiles(prev => ({ ...prev, [providerId]: e.dataTransfer.files[0] }));
+    }
+  };
+
+  const handleFileSelect = (providerId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImportFiles(prev => ({ ...prev, [providerId]: e.target.files![0] }));
+    }
+  };
+
+  const startImport = (providerId: string) => {
+    if (!importFiles[providerId]) return;
+    setIsImporting(prev => ({ ...prev, [providerId]: true }));
+    setImportProgress(prev => ({ ...prev, [providerId]: 0 }));
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsImporting(prev => ({ ...prev, [providerId]: false }));
+          triggerToast(`Successfully imported history for ${providerList.find(p => p.id === providerId)?.name || 'Provider'}`);
+          setImportFiles(prev => ({ ...prev, [providerId]: null }));
+        }, 500);
+      }
+      setImportProgress(prev => ({ ...prev, [providerId]: Math.min(progress, 100) }));
+    }, 300);
+  };
 
   const handleToggleProvider = (providerId: string) => {
     const provider = providerList.find(p => p.id === providerId);
@@ -831,15 +871,27 @@ ${bugDescription}
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => handleToggleProvider(provider.id)}
-                          className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${provider.status === 'connected'
-                              ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
-                              : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                            }`}
-                        >
-                          {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-[8px] sm:w-auto w-full">
+                          {provider.status === 'connected' && (
+                            <button
+                              onClick={() => {
+                                handleTabChange('Import/Export');
+                              }}
+                              className="w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border bg-white/[0.04] border-white/[0.08] text-white/80 hover:text-white hover:bg-white/[0.1] hover:border-white/[0.2]"
+                            >
+                              Import Data
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleToggleProvider(provider.id)}
+                            className={`w-full sm:w-auto px-[20px] py-[8px] rounded-full text-[12px] md:text-sm font-medium transition-all duration-200 border ${provider.status === 'connected'
+                                ? 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30'
+                                : 'bg-white text-black hover:bg-white/90 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                              }`}
+                          >
+                            {provider.status === 'connected' ? 'Disconnect' : provider.status === 'error' ? 'Reauthorize' : 'Connect'}
+                          </button>
+                        </div>
                       </div>
 
                       {connectingProviderId === provider.id && (
@@ -998,6 +1050,118 @@ ${bugDescription}
                 </motion.div>
               </section>
             </>
+          )}
+
+          {activeTab === 'Import/Export' && (
+            <section className="flex flex-col gap-[24px]">
+              <div className="px-[8px]">
+                <h2 className="text-lg font-medium text-white mb-[4px]">Data Import & Export</h2>
+                <p className="text-sm text-white/50">Bring your existing conversation history into CORTEX from other platforms legitimately via data export.</p>
+              </div>
+
+              <motion.div variants={staggerList} initial="hidden" animate="visible" className="flex flex-col gap-[16px]">
+                {providerList.map((provider) => {
+                  const instructions = 
+                    provider.id === 'openai' ? 'Go to ChatGPT: Settings → Data Controls → Export. Download the zip file and extract the JSON.' :
+                    provider.id === 'anthropic' ? 'Go to Claude: Settings → Export data. Download your account data.' :
+                    provider.id === 'google' ? 'Use Google Takeout to export your Gemini/Bard history.' :
+                    'Check your provider settings for a data export option.';
+                    
+                  return (
+                    <motion.div
+                      key={`import-${provider.id}`}
+                      variants={listItem}
+                      className="flex flex-col md:flex-row gap-[24px] p-[20px] md:p-[24px] rounded-[24px] backdrop-blur-xl bg-white/[0.03] border border-white/[0.07] overflow-hidden"
+                    >
+                      <div className="flex-1 flex flex-col gap-[12px]">
+                        <div className="flex items-center gap-[12px]">
+                          <div className="w-[40px] h-[40px] rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${provider.color}15`, border: `1px solid ${provider.color}30` }}>
+                            <History size={20} color={provider.color} />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-medium text-white/90">{provider.name} History</h3>
+                            <p className="text-xs text-white/50">{instructions}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-[8px] bg-white/[0.02] border border-white/[0.05] rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+                          <h4 className="text-xs font-semibold text-white/70 flex items-center gap-[6px]">
+                            <FileJson size={14} /> Supported Formats
+                          </h4>
+                          <p className="text-[11px] text-white/40 leading-relaxed">
+                            Upload the extracted <code className="bg-white/10 px-[4px] py-[2px] rounded text-white/60">.json</code> or <code className="bg-white/10 px-[4px] py-[2px] rounded text-white/60">.zip</code> archive directly. CORTEX will parse the conversations and map them into your workspace seamlessly.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex-1">
+                        <div 
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => handleFileDrop(provider.id, e)}
+                          className={`w-full h-full min-h-[140px] border-2 border-dashed rounded-[20px] flex flex-col items-center justify-center p-[20px] transition-all relative
+                            ${importFiles[provider.id] ? 'border-[#00D97E]/30 bg-[#00D97E]/5' : 'border-white/[0.1] hover:border-white/[0.2] bg-white/[0.01] hover:bg-white/[0.02]'}
+                          `}
+                        >
+                          {isImporting[provider.id] ? (
+                            <div className="flex flex-col items-center justify-center w-full gap-[12px]">
+                              <div className="w-full bg-white/[0.05] rounded-full h-[6px] overflow-hidden">
+                                <motion.div 
+                                  className="h-full rounded-full"
+                                  style={{ background: provider.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${importProgress[provider.id] || 0}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium text-white/80 animate-pulse">
+                                Parsing history data... {Math.round(importProgress[provider.id] || 0)}%
+                              </span>
+                            </div>
+                          ) : importFiles[provider.id] ? (
+                            <div className="flex flex-col items-center justify-center gap-[12px]">
+                              <FileJson size={32} className="text-[#00D97E]" />
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-white">{importFiles[provider.id]?.name}</p>
+                                <p className="text-[10px] text-white/40">{(importFiles[provider.id]?.size || 0) / 1024 > 1024 ? ((importFiles[provider.id]?.size || 0) / 1024 / 1024).toFixed(2) + ' MB' : Math.round((importFiles[provider.id]?.size || 0) / 1024) + ' KB'}</p>
+                              </div>
+                              <div className="flex gap-[8px] mt-[4px]">
+                                <button 
+                                  onClick={() => setImportFiles(prev => ({ ...prev, [provider.id]: null }))}
+                                  className="px-[12px] py-[6px] rounded-full border border-white/[0.1] text-[11px] text-white/60 hover:bg-white/[0.05]"
+                                >
+                                  Cancel
+                                </button>
+                                <button 
+                                  onClick={() => startImport(provider.id)}
+                                  className="px-[16px] py-[6px] rounded-full text-[11px] font-semibold text-white shadow-lg transition-all"
+                                  style={{ backgroundColor: provider.color }}
+                                >
+                                  Start Import
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <UploadCloud size={32} className="text-white/20 mb-[12px]" />
+                              <p className="text-xs text-white/60 text-center mb-[4px]">Drag and drop your export file here</p>
+                              <p className="text-[10px] text-white/40 text-center mb-[12px]">or click to browse from computer</p>
+                              <input 
+                                type="file" 
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                accept=".json,.zip"
+                                onChange={(e) => handleFileSelect(provider.id, e)}
+                              />
+                              <div className="px-[16px] py-[6px] rounded-full bg-white/[0.05] border border-white/[0.1] text-xs font-medium text-white/80 pointer-events-none">
+                                Browse Files
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </section>
           )}
 
           {activeTab === 'Privacy' && (

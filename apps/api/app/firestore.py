@@ -426,6 +426,49 @@ class FirestoreStore:
         payload["id"] = api_log_id
         return payload
 
+    def create_import_record(
+        self,
+        *,
+        user_id: str,
+        connector_id: str,
+        filename: str,
+        file_size_bytes: int,
+    ) -> dict[str, Any]:
+        import_id = make_uuid()
+        payload = {
+            "user_id": user_id,
+            "connector_id": connector_id,
+            "filename": filename,
+            "file_size_bytes": file_size_bytes,
+            "conversations_imported": 0,
+            "conversations_updated": 0,
+            "conversations_skipped": 0,
+            "warnings": [],
+            "status": "processing",
+            "error_message": None,
+            "started_at": utcnow(),
+            "completed_at": None,
+        }
+        self._col("import_history").document(import_id).set(payload)
+        payload["id"] = import_id
+        return payload
+
+    def update_import_record(self, import_id: str, patch: dict[str, Any]) -> dict[str, Any] | None:
+        self._col("import_history").document(import_id).set(patch, merge=True)
+        doc = self._col("import_history").document(import_id).get()
+        return _with_id(doc) if doc.exists else None
+
+    def list_import_history(self, user_id: str, connector_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        docs = list(
+            self._col("import_history")
+            .where("user_id", "==", user_id)
+            .where("connector_id", "==", connector_id)
+            .stream()
+        )
+        items = [_with_id(doc) for doc in docs]
+        items.sort(key=lambda item: item.get("started_at") or utcnow(), reverse=True)
+        return items[:limit]
+
     def create_usage_record(
         self,
         *,
@@ -787,6 +830,7 @@ class FirestoreStore:
         user_id: str,
         workspace_id: str | None,
         provider_slug: str | None,
+        connector_id: str | None = None,
         external_id: str | None,
         title: str | None,
         summary: str | None,
@@ -806,6 +850,7 @@ class FirestoreStore:
             "workspace_id": workspace_id,
             "provider_id": None,
             "provider_slug": provider_slug,
+            "connector_id": connector_id or provider_slug,
             "provider_name": self._provider_name(provider_slug),
             "external_id": external_id,
             "title": title,

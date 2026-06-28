@@ -79,6 +79,8 @@ class ImportPipelineService:
         workspace_id: str | None,
         conversations: list[CanonicalConversation],
         progress_job_id: str | None = None,
+        connector_id: str | None = None,
+        import_source: str = "file_upload",
     ) -> dict:
         total = len(conversations)
         imported = 0
@@ -119,6 +121,8 @@ class ImportPipelineService:
                 workspace_id=workspace_id,
                 canonical=canonical,
                 newly_added_message_ids=newly_added_message_ids,
+                connector_id=connector_id,
+                import_source=import_source,
             )
             imported += 1
             imported_ids.append(conversation["id"])
@@ -144,16 +148,19 @@ class ImportPipelineService:
         workspace_id: str | None,
         canonical: CanonicalConversation,
         newly_added_message_ids: list[str],
+        connector_id: str | None = None,
+        import_source: str = "file_upload",
     ) -> dict:
         conversation = self.store.create_conversation(
             user_id=user_id,
             workspace_id=workspace_id,
             provider_slug=canonical.provider_slug,
+            connector_id=connector_id,
             external_id=canonical.external_id,
             title=canonical.title,
             summary=None,
             status="active",
-            import_source="file_upload",
+            import_source=import_source,
             language=canonical.language,
             topics=canonical.topics,
             tags=canonical.tags,

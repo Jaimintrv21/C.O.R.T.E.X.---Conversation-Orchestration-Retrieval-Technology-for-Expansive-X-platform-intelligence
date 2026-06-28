@@ -9,7 +9,7 @@ import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Features } from "@/components/blocks/features-8";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
-import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard, Cpu, Network, MessageSquare, Terminal, Menu, X, Target } from "lucide-react";
+import { Search, BarChart3, Brain, Sparkles, Shield, Zap, ArrowRight, Github, Upload, Home, LogIn, UserPlus, BookOpen, Lock, Eye, RefreshCw, LineChart, Users, AlertTriangle, CreditCard, Cpu, Network, MessageSquare, Terminal, Menu, X, Target, Download } from "lucide-react";
 
 // FIXED hardcoded landing page theme - never reads from user AppearanceProvider
 const LANDING_ACCENT = '#6C63FF';
@@ -33,7 +33,7 @@ const TIMELINE_DATA = [
   { id: 2, title: "Search", date: "Step 2", content: "Hybrid search: PostgreSQL full-text + pgvector semantic embeddings + Meilisearch BM25 reranking.", category: "Core", icon: Search, relatedIds: [1, 3], status: "completed" as const, energy: 95 },
   { id: 3, title: "Analyze", date: "Step 3", content: "Token usage, topic clusters via BERTopic, provider breakdown, activity heatmaps, and scheduled snapshot aggregation.", category: "Core", icon: BarChart3, relatedIds: [2, 4], status: "completed" as const, energy: 85 },
   { id: 4, title: "Knowledge", date: "Step 4", content: "spaCy NER + custom rules extract entities and populate local Firestore knowledge graph nodes.", category: "AI", icon: Brain, relatedIds: [3, 5], status: "completed" as const, energy: 75 },
-  { id: 5, title: "Local GLM", date: "Step 5", content: "Query glm-5.2:cloud via local Ollama. Automatically retrieves and injects vector matches and knowledge nodes into the context.", category: "AI", icon: Cpu, relatedIds: [4, 6], status: "completed" as const, energy: 90 },
+  { id: 5, title: "CORTEX AI", date: "Step 5", content: "Query cortex-core:native via local CORTEX Engine. Automatically retrieves and injects vector matches and knowledge nodes into the context.", category: "AI", icon: Cpu, relatedIds: [4, 6], status: "completed" as const, energy: 90 },
   { id: 6, title: "Secure", date: "Step 6", content: "Self-hosted with AES-256 encryption, PII detection, tamper-evident audit logs, zero external API leaks.", category: "Security", icon: Shield, relatedIds: [5], status: "completed" as const, energy: 95 },
 ];
 
@@ -46,11 +46,11 @@ const PROBLEMS = [
   { icon: AlertTriangle, color: "text-pink-400", problem: "Privacy Risk", desc: "Chats processed by third-party cloud with no governance" },
 ];
 
-const PYTHON_CODE_SNIPPET = `from ollama import chat
+const PYTHON_CODE_SNIPPET = `from cortex import chat
 
-# CORTEX automatically enriches Ollama prompts with context
+# CORTEX automatically enriches AI prompts with context
 response = chat(
-    model='glm-5.2:cloud',
+    model='cortex-core:native',
     messages=[{
         'role': 'user', 
         'content': 'How do I deploy?'
@@ -101,8 +101,8 @@ const TERMINAL_LOGS = [
   {
     step: 4,
     logs: [
-      "[OLLAMA] Streaming request dispatched to local Ollama daemon.",
-      "[OLLAMA] Target model: 'glm-5.2:cloud'",
+      "[CORTEX-AI] Streaming request dispatched to local neural engine.",
+      "[CORTEX-AI] Target model: 'cortex-core:native'",
       "[STREAM] chunk: \"To deploy CORTEX:\"",
       "[STREAM] chunk: \"1. Clone the repository and run:\"",
       "[STREAM] chunk: \"   docker compose up -d\"",
@@ -124,7 +124,7 @@ const ContextPipelineVisualization = () => {
     setConsoleLogs([
       "[SYSTEM] CORTEX local context daemon online.",
       "[SYSTEM] Connected to Local Firestore Instance: OK",
-      "[SYSTEM] Connected to Local Ollama Client: OK",
+      "[SYSTEM] Connected to Local CORTEX Engine: OK",
       "[SYSTEM] Ready. Click a step or run the simulation below."
     ]);
   }, []);
@@ -163,7 +163,7 @@ const ContextPipelineVisualization = () => {
     { title: "Vector Search", desc: "Runs cosine similarity search over database embeddings to locate historical references.", icon: Search, color: "text-indigo-400", glow: "shadow-[0_0_15px_rgba(99,102,241,0.2)]", badge: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
     { title: "Firestore Graph", desc: "Queries Firestore collections for related tags and entity nodes.", icon: Network, color: "text-purple-400", glow: "shadow-[0_0_15px_rgba(168,85,247,0.2)]", badge: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
     { title: "Prompt Synthesis", desc: "Combines query, database search results, and knowledge facts into one unified context.", icon: Terminal, color: "text-cyan-400", glow: "shadow-[0_0_15px_rgba(6,182,212,0.2)]", badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
-    { title: "Local GLM Stream", desc: "Pipes enriched system prompt into local Ollama via glm-5.2:cloud and streams response.", icon: Cpu, color: "text-fuchsia-400", glow: "shadow-[0_0_15px_rgba(217,70,239,0.2)]", badge: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20" }
+    { title: "CORTEX AI Stream", desc: "Pipes enriched system prompt into local CORTEX Engine via cortex-core:native and streams response.", icon: Cpu, color: "text-fuchsia-400", glow: "shadow-[0_0_15px_rgba(217,70,239,0.2)]", badge: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20" }
   ];
 
   const triggerSimulation = async () => {
@@ -198,7 +198,7 @@ const ContextPipelineVisualization = () => {
       ...prev,
       "\n[SIMULATION COMPLETED] Context retrieval, injection, and inference cycle resolved successfully."
     ]);
-    setActiveStep(4); // Lock on the final step (Ollama GLM-5.2) at the end of the simulation
+    setActiveStep(4); // Lock on the final step (CORTEX Engine) at the end of the simulation
     setIsSimulating(false);
   };
 
@@ -212,7 +212,7 @@ const ContextPipelineVisualization = () => {
           </span>
           <h3 className="text-3xl font-extrabold text-white mt-3 tracking-tight">Direct Local Knowledge Graph</h3>
           <p className="text-white/40 text-sm leading-relaxed mt-3">
-            CORTEX weaves your indexed history with a local knowledge graph. Every message query undergoes semantic synthesis before prompting Ollama, ensuring responses are fully contextualized without exposing data to third-party APIs.
+            CORTEX weaves your indexed history with a local knowledge graph. Every message query undergoes semantic synthesis before prompting our native CORTEX AI model, ensuring responses are fully contextualized without exposing data to third-party APIs.
           </p>
         </div>
 
@@ -441,7 +441,7 @@ const ContextPipelineVisualization = () => {
             </div>
           </motion.div>
 
-          {/* Node 5: Ollama GLM-5.2 */}
+          {/* Node 5: CORTEX Engine */}
           <motion.div
             onClick={() => selectStep(4)}
             className={`absolute top-[365px] left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-[220px] ${activeStep === 4
@@ -454,7 +454,7 @@ const ContextPipelineVisualization = () => {
               <Cpu size={16} />
             </div>
             <div className="text-left min-w-0">
-              <span className="text-[10px] font-bold text-white tracking-wide block">Ollama GLM-5.2</span>
+              <span className="text-[10px] font-bold text-white tracking-wide block">CORTEX AI Core</span>
               <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Generate accurate, context-aware response</span>
             </div>
           </motion.div>
@@ -551,7 +551,7 @@ const ContextPipelineVisualization = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-[#f97316] to-[#ec4899] opacity-70 animate-pulse" />
           </div>
 
-          {/* Card 5: Ollama GLM-5.2 */}
+          {/* Card 5: CORTEX AI Core */}
           <div
             onClick={() => selectStep(4)}
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border cursor-pointer transition-all duration-300 w-full max-w-[280px] ${activeStep === 4
@@ -564,7 +564,7 @@ const ContextPipelineVisualization = () => {
               <Cpu size={16} />
             </div>
             <div className="text-left min-w-0">
-              <span className="text-[10px] font-bold text-white tracking-wide block">Ollama GLM-5.2</span>
+              <span className="text-[10px] font-bold text-white tracking-wide block">CORTEX AI Core</span>
               <span className="text-[8px] text-white/50 leading-tight block mt-0.5">Generate accurate, context-aware response</span>
             </div>
           </div>
@@ -629,7 +629,7 @@ const ContextPipelineVisualization = () => {
                   else if (log.startsWith('[VECTOR]')) colorClass = "text-indigo-400/90";
                   else if (log.startsWith('[GRAPH]')) colorClass = "text-purple-400/90";
                   else if (log.startsWith('[PROMPT]')) colorClass = "text-cyan-400/90";
-                  else if (log.startsWith('[OLLAMA]')) colorClass = "text-fuchsia-400/90";
+                  else if (log.startsWith('[CORTEX-AI]')) colorClass = "text-fuchsia-400/90";
                   else if (log.startsWith('[SIMULATION')) colorClass = "text-amber-400 font-semibold";
                   else if (log.startsWith('>')) colorClass = "text-blue-300 font-bold";
 
@@ -682,7 +682,7 @@ const ContextPipelineVisualization = () => {
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-bold text-white/90 truncate">Local & Private</div>
-              <div className="text-[8px] text-white/45 truncate">Powered by Ollama</div>
+              <div className="text-[8px] text-white/45 truncate">Powered by CORTEX Core</div>
             </div>
           </div>
         </div>
@@ -979,14 +979,14 @@ export default function LandingPage() {
 
         {/* Heading — full width, massive */}
         <h1 className="text-white text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.9] max-w-6xl">
-          Your AI Conversations
+          Free Your AI Data
         </h1>
         <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.9] max-w-6xl mt-2 bg-gradient-to-r from-violet-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">
-          Unified & Intelligent
+          Unified Import & Export
         </h1>
 
         <p className="text-white/40 text-base md:text-xl max-w-2xl mx-auto leading-relaxed mt-8">
-          Import, search, analyze, and generate knowledge from every AI conversation you&apos;ve ever had. One platform. Total control.
+          Break out of vendor lock-in. Seamlessly import your chat history from ChatGPT, Claude, Gemini, and Grok into a single, searchable, and exportable intelligence hub.
         </p>
 
         {/* CTA */}
@@ -1044,9 +1044,9 @@ export default function LandingPage() {
           </div>
           <div className="grid gap-5">
             {[
-              { step: "01", icon: Upload, title: "Import", desc: "Upload exports from any AI provider. CORTEX auto-detects format with versioned parsers, deduplicates by external_id, and normalizes into a unified canonical schema." },
-              { step: "02", icon: Search, title: "Discover", desc: "Hybrid search combines PostgreSQL full-text, pgvector semantic embeddings, and Meilisearch BM25 reranking. Filter by provider, date, tags, or folders." },
-              { step: "03", icon: Sparkles, title: "Generate", desc: "Create knowledge articles, reports, and presentations from your conversation history. Export to JSON, Markdown, CSV, or PDF." },
+              { step: "01", icon: Upload, title: "Universal Import", desc: "Upload raw zip exports from ChatGPT, Claude, or Gemini. CORTEX auto-detects the provider format, normalizes your data into a unified canonical schema, and seamlessly handles deduplication." },
+              { step: "02", icon: Search, title: "Discover & Analyze", desc: "Search across all platforms instantly. Hybrid search combines PostgreSQL full-text, pgvector semantic embeddings, and BM25 reranking to find any thought you've ever had." },
+              { step: "03", icon: Download, title: "Platform-Agnostic Export", desc: "Re-export your unified data to universal Markdown or JSON zip bundles at any time. Take your knowledge anywhere without being locked into a single provider's format." },
             ].map((s, i) => (
               <div key={i} className="flex gap-6 items-start p-6 rounded-2xl border border-white/[0.1] bg-white/[0.04] backdrop-blur-md hover:bg-white/[0.08] hover:border-white/[0.18] hover:shadow-lg hover:shadow-cyan-500/[0.05] transition-all duration-300">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border border-white/[0.08] flex items-center justify-center shrink-0">
@@ -1093,7 +1093,7 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { name: "Solo Developer", desc: "Uses 3+ AI tools daily. Needs semantic search, local Ollama, zero cloud dependency. docker compose up → searchable in 15 min.", icon: "🧑‍💻" },
+              { name: "Solo Developer", desc: "Uses 3+ AI tools daily. Needs semantic search, local AI, zero cloud dependency. docker compose up → searchable in 15 min.", icon: "🧑‍💻" },
               { name: "Team Lead", desc: "8-person team needs shared workspace, RBAC, analytics on team AI usage. 80% of conversations in shared workspace within 30 days.", icon: "👥" },
               { name: "Enterprise Admin", desc: "Fortune 500 IT/Security. Requires SSO, PII redaction, tamper-evident audit, multi-tenant. Zero data leakage.", icon: "🏢" },
             ].map((p, i) => (

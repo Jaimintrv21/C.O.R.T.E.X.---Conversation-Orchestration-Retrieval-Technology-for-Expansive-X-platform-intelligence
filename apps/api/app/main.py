@@ -16,7 +16,7 @@ from app.middleware.rate_limit import RateLimitMiddleware
 
 # Import all routers
 from app.routers import health, auth, conversations, search, analytics, settings as settings_router
-from app.routers import knowledge_graph, artifacts, jobs, workspaces, provider_accounts, ingest, usage
+from app.routers import knowledge_graph, artifacts, jobs, workspaces, provider_accounts, ingest, usage, connectors
 
 settings_config = get_settings()
 configure_logging()
@@ -75,3 +75,4 @@ app.include_router(workspaces.router, prefix=prefix)
 app.include_router(provider_accounts.router, prefix=prefix)
 app.include_router(ingest.router, prefix=prefix)
 app.include_router(usage.router, prefix=prefix)
+app.include_router(connectors.router, prefix=prefix)
